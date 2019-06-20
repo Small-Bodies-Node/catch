@@ -31,7 +31,7 @@ with Catch(Config.from_file(), save_log=True) as catch:
 
         # local archive has compressed data:
         datafn = os.path.join(path, label['^IMAGE'][0]) + '.fz'
-        h = fits.getheader(os.path.join(path, label['^IMAGE'][0]))
+        h = fits.getheader(datafn, ext=1)
 
         # hardcoded because Palomar Tricam part 1 labels are wrong
         # shape = np.array((label['IMAGE']['LINES'],
@@ -39,10 +39,13 @@ with Catch(Config.from_file(), save_log=True) as catch:
         shape = np.array((4080, 4080))
 
         wcs = WCS(naxis=2)
-        wcs.wcs.ctype = h['CTYPE1'], h['CTYPE2']
-        wcs.wcs.crval = h['CRVAL1'], h['CRVAL2']
-        wcs.wcs.crpix = h['CRPIX1'], h['CRPIX2']
-        wcs.wcs.cdelt = h['CDELT1'], h['CDELT2']
+        try:
+            wcs.wcs.ctype = h['CTYPE1'], h['CTYPE2']
+            wcs.wcs.crval = h['CRVAL1'], h['CRVAL2']
+            wcs.wcs.crpix = h['CRPIX1'], h['CRPIX2']
+            wcs.wcs.cdelt = h['CDELT1'], h['CDELT2']
+        except KeyError:
+            continue
         ra_c, dec_c = wcs.all_pix2world([[shape[0] / 2, shape[1] / 2]], 0)[0]
 
         v = wcs.all_pix2world([[0, 0], [0, shape[1]], [shape[0], shape[1]],
