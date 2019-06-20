@@ -2,6 +2,7 @@
 
 __all__ = ['Config']
 
+import os
 import sbsearch.config
 
 
@@ -17,4 +18,5 @@ class Config(sbsearch.config.Config):
 
     """
 
-    DEFAULT_FILE = './.catch.config'
+    DEFAULT_FILES = ['catch.config', '.catch.config',
+                     os.path.expanduser('~/.config/catch.config')]

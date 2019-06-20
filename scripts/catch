@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+# Licensed with the 3-clause BSD license.  See LICENSE for details.
+
+import argparse
+import uuid
+
+from catch import Catch
+from catch.config import Config
+
+parser = argparse.ArgumentParser('catch')
+parser.add_argument('desg')
+
+args = parser.parse_args()
+
+sessionid = uuid.uuid4()
+with Catch(Config.from_file()) as catch:
+    qid = catch.query(sessionid, args.desg, source='jpl')

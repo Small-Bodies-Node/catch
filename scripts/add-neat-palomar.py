@@ -25,9 +25,12 @@ def product_id_to_int_id(pid):
 
 with Catch(Config.from_file(), save_log=True) as catch:
     obs = []
-    for f in args.labels:
-        path = os.path.dirname(f)
-        label = pds3.PDS3Label(f)
+    for labelfn in args.labels:
+        path = os.path.dirname(labelfn)
+        label = pds3.PDS3Label(labelfn)
+
+        # local archive has compressed data:
+        datafn = os.path.join(path, label['^IMAGE'][0]) + '.fz'
         h = fits.getheader(os.path.join(path, label['^IMAGE'][0]))
 
         # hardcoded because Palomar Tricam part 1 labels are wrong
