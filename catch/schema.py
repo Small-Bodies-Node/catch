@@ -3,7 +3,7 @@
 __all__ = ['NEATPalomar']
 
 from sqlalchemy import Column, Integer, BigInteger, Float, String, ForeignKey
-from sbsearch.schema import Base, Obs
+from sbsearch.schema import Base, Obs, Found, Obj
 
 
 class NEATPalomar(Obs):

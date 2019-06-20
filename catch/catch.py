@@ -4,7 +4,7 @@ __all__ = ['Catch']
 
 from sbsearch import SBSearch
 from .config import Config
-from .schema import CatchQueries, Caught
+from .schema import CatchQueries, Caught, Obs, Found, Obj
 
 
 class Catch(SBSearch):
@@ -14,6 +14,35 @@ class Catch(SBSearch):
         self.config = Config(**kwargs) if config is None else config
         super().__init__(config=config, save_log=save_log,
                          disable_log=disable_log, **kwargs)
+
+    def caught(self, sessionid, queryid):
+        """Return results from catch query.
+
+        Parameters
+        ----------
+        sessionid : str
+            User's session ID.
+
+        queryid : int
+            User's query ID.
+
+        Returns
+        -------
+        rows : list
+            Results as lists of sqlalchemy objects: ``[CatchQueries,
+            Caught, Obs, Found, Obj]``.
+
+        """
+
+        rows = (self.db.session.query(Caught, CatchQueries, Obs, Found, Obj)
+                .join(CatchQueries, Caught.queryid == CatchQueries.queryid)
+                .join(Obs, Caught.obsid == Obs.obsid)
+                .join(Found, Caught.foundid == Found.foundid)
+                .join(Obj, Found.objid == Obj.objid)
+                .filter(CatchQueries.sessionid == sessionid)
+                .filter(CatchQueries.queryid == int(queryid))
+                .all())
+        return rows
 
     def query(self, sessionid, query, **kwargs):
         """Try to catch an object in all survey data.
