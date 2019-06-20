@@ -1,3 +1,4 @@
+# Licensed with the 3-clause BSD license.  See LICENSE for details.
 import os
 import argparse
 import numpy as np
