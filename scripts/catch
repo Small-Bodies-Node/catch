@@ -13,5 +13,5 @@ parser.add_argument('desg')
 args = parser.parse_args()
 
 sessionid = uuid.uuid4()
-with Catch(Config.from_file()) as catch:
+with Catch(Config.from_file(), save_log=True) as catch:
     qid = catch.query(sessionid, args.desg, source='jpl')

@@ -1,0 +1,44 @@
+#!/usr/bin/env python3
+# Licensed with the 3-clause BSD license.  See LICENSE for details.
+
+import argparse
+import pyds9
+from catch import Catch, Config
+
+parser = argparse.ArgumentParser('caught')
+parser.add_argument('sessionid')
+parser.add_argument('queryid', type=int)
+parser.add_argument('--ds9', action='store_true')
+parser.add_argument('--path', default='./',
+                    help='path to NEAT archive for --ds9')
+parser.add_argument('--limit', type=int, default=10,
+                    help='limit displayed images')
+
+args = parser.parse_args()
+
+if args.ds9:
+    ds9 = pyds9.DS9('caught', wait=30)
+
+with Catch(Config.from_file(), save_log=False) as catch:
+    # CatchQueries, Caught, Obs, Found, Obj
+    rows = catch.caught(args.sessionid, args.queryid)
+    for i, (cq, caught, obs, found, obj) in enumerate(rows):
+        if i == args.limit and args.ds9:
+            catch.logger.info('Limiting displayed images to {}'
+                              .format(args.limit))
+            
+        fn = '{}/{}.fit.fz'.format(
+            args.path, obs.productid.lower().replace('_', '/'))
+        if args.ds9 and i < args.limit:
+            ds9.set('frame {}'.format(i + 1))
+            ds9.set('file {}'.format(fn))
+            ds9.set('zscale')
+            circle = 'fk5; circle({},{},10")'.format(found.ra, found.dec)
+            ds9.set('regions', circle)
+            ds9.set('pan to {} {} wcs fk5'.format(found.ra, found.dec))
+
+        print(fn)
+
+if args.ds9:
+    ds9.set('frame 1')
+
