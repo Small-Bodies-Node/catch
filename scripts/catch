@@ -12,6 +12,7 @@ parser.add_argument('desg')
 
 args = parser.parse_args()
 
-sessionid = uuid.uuid4()
-with Catch(Config.from_file(), save_log=True) as catch:
-    qid = catch.query(sessionid, args.desg, source='jpl')
+sessionid = str(uuid.uuid4())
+with Catch(Config.from_file(), sessionid=sessionid, save_log=True) as catch:
+    qid = catch.query(args.desg, source='jpl')
+    catch.cutouts(qid)
