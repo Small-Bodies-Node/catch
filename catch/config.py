@@ -5,6 +5,16 @@ __all__ = ['Config']
 import os
 import sbsearch.config
 
+_config_example = '''
+{
+  "database": "postgresql://user:password@host/database",
+  "log": "/path/to/catch.log",
+  "cutout size": "5arcmin",
+  "archive path": "/path/to/archive/directory"
+  "cutout path": "/path/to/cutout/directory"
+}
+'''
+
 
 class Config(sbsearch.config.Config):
     """Catch configuration.
