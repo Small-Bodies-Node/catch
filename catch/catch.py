@@ -33,10 +33,6 @@ class Catch(SBSearch):
 
     Parameters
     ----------
-    sessionid : str, optional
-        UUID4 formatted session ID string.  If not provided, one will
-        be generated.
-
     **kwargs
         `~sbsearch.SBSearch` keyword arguments.
 
@@ -167,7 +163,7 @@ class Catch(SBSearch):
         total = 0
         for row in self.caught(queryid):
             total += 1
-            
+
             path = [
                 self.config['archive path'],
                 row.Obs.__product_path__,
@@ -305,10 +301,9 @@ class Catch(SBSearch):
             if sess.version != 4:
                 raise InvalidSessionID()
 
-
     def verify_database(self):
         super().verify_database([
             'catch_queries', 'caught',
             'neat_palomar',
             'neat_maui_geodss',
-         ])
+        ])
