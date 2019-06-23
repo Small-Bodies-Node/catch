@@ -131,6 +131,7 @@ class Catch(SBSearch):
         self.logger.info('Creating cutouts.')
 
         queryid = int(queryid)
+        size = u.Quantity(self.config['cutout size'])
         n = 0
         total = 0
         for row in self.caught(queryid):
@@ -176,7 +177,6 @@ class Catch(SBSearch):
             dec = Angle(row.Found.dec, 'deg')
             x0, y0 = wcs.all_world2pix([[ra.deg, dec.deg]], 0)[0]
 
-            size = 5 * u.arcmin
             corners = Angle([
                 [ra - size, dec - size],
                 [ra + size, dec - size],
