@@ -2,17 +2,25 @@
 # Licensed with the 3-clause BSD license.  See LICENSE for details.
 
 import argparse
-import uuid
-
-from catch import Catch
-from catch.config import Config
+from catch import Catch, Config
 
 parser = argparse.ArgumentParser('catch')
+parser.add_argument(
+    '--config', help='CATCH configuration file')
+parser.add_argument(
+    '--archive_path', help='path for archive files')
+parser.add_argument(
+    '--cutout_path', help='path for cutout files')
+parser.add_argument(
+    '--sessionid', help='CATCH session ID')
+parser.add_argument(
+    '--cutouts', action='store_true',
+    help='generate image cutouts for caught object')
 parser.add_argument('desg')
 
 args = parser.parse_args()
 
-sessionid = str(uuid.uuid4())
-with Catch(Config.from_file(), sessionid=sessionid, save_log=True) as catch:
+with Catch(Config.from_args(args), save_log=True) as catch:
     qid = catch.query(args.desg, source='jpl')
-    catch.cutouts(qid)
+    if args.cutouts:
+        catch.cutouts(qid)

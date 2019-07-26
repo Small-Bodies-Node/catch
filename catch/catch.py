@@ -16,6 +16,14 @@ from .config import Config
 from .schema import CatchQueries, Caught, Obs, Found, Obj
 
 
+class CatchException:
+    pass
+
+
+class InvalidSessionID(CatchException):
+    pass
+
+
 class Catch(SBSearch):
     """CATCH survey search tool.
 
@@ -30,26 +38,18 @@ class Catch(SBSearch):
 
     """
 
-    def __init__(self, config=None, sessionid=None, save_log=False,
+    def __init__(self, config=None, save_log=False,
                  disable_log=False, **kwargs):
-        if sessionid is None:
-            self.sessionid = uuid.uuid4()
-        else:
-            self.sessionid = str(uuid.UUID(sessionid))
-
         kwargs['location'] = 'I41'
-        self.config = Config(**kwargs) if config is None else config
         super().__init__(config=config, save_log=save_log,
                          disable_log=disable_log, **kwargs)
+        self._validate_sessionid()
 
     def caught(self, queryid):
         """Return results from catch query.
 
         Parameters
         ----------
-        sessionid : str
-            User's session ID.
-
         queryid : int
             User's query ID.
 
@@ -66,7 +66,7 @@ class Catch(SBSearch):
                 .join(Obs, Caught.obsid == Obs.obsid)
                 .join(Found, Caught.foundid == Found.foundid)
                 .join(Obj, Found.objid == Obj.objid)
-                .filter(CatchQueries.sessionid == self.sessionid)
+                .filter(CatchQueries.sessionid == self.config['sessionid'])
                 .filter(CatchQueries.queryid == int(queryid))
                 .all())
         return rows
@@ -91,7 +91,7 @@ class Catch(SBSearch):
         """
 
         q = CatchQueries(
-            sessionid=self.sessionid,
+            sessionid=self.config['sessionid'],
             query=str(query)
         )
         self.db.session.add(q)
@@ -111,11 +111,11 @@ class Catch(SBSearch):
 
         self.logger.info(
             'Query {} for session {} caught {} observations of {}'
-            .format(q.queryid, self.sessionid, len(obsids), query))
+            .format(q.queryid, self.config['sessionid'], len(obsids), query))
 
         return q.queryid
 
-    def cutouts(self, queryid, update=False):
+    def cutouts(self, queryid, force=False):
         """Generate cutouts based on caught data.
 
         Parameters
@@ -123,7 +123,7 @@ class Catch(SBSearch):
         queryid : int
             User's query ID.
 
-        update : bool, optional
+        force : bool, optional
             If target files exist, they will be overwritten.
 
         """
@@ -141,12 +141,11 @@ class Catch(SBSearch):
             path += row.Obs.productid.lower().split('_')
             inf = os.path.join(*path) + '.fit.fz'
             outf = os.path.join(self.config['cutout path'],
-                                'neat', self.sessionid,
-                                str(queryid),
+                                self.config['sessionid'], str(queryid),
                                 row.Obs.productid + '_cutout.fits')
             self.logger.debug(inf + ' → ' + outf)
 
-            if os.path.exists(outf) and not update:
+            if os.path.exists(outf) and not force:
                 continue
 
             # two directories may need to be created, the session id and
@@ -257,6 +256,21 @@ class Catch(SBSearch):
 
         self.logger.info('Cutout {} files, {} already existed.'
                          .format(n, total - n))
+
+    def _validate_sessionid(self):
+        """Validates the session ID."""
+        if self.config['sessionid'] is None:
+            # generate one
+            self.config.config['sessionid'] = str(uuid.uuid4())
+        else:
+            try:
+                sess = uuid.UUID(self.config['sessionid'])
+            except ValueError:
+                raise InvalidSessionID()
+
+            if sess.version != 4:
+                raise InvalidSessionID()
+
 
     def verify_database(self):
         super().verify_database(['catch_queries', 'neat_palomar', 'caught'])
