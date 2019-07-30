@@ -42,7 +42,7 @@ def image_filename(obs, format='full'):
     if format not in ['full', 'cutout']:
         raise ValueError('format')
 
-    if obs.source == 'neat_palomar':
+    if obs.source in ['neat_palomar', 'neat_maui_geodss']:
         fn = '{}.fit.fz'.format(obs.productid)
         if format == 'full':
             fn = fn.replace('_', '/').lower()
