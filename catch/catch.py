@@ -4,15 +4,19 @@ __all__ = ['Catch']
 
 import os
 import uuid
+from warnings import warn
 from collections import OrderedDict
+
 import numpy as np
 from astropy.nddata import CCDData
 from astropy.io import fits
 from astropy.wcs import WCS
 from astropy.coordinates import Angle
 import astropy.units as u
+
 from sbsearch import SBSearch
 from .config import Config
+from . import schema
 from .schema import CatchQueries, Caught, Obs, Found, Obj
 
 
@@ -38,9 +42,13 @@ class Catch(SBSearch):
 
     """
 
-    def __init__(self, config=None, save_log=False,
-                 disable_log=False, **kwargs):
-        kwargs['location'] = 'I41'
+    SURVEYS = {
+        'neat palomar': schema.NEATPalomar,
+        'neat geodss': schema.NEATMauiGEODSS,
+    }
+
+    def __init__(self, config=None, save_log=False, disable_log=False,
+                 **kwargs):
         super().__init__(config=config, save_log=save_log,
                          disable_log=disable_log, **kwargs)
         self._validate_sessionid()
@@ -71,13 +79,17 @@ class Catch(SBSearch):
                 .all())
         return rows
 
-    def query(self, query, **kwargs):
-        """Try to catch an object in all survey data.
+    def query(self, query, source='any', **kwargs):
+        """Try to catch an object in survey data.
 
         Parameters
         ----------
         query : str
             User's query string.
+
+        source : string, optional
+            Survey source table name.  See ``Catch.surveys.keys()``
+            for possible values, or use `'any'` to search each survey.
 
         **kwargs
             Any `~sbsearch.sbsearch.find_object` keyword except
@@ -97,12 +109,27 @@ class Catch(SBSearch):
         self.db.session.add(q)
         self.db.session.commit()
 
+        sources = []
+        if source == 'any':
+            sources = self.SURVEYS.keys()
+        else:
+            sources = [source]
+
+        for source in sources:
+            self._query(q.queryid, query, source, **kwargs)
+
+        return q.queryid
+
+    def _query(self, queryid, query, source, **kwargs):
         kwargs['save'] = True
         kwargs['update'] = True
+        kwargs['source'] = self.SURVEYS[source]
+        kwargs['location'] = self.SURVEYS[source].__obscode__
+
         obsids, foundids, newids = self.find_object(str(query), **kwargs)
         for obsid, foundid in zip(obsids, foundids):
             caught = Caught(
-                queryid=q.queryid,
+                queryid=queryid,
                 obsid=obsid,
                 foundid=foundid
             )
@@ -110,13 +137,15 @@ class Catch(SBSearch):
         self.db.session.commit()
 
         self.logger.info(
-            'Query {} for session {} caught {} observations of {}'
-            .format(q.queryid, self.config['sessionid'], len(obsids), query))
-
-        return q.queryid
+            'Query {} for session {} caught {} observations of {} in "{}"'
+            .format(queryid, self.config['sessionid'], len(obsids), query,
+                    source))
 
     def cutouts(self, queryid, force=False):
         """Generate cutouts based on caught data.
+
+        This functionality needs to be moved elsewhere and removed
+        from catch.
 
         Parameters
         ----------
@@ -128,6 +157,8 @@ class Catch(SBSearch):
 
         """
 
+        warn(DeprecationWarning('cutouts is slated for removal'))
+
         self.logger.info('Creating cutouts.')
 
         queryid = int(queryid)
@@ -136,9 +167,12 @@ class Catch(SBSearch):
         total = 0
         for row in self.caught(queryid):
             total += 1
-            path = [self.config['archive path'], 'neat',
-                    'tricam', 'data']
-            path += row.Obs.productid.lower().split('_')
+            
+            path = [
+                self.config['archive path'],
+                row.Obs.__product_path__,
+            ] + row.Obs.productid.lower().split('_')
+
             inf = os.path.join(*path) + '.fit.fz'
             outf = os.path.join(self.config['cutout path'],
                                 self.config['sessionid'], str(queryid),
@@ -273,4 +307,8 @@ class Catch(SBSearch):
 
 
     def verify_database(self):
-        super().verify_database(['catch_queries', 'neat_palomar', 'caught'])
+        super().verify_database([
+            'catch_queries', 'caught',
+            'neat_palomar',
+            'neat_maui_geodss',
+         ])
