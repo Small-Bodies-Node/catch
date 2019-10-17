@@ -2,25 +2,28 @@
 # Licensed with the 3-clause BSD license.  See LICENSE for details.
 
 import argparse
+from astropy.table import Table
 from catch import Catch, Config
 
 parser = argparse.ArgumentParser('catch')
 parser.add_argument(
     '--config', help='CATCH configuration file')
 parser.add_argument(
-    '--archive_path', help='path for archive files')
-parser.add_argument(
-    '--cutout_path', help='path for cutout files')
-parser.add_argument(
-    '--sessionid', help='CATCH session ID')
-parser.add_argument(
-    '--cutouts', action='store_true',
-    help='generate image cutouts for caught object')
+    '--not-cached', dest='cached', action='store_false',
+    help='do not use cached results')
 parser.add_argument('desg')
 
 args = parser.parse_args()
 
+rows = []
 with Catch(Config.from_args(args), save_log=True) as catch:
-    qid = catch.query(args.desg, source='any', eph_source='jpl')
-    if args.cutouts:
-        catch.cutouts(qid)
+    for row in catch.query(args.desg, source='any', cached=args.cached,
+                           eph_source='jpl'):
+        r = {}
+        for table in row:
+            for k in table.__table__.columns.keys():
+                r[k] = getattr(table, k)
+        rows.append(r)
+
+tab = Table(rows=rows)
+tab.pprint(-1, -1)

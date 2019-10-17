@@ -9,11 +9,7 @@ import sbsearch.config
 _config_example = '''
 {
   "database": "postgresql://user:password@host/database",
-  "log": "/path/to/catch.log",
-  "cutout size": "5arcmin",
-  "archive path": "/path/to/archive/directory",
-  "cutout path": "/path/to/cutout/directory",
-  "sessionid": "valid catch session id"
+  "log": "/path/to/catch.log"
 }
 '''
 
