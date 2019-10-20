@@ -31,4 +31,3 @@ class Config(sbsearch.config.Config):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        uuid.UUID(self['sessionid'])  # validate
