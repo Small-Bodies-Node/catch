@@ -5,6 +5,7 @@ __all__ = ['Catch']
 import os
 from warnings import warn
 from collections import OrderedDict
+import uuid
 
 from sqlalchemy.orm.exc import NoResultFound
 import numpy as np
@@ -28,6 +29,10 @@ class InvalidSessionID(CatchException):
     pass
 
 
+class InvalidSourceName(CatchException):
+    pass
+
+
 class Catch(SBSearch):
     """CATCH survey search tool.
 
@@ -39,7 +44,7 @@ class Catch(SBSearch):
 
     """
 
-    SURVEYS = {
+    SOURCES = {
         'neat palomar': schema.NEATPalomar,
         'neat geodss': schema.NEATMauiGEODSS,
     }
@@ -49,34 +54,36 @@ class Catch(SBSearch):
         super().__init__(config=config, save_log=save_log,
                          disable_log=disable_log, **kwargs)
 
-    def caught(self, queryid):
+    def caught(self, job_id):
         """Return results from catch query.
-
 
         Parameters
         ----------
-        queryid : int
-            User's query ID.
+        job_id : uuid.UUID or string
+            Unique job ID for original query.  UUID version 4.
 
 
         Returns
         -------
-        rows : list
-            Results as lists of sqlalchemy objects: ``[Caught, Obs,
-            Found, Obj]``.
+        query : 
+            Results as lists of sqlalchemy objects: ``[Found, Obs, Obj]``.
 
         """
 
-        rows = (self.db.session.query(Caught, Obs, Found, Obj)
-                .join(Obs, Caught.obsid == Obs.obsid)
-                .join(Found, Caught.foundid == Found.foundid)
+        job_id = uuid.UUID(str(job_id), version=4)
+
+        rows = (self.db.session.query(Found, Obs, Obj)
+                .join(Caught, Found.foundid == Caught.foundid)
+                .join(CatchQueries, CatchQueries.queryid == Caught.queryid)
+                .join(Obs, Found.obsid == Obs.obsid)
                 .join(Obj, Found.objid == Obj.objid)
-                .filter(Caught.queryid == queryid)
+                .filter(CatchQueries.jobid == job_id.hex)
                 .all())
+
         return rows
 
     def drop(self, queryid):
-        """Drop a caught object and query.
+        """Drop a caught object.
 
 
         Parameters
@@ -92,102 +99,161 @@ class Catch(SBSearch):
 
         """
 
-        rows = (self.db.session.query(Caught, Found)
-                .join(Found, Caught.foundid == Found.foundid)
-                .filter(Caught.queryid == queryid)
-                .all())
-        n = 0
-        for row in rows:
-            # cascading will also delete the Caught rows
-            self.db.session.delete(row[1])
-            n += 1
-
+        founds = (self.db.session.query(Found)
+                  .join(Caught, Caught.foundid == Found.foundid)
+                  .filter(Caught.queryid == queryid)
+                  .all())
+        n = len(founds)
+        # cascades should delete catch_queries and caught rows
+        for found in founds:
+            self.db.session.delete(found)
         return n
 
-    def query(self, query, source='any', cached=True, **kwargs):
+    def query(self, target, job_id, source='any', cached=True, **kwargs):
         """Try to catch an object in survey data.
 
 
         Parameters
         ----------
-        query : str
-            User's query string.
+        target : string
+            Target for which to search.
+
+        job_id : uuid.UUID or string
+            Unique ID for this query.  UUID version 4.
 
         source : string, optional
-            Survey source table name.  See ``Catch.surveys.keys()``
-            for possible values, or use `'any'` to search each survey.
+            Observation source table name.  See
+            ``Catch.SOURCES.keys()`` for possible values, or use
+            ``'any'`` to search each survey.
 
         cached : bool, optional
             Use cached results, if possible.
 
         **kwargs
             Any `~sbsearch.sbsearch.find_object` keyword except
-            ``save`` or ``update``.
+            ``save``, ``update``, or ``location``.
 
 
         Returns
         -------
-        caught : generator
-            Survey matches as lists of sqlalchemy objects:
-            ``[Caught, Obs, Found, Obj]``.
+        count : int
+            Number of observations found.
 
         """
 
-        sources = []
+        sources = self._validate_source(source)
+        job_id = uuid.UUID(str(job_id), version=4)
+
+        count = 0
+        for source in sources:
+            cached_query = self._find_catch_query(target, source)
+
+            q = CatchQueries(query=str(target),
+                             jobid=job_id.hex,
+                             source=source,
+                             date=Time.now().iso)
+            self.db.session.add(q)
+            self.db.session.commit()
+
+            if cached and cached_query is not None:
+                count += self._add_cached_results(q, cached_query)
+                continue
+
+            if cached_query is not None:
+                n = self.drop(cached_query.queryid)
+                self.logger.info('Dropped {} cached results for "{}"'
+                                 .format(n, source))
+
+            count += self._query(q, target, source, **kwargs)
+
+        return count
+
+    def check_cache(self, target, source='any'):
+        """Has this query been cached?
+
+
+        Parameters
+        ----------
+        target : string
+            Object to find.
+
+        source : string, optional
+            Survey source table name.  See ``Catch.SOURCES.keys()``
+            for possible values, or use `'any'` to search each survey.
+
+
+        Returns
+        -------
+        cached : bool
+            ``True`` if the search is cached.  For ``'any'`` source,
+            if any one survey search is missing, then the result is
+            ``False``.
+
+        """
+
+        sources = self._validate_source(source)
+
+        cached = True
+        for source in sources:
+            q = self._find_catch_query(target, source)
+            cached *= q is not None
+
+        return cached
+
+    def _find_catch_query(self, target, source):
+        """Find query ID for this target and source."""
+        q = (self.db.session.query(CatchQueries)
+             .filter(CatchQueries.query == target)
+             .filter(CatchQueries.source == source)
+             .order_by(CatchQueries.queryid)
+             .first())
+        return q
+
+    def _add_cached_results(self, query, cached_query):
+        founds = (self.db.session.query(Found)
+                  .join(Caught, Caught.foundid == Found.foundid)
+                  .filter(Caught.queryid == cached_query.queryid)
+                  .all())
+        for found in founds:
+            caught = Caught(
+                queryid=query.queryid,
+                foundid=found.foundid
+            )
+            self.db.session.add(caught)
+        return len(founds)
+
+    def _query(self, query, target, source, **kwargs):
+        kwargs['save'] = True
+        kwargs['update'] = True
+        kwargs['source'] = self.SOURCES[source]
+        kwargs['location'] = self.SOURCES[source].__obscode__
+
+        obsids, foundids, newids = self.find_object(str(target), **kwargs)
+        for foundid in foundids:
+            caught = Caught(
+                queryid=query.queryid,
+                foundid=foundid
+            )
+            self.db.session.add(caught)
+
+        self.logger.info(
+            'Query {} caught {} observations of {} in "{}"'
+            .format(query.queryid, len(obsids), target, source))
+
+        self.db.session.commit()
+        return len(foundids)
+
+    def _validate_source(self, source):
         if source == 'any':
-            sources = self.SURVEYS.keys()
+            sources = self.SOURCES.keys()
         else:
             sources = [source]
 
         for source in sources:
-            q = self._check_cache(query, source)
-            if q is not None and not cached:
-                n = self.drop(q.queryid)
-                q = None
-                self.logger.info('Dropped {} cached results in "{}"'
-                                 .format(n, source))
+            if source not in self.SOURCES:
+                raise InvalidSourceName(source)
 
-            if q is None:
-                q = CatchQueries(query=str(query),
-                                 source=source,
-                                 date=Time.now().iso)
-                self.db.session.add(q)
-                self.db.session.commit()
-                self._query(q.queryid, query, source, **kwargs)
-
-            for row in self.caught(q.queryid):
-                yield row
-
-    def _check_cache(self, query, source):
-        """Has this query been cached?"""
-        try:
-            q = (self.db.session.query(CatchQueries)
-                 .filter(CatchQueries.query == query)
-                 .filter(CatchQueries.source == source)
-                 .one())
-        except NoResultFound:
-            q = None
-        return q
-
-    def _query(self, queryid, query, source, **kwargs):
-        kwargs['save'] = True
-        kwargs['update'] = True
-        kwargs['source'] = self.SURVEYS[source]
-        kwargs['location'] = self.SURVEYS[source].__obscode__
-
-        obsids, foundids, newids = self.find_object(str(query), **kwargs)
-        for obsid, foundid in zip(obsids, foundids):
-            caught = Caught(
-                queryid=queryid,
-                obsid=obsid,
-                foundid=foundid
-            )
-            self.db.session.add(caught)
-        self.db.session.commit()
-
-        self.logger.info(
-            'Query {} caught {} observations of {} in "{}"'
-            .format(queryid, len(obsids), query, source))
+        return sources
 
     def verify_database(self):
         super().verify_database([
