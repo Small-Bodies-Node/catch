@@ -21,7 +21,7 @@ from . import schema
 from .schema import CatchQueries, Caught, Obs, Found, Obj
 
 
-class CatchException:
+class CatchException(Exception):
     pass
 
 
