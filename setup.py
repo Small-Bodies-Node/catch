@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 if __name__ == "__main__":
     setup(name='catch',
-          version='0.2.0',
+          version='0.3.0',
           description=('Planetary Data System Small-Bodies Node astronomical'
                        ' survey search tool.'),
           author="Michael S. P. Kelley",

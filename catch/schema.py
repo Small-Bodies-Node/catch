@@ -2,7 +2,8 @@
 
 __all__ = ['NEATPalomar']
 
-from sqlalchemy import Column, Integer, BigInteger, Float, String, ForeignKey
+from sqlalchemy import Table, Column, Integer, BigInteger, Float, String, ForeignKey
+from sqlalchemy.orm import relationship
 from sbsearch.schema import Base, Obs, Found, Obj
 
 
@@ -24,6 +25,7 @@ class NEATPalomar(Obs):
     __obscode__ = '644'
     __product_path__ = 'neat/tricam/data'
 
+
 class NEATMauiGEODSS(Obs):
     __tablename__ = 'neat_maui_geodss'
     id = Column(BigInteger, primary_key=True)
@@ -39,18 +41,24 @@ class NEATMauiGEODSS(Obs):
     __obscode__ = '566'
     __product_path__ = 'neat/geodss/data'
 
+
 class CatchQueries(Base):
     __tablename__ = 'catch_queries'
     queryid = Column(BigInteger, primary_key=True)
-    sessionid = Column(String(64), doc="User's unique session ID")
-    query = Column(String(128), doc="User's query string")
+    jobid = Column(String(32), index=True,
+                   doc="Unique job ID, UUID version 4")
+    query = Column(String(128), index=True, doc="User's query string")
+    source = Column(String(128), doc="Survey source table queried")
+    date = Column(String(64), doc="Date query was executed")
+
 
 class Caught(Base):
     __tablename__ = 'caught'
-    caughtid = Column(BigInteger, primary_key=True)
-    queryid = Column(BigInteger, ForeignKey(
-        'catch_queries.queryid', onupdate='CASCADE', ondelete='CASCADE'))
-    obsid = Column(BigInteger, ForeignKey(
-        'obs.obsid', onupdate='CASCADE', ondelete='CASCADE'))
-    foundid = Column(BigInteger, ForeignKey(
-        'found.foundid', onupdate='CASCADE', ondelete='CASCADE'))
+    queryid = Column(BigInteger, ForeignKey('catch_queries.queryid',
+                                            onupdate='CASCADE',
+                                            ondelete='CASCADE'),
+                     primary_key=True)
+    foundid = Column(BigInteger, ForeignKey('found.foundid',
+                                            onupdate='CASCADE',
+                                            ondelete='CASCADE'),
+                     primary_key=True)
