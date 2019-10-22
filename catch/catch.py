@@ -200,11 +200,15 @@ class Catch(SBSearch):
         return cached
 
     def _find_catch_query(self, target, source):
-        """Find query ID for this target and source."""
+        """Find query ID for this target and source.
+
+        Assumes the last search is the most relevant.
+
+        """
         q = (self.db.session.query(CatchQueries)
              .filter(CatchQueries.query == target)
              .filter(CatchQueries.source == source)
-             .order_by(CatchQueries.queryid)
+             .order_by(CatchQueries.queryid.desc())
              .first())
         return q
 

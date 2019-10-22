@@ -12,10 +12,10 @@ parser = argparse.ArgumentParser('catch')
 parser.add_argument('desg')
 parser.add_argument(
     '--source', default='any', choices=sources,
-    help='Search this observation source')
+    help='search this observation source')
 parser.add_argument(
-    '--cached', default=True, type=bool,
-    help='Use cached results (default True)')
+    '--force', dest='cached', action='store_false',
+    help='do not use cached results')
 parser.add_argument(
     '--config', help='CATCH configuration file')
 
