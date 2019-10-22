@@ -65,8 +65,8 @@ class Catch(SBSearch):
 
         Returns
         -------
-        query : 
-            Results as lists of sqlalchemy objects: ``[Found, Obs, Obj]``.
+        query : sqlalchemy Query
+            Results as sqlalchemy objects: ``[Found, Obs, Obj]``.
 
         """
 
@@ -77,8 +77,7 @@ class Catch(SBSearch):
                 .join(CatchQueries, CatchQueries.queryid == Caught.queryid)
                 .join(Obs, Found.obsid == Obs.obsid)
                 .join(Obj, Found.objid == Obj.objid)
-                .filter(CatchQueries.jobid == job_id.hex)
-                .all())
+                .filter(CatchQueries.jobid == job_id.hex))
 
         return rows
 
