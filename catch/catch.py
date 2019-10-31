@@ -57,6 +57,7 @@ class Catch(SBSearch):
     def caught(self, job_id):
         """Return results from catch query.
 
+
         Parameters
         ----------
         job_id : uuid.UUID or string
@@ -65,7 +66,7 @@ class Catch(SBSearch):
 
         Returns
         -------
-        query : sqlalchemy Query
+        rows : sqlalchemy Query
             Results as sqlalchemy objects: ``[Found, Obs, Obj]``.
 
         """
@@ -106,6 +107,7 @@ class Catch(SBSearch):
         # cascades should delete catch_queries and caught rows
         for found in founds:
             self.db.session.delete(found)
+        self.db.session.commit()
         return n
 
     def query(self, target, job_id, source='any', cached=True, **kwargs):
@@ -165,6 +167,7 @@ class Catch(SBSearch):
 
             count += self._query(q, target, source, **kwargs)
 
+        self.db.session.commit()
         return count
 
     def check_cache(self, target, source='any'):
