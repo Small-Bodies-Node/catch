@@ -33,6 +33,10 @@ class InvalidSourceName(CatchException):
     pass
 
 
+class FindObjectFailure(CatchException):
+    pass
+
+
 class Catch(SBSearch):
     """CATCH survey search tool.
 
@@ -49,12 +53,14 @@ class Catch(SBSearch):
         'neat geodss': schema.NEATMauiGEODSS,
     }
 
+    VMAX = 27
+
     def __init__(self, config=None, save_log=False, disable_log=False,
                  **kwargs):
         super().__init__(config=config, save_log=save_log,
                          disable_log=disable_log, **kwargs)
 
-    def caught(self, job_id):
+    def caught(self, job_id, vmax=None):
         """Return results from catch query.
 
 
@@ -62,6 +68,9 @@ class Catch(SBSearch):
         ----------
         job_id : uuid.UUID or string
             Unique job ID for original query.  UUID version 4.
+
+        vmax : float, optional
+            Maximum magnitude for returned results.
 
 
         Returns
@@ -79,6 +88,9 @@ class Catch(SBSearch):
                 .join(Obs, Found.obsid == Obs.obsid)
                 .join(Obj, Found.objid == Obj.objid)
                 .filter(CatchQueries.jobid == job_id.hex))
+
+        if vmax is not None:
+            rows = rows.filter(Found.vmag <= vmax)
 
         return rows
 
@@ -158,14 +170,13 @@ class Catch(SBSearch):
 
             if cached and cached_query is not None:
                 count += self._add_cached_results(q, cached_query)
-                continue
-
-            if cached_query is not None:
-                n = self.drop(cached_query.queryid)
-                self.logger.info('Dropped {} cached results for "{}"'
-                                 .format(n, source))
-
-            count += self._query(q, target, source, **kwargs)
+            else:
+                try:
+                    count += self._query(q, target, source, **kwargs)
+                except FindObjectFailure:
+                    self.db.session.delete(q)
+                    self.db.session.commit()
+                    raise
 
         self.db.session.commit()
         return count
@@ -233,8 +244,14 @@ class Catch(SBSearch):
         kwargs['update'] = True
         kwargs['source'] = self.SOURCES[source]
         kwargs['location'] = self.SOURCES[source].__obscode__
+        kwargs['vmax'] = kwargs.get('vmax', self.VMAX)
 
-        obsids, foundids, newids = self.find_object(str(target), **kwargs)
+        try:
+            obsids, foundids, newids = self.find_object(
+                str(target), **kwargs)
+        except Exception as e:
+            raise FindObjectFailure(str(e))
+
         for foundid in foundids:
             caught = Caught(
                 queryid=query.queryid,
