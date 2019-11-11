@@ -22,6 +22,7 @@ class NEATPalomar(Obs):
     __mapper_args__ = {
         'polymorphic_identity': 'neat_palomar'
     }
+    __data_source_name__ = 'NEAT Palomar'
     __obscode__ = '644'
     __product_path__ = 'neat/tricam/data'
 
@@ -38,6 +39,7 @@ class NEATMauiGEODSS(Obs):
     __mapper_args__ = {
         'polymorphic_identity': 'neat_maui_geodss'
     }
+    __data_source_name__ = 'NEAT GEODSS'
     __obscode__ = '566'
     __product_path__ = 'neat/geodss/data'
 

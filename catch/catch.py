@@ -2,21 +2,13 @@
 
 __all__ = ['Catch']
 
-import os
-from warnings import warn
-from collections import OrderedDict
+import sys
 import uuid
+import logging
 
-from sqlalchemy.orm.exc import NoResultFound
-import numpy as np
-from astropy.nddata import CCDData
-from astropy.io import fits
-from astropy.wcs import WCS
-from astropy.coordinates import Angle
 from astropy.time import Time
-import astropy.units as u
-
 from sbsearch import SBSearch
+
 from . import schema
 from .schema import CatchQueries, Caught, Obs, Found, Obj
 
@@ -46,6 +38,12 @@ class Catch(SBSearch):
     **kwargs
         `~sbsearch.SBSearch` keyword arguments.
 
+
+    Attributes
+    ----------
+    task_logger : Logger
+        Messages for CATCH-APIs may be published to this logger.
+
     """
 
     SOURCES = {
@@ -59,6 +57,16 @@ class Catch(SBSearch):
                  **kwargs):
         super().__init__(config=config, save_log=save_log,
                          disable_log=disable_log, **kwargs)
+
+        # logger for CATCH-APIs messages
+        self.task_logger = logging.getLogger('CATCH task messaging')
+        self.task_logger.setLevel(logging.INFO)
+        if len(self.task_logger.handlers) == 0:
+            # always log to the console
+            formatter = logging.Formatter('%(levelname)s: %(message)s')
+            console = logging.StreamHandler(sys.stdout)
+            console.setFormatter(formatter)
+            self.task_logger.addHandler(console)
 
     def caught(self, job_id, vmax=None):
         """Return results from catch query.
@@ -259,9 +267,10 @@ class Catch(SBSearch):
             )
             self.db.session.add(caught)
 
-        self.logger.info(
-            'Query {} caught {} observations of {} in "{}"'
-            .format(query.queryid, len(obsids), target, source))
+        self.task_logger.info(
+            'Caught {} observations of {} in {}.'
+            .format(len(obsids), target,
+                    self.SOURCES[source].__data_source_name__))
 
         self.db.session.commit()
         return len(foundids)
