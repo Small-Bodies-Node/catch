@@ -38,12 +38,6 @@ class Catch(SBSearch):
     **kwargs
         `~sbsearch.SBSearch` keyword arguments.
 
-
-    Attributes
-    ----------
-    task_logger : Logger
-        Messages for CATCH-APIs may be published to this logger.
-
     """
 
     SOURCES = {
@@ -57,16 +51,6 @@ class Catch(SBSearch):
                  **kwargs):
         super().__init__(config=config, save_log=save_log,
                          disable_log=disable_log, **kwargs)
-
-        # logger for CATCH-APIs messages
-        self.task_logger = logging.getLogger('CATCH task messaging')
-        self.task_logger.setLevel(logging.INFO)
-        if len(self.task_logger.handlers) == 0:
-            # always log to the console
-            formatter = logging.Formatter('%(levelname)s: %(message)s')
-            console = logging.StreamHandler(sys.stdout)
-            console.setFormatter(formatter)
-            self.task_logger.addHandler(console)
 
     def caught(self, job_id, vmax=None):
         """Return results from catch query.
@@ -133,6 +117,9 @@ class Catch(SBSearch):
     def query(self, target, job_id, source='any', cached=True, **kwargs):
         """Try to catch an object in survey data.
 
+        Publishes messages to the Python logging system under the name
+        'CATCH-APIs <job_id>'.
+
 
         Parameters
         ----------
@@ -165,8 +152,21 @@ class Catch(SBSearch):
         sources = self._validate_source(source)
         job_id = uuid.UUID(str(job_id), version=4)
 
+        # logger for CATCH-APIs messages
+        task_messenger = logging.getLogger(
+            'CATCH-APIs {}'.format(job_id.hex))
+        task_messenger.setLevel(logging.INFO)
+        if len(task_messenger.handlers) == 0:
+            # always log to the console
+            formatter = logging.Formatter('%(levelname)s: %(message)s')
+            console = logging.StreamHandler(sys.stdout)
+            console.setFormatter(formatter)
+            task_messenger.addHandler(console)
+
         count = 0
         for source in sources:
+            source_name = self.SOURCES[source].__data_source_name__
+
             cached_query = self._find_catch_query(target, source)
 
             q = CatchQueries(query=str(target),
@@ -177,10 +177,16 @@ class Catch(SBSearch):
             self.db.session.commit()
 
             if cached and cached_query is not None:
-                count += self._add_cached_results(q, cached_query)
+                n = self._add_cached_results(q, cached_query)
+                count += n
+                task_messenger.info('Added {} cached results from {}.'
+                                    .format(n, source_name))
             else:
                 try:
-                    count += self._query(q, target, source, **kwargs)
+                    n = self._query(q, target, source, **kwargs)
+                    count += n
+                    task_messenger.info('Caught {} observations in {}.'
+                                        .format(n, source_name))
                 except FindObjectFailure:
                     self.db.session.delete(q)
                     self.db.session.commit()
@@ -266,11 +272,6 @@ class Catch(SBSearch):
                 foundid=foundid
             )
             self.db.session.add(caught)
-
-        self.task_logger.info(
-            'Caught {} observations of {} in {}.'
-            .format(len(obsids), target,
-                    self.SOURCES[source].__data_source_name__))
 
         self.db.session.commit()
         return len(foundids)
