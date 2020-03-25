@@ -43,6 +43,7 @@ class Catch(SBSearch):
     SOURCES = {
         'neat palomar': schema.NEATPalomar,
         'neat geodss': schema.NEATMauiGEODSS,
+        'skymapper': schema.SkyMapper,
     }
 
     VMAX = 27
@@ -303,4 +304,5 @@ class Catch(SBSearch):
             'catch_queries', 'caught',
             'neat_palomar',
             'neat_maui_geodss',
+            'skymapper'
         ])
