@@ -23,7 +23,7 @@ def product_id_to_int_id(pid):
     return int(s[2:])
 
 
-with Catch(Config.from_file(), save_log=True) as catch:
+with Catch(Config.from_file(), save_log=True, debug=True) as catch:
     obs = []
     for labelfn in args.labels:
         path = os.path.dirname(labelfn)
