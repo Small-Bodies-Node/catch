@@ -3,6 +3,7 @@
 
 import argparse
 import uuid
+import logging
 from astropy.table import Table
 from catch import Catch, Config
 
@@ -18,11 +19,13 @@ parser.add_argument(
     help='do not use cached results')
 parser.add_argument(
     '--config', help='CATCH configuration file')
+parser.add_argument(
+    '--debug', action='store_true', help='debug mode')
 
 args = parser.parse_args()
 
 rows = []
-with Catch(Config.from_args(args), save_log=True) as catch:
+with Catch(Config.from_args(args), save_log=True, debug=args.debug) as catch:
     job_id = uuid.uuid4()
     count = catch.query(args.desg, job_id, source=args.source, cached=args.cached,
                         eph_source='jpl')
