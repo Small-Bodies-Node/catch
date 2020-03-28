@@ -4,14 +4,14 @@ from setuptools import setup, find_packages
 
 if __name__ == "__main__":
     setup(name='catch',
-          version='0.3.6',
+          version='0.3.7',
           description=('Planetary Data System Small-Bodies Node astronomical'
                        ' survey search tool.'),
           author="Michael S. P. Kelley",
           author_email="msk@astro.umd.edu",
           url="https://github.com/Small-Bodies-Node/catch",
           packages=find_packages(),
-          requires=['numpy', 'astropy', 'sbsearch'],
+          install_requires=['sbsearch>=1.0.10'],
           setup_requires=['pytest-runner'],
           tests_require=['pytest'],
           scripts=['scripts/catch'],

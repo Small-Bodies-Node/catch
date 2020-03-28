@@ -264,7 +264,11 @@ class Catch(SBSearch):
             obsids, foundids, newids = self.find_object(
                 str(target), **kwargs)
         except Exception as e:
-            raise FindObjectFailure(str(e))
+            if self.debug:
+                # raise original exception
+                raise
+            else:
+                raise FindObjectFailure(str(e))
 
         for foundid in foundids:
             caught = Caught(
