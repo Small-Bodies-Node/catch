@@ -1,4 +1,4 @@
-# catch v0.3.7
+# catch v0.3.8
 SBN astronomical survey data search tool 
 
 ## Adding new surveys
