@@ -52,6 +52,7 @@ class CatchQueries(Base):
     query = Column(String(128), index=True, doc="User's query string")
     source = Column(String(128), doc="Survey source table queried")
     date = Column(String(64), doc="Date query was executed")
+    status = Column(String(64), doc="query status")
 
 
 class Caught(Base):
