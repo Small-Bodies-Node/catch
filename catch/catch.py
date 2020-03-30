@@ -87,7 +87,7 @@ class Catch(SBSearch):
         return rows
 
     def drop(self, queryid):
-        """Drop a caught object.
+        """Drop a caught query.
 
 
         Parameters
@@ -98,21 +98,17 @@ class Catch(SBSearch):
 
         Returns
         -------
-        n : int
-            Number of rows deleted.
+        None
 
         """
 
-        founds = (self.db.session.query(Found)
-                  .join(Caught, Caught.foundid == Found.foundid)
-                  .filter(Caught.queryid == queryid)
-                  .all())
-        n = len(founds)
-        # cascades should delete catch_queries and caught rows
-        for found in founds:
-            self.db.session.delete(found)
+        query = (self.db.session.query(CatchQueries)
+                 .filter(CatchQueries.queryid == queryid)
+                 .all())
+
+        # cascades should delete caught rows and found objects
+        self.db.session.delete(query)
         self.db.session.commit()
-        return n
 
     def query(self, target, job_id, source='any', cached=True, **kwargs):
         """Try to catch an object in survey data.
