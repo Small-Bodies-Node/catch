@@ -154,7 +154,8 @@ class Catch(SBSearch):
         task_messenger.setLevel(logging.INFO)
         if len(task_messenger.handlers) == 0:
             # always log to the console
-            formatter = logging.Formatter('%(levelname)s: %(message)s')
+            formatter = logging.Formatter(
+                '%(levelname)s ({}): %(message)s'.format(job_id.hex))
             console = logging.StreamHandler(sys.stdout)
             console.setFormatter(formatter)
             task_messenger.addHandler(console)
@@ -168,7 +169,8 @@ class Catch(SBSearch):
             q = CatchQueries(query=str(target),
                              jobid=job_id.hex,
                              source=source,
-                             date=Time.now().iso)
+                             date=Time.now().iso,
+                             status='in progress')
             self.db.session.add(q)
             self.db.session.commit()
 
@@ -177,18 +179,23 @@ class Catch(SBSearch):
                 count += n
                 task_messenger.info('Added {} cached results from {}.'
                                     .format(n, source_name))
+                q.status = 'finished'
+                self.db.session.commit()
             else:
                 try:
                     n = self._query(q, target, source, **kwargs)
+                except FindObjectFailure as e:
+                    q.status = 'errored'
+                    task_messenger.error(str(e))
+                    raise
+                else:
                     count += n
                     task_messenger.info('Caught {} observations in {}.'
                                         .format(n, source_name))
-                except FindObjectFailure:
-                    self.db.session.delete(q)
+                    q.status = 'finished'
+                finally:
                     self.db.session.commit()
-                    raise
 
-        self.db.session.commit()
         return count
 
     def check_cache(self, target, source='any'):
@@ -226,12 +233,13 @@ class Catch(SBSearch):
     def _find_catch_query(self, target, source):
         """Find query ID for this target and source.
 
-        Assumes the last search is the most relevant.
+        Assumes the last search with status=='finished' is the most relevant.
 
         """
         q = (self.db.session.query(CatchQueries)
              .filter(CatchQueries.query == target)
              .filter(CatchQueries.source == source)
+             .filter(CatchQueries.status == 'finished')
              .order_by(CatchQueries.queryid.desc())
              .first())
         return q
