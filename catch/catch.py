@@ -187,6 +187,7 @@ class Catch(SBSearch):
                 except FindObjectFailure as e:
                     q.status = 'errored'
                     task_messenger.error(str(e))
+                    self.logger.error(str(e))
                     raise
                 else:
                     count += n
