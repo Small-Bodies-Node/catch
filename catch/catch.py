@@ -51,6 +51,7 @@ class Catch(SBSearch):
                  **kwargs):
         super().__init__(config=config, save_log=save_log,
                          disable_log=disable_log, **kwargs)
+        self.logger.debug('Initialized Catch')
 
     def caught(self, job_id, vmax=None):
         """Return results from catch query.
@@ -162,6 +163,7 @@ class Catch(SBSearch):
 
         count = 0
         for source in sources:
+            self.logger.debug('Query {}'.format(source))
             source_name = self.SOURCES[source].__data_source_name__
 
             cached_query = self._find_catch_query(target, source)
@@ -173,7 +175,6 @@ class Catch(SBSearch):
                              status='in progress')
             self.db.session.add(q)
             self.db.session.commit()
-
             if cached and cached_query is not None:
                 n = self._add_cached_results(q, cached_query)
                 count += n
@@ -187,7 +188,7 @@ class Catch(SBSearch):
                 except FindObjectFailure as e:
                     q.status = 'errored'
                     task_messenger.error(str(e))
-                    self.logger.error(str(e))
+                    self.logger.error(e)
                     raise
                 else:
                     count += n
@@ -283,6 +284,7 @@ class Catch(SBSearch):
             self.db.session.add(caught)
 
         self.db.session.commit()
+        self.logger.debug('query Added caught objects')
         return len(foundids)
 
     def _validate_source(self, source):
