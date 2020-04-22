@@ -263,7 +263,6 @@ class Catch(SBSearch):
         kwargs['save'] = True
         kwargs['update'] = True
         kwargs['source'] = self.SOURCES[source]
-        kwargs['location'] = self.SOURCES[source].__obscode__
         kwargs['vmax'] = kwargs.get('vmax', self.VMAX)
 
         try:
