@@ -15,14 +15,20 @@ from catch import Catch
 from catch.schema import SkyMapper
 from catch.config import Config
 
-parser = argparse.ArgumentParser('add-skymapper', description='Add SkyMapper DR1.1 metadata to CATCH.')
+parser = argparse.ArgumentParser(
+    'add-skymapper', description='Add SkyMapper DR1.1 metadata to CATCH.')
 parser.add_argument('image_table', help='image (exposure) table')
 parser.add_argument('ccd_table', help='ccd table')
+parser.add_argument(
+    '--config', help='CATCH configuration file')
+parser.add_argument(
+    '--debug', action='store_true', help='debug mode')
 
 args = parser.parse_args()
 
 # squelch FITSFixedWarning: 'datfix' made the change 'Set DATE-OBS to '2014-03-18T12:16:57' from MJD-OBS'. [astropy.wcs.wcs]
 warnings.simplefilter('ignore', FITSFixedWarning)
+
 
 def get_rows(filename):
     """Opens CSV file, may be gzipped, returns context object"""
@@ -41,11 +47,13 @@ def get_rows(filename):
 
     csvfile.close()
 
+
 def cov2fov(cov):
     """Convert coverage string from CCD table to FieldOfView object."""
     v = (np.array(re.findall(r'[0-9\.+-]+', cov.replace(' ', '')), float)
-        .reshape((4, 2)))
+         .reshape((4, 2)))
     return str(FieldOfView(RADec(v, unit='rad')))
+
 
 # read in images table, sort into a dictionary keyed by image_id
 images = {}
@@ -58,7 +66,7 @@ for row in get_rows(args.image_table):
         images[k][col] = row[col]
 
 # connect to catch database
-with Catch(Config.from_file(), save_log=True, debug=False) as catch:
+with Catch(Config.from_args(args), save_log=True, debug=False) as catch:
     obs = []
     count = 0
     tri = ProgressTriangle(1, catch.logger, base=2)
@@ -77,7 +85,8 @@ with Catch(Config.from_file(), save_log=True, debug=False) as catch:
         obs.append(SkyMapper(
             id=int(row['image'].replace('-', '')),
             jd_start=float(row['mjd_obs']) + 2400000.5,
-            jd_stop=float(row['mjd_obs']) + 2400000.5 + float(image['exp_time']) / 86400,
+            jd_stop=float(row['mjd_obs']) + 2400000.5 +
+            float(image['exp_time']) / 86400,
             fov=fov,
             filter=row['filter'],
             exposure=float(image['exp_time']),
