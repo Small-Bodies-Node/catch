@@ -1,4 +1,4 @@
-# catch v0.4.3
+# catch v0.4.4
 SBN astronomical survey data search tool 
 
 ## Adding new surveys
@@ -23,14 +23,21 @@ The NEAT scripts require the PDS labels and FITS headers.  The scripts assume th
 python3 add-neat-palomar.py /path/to/archive/neat/tricam/data/p20011120/obsdata/
 ```
 
-All NEAT data directories may be discovered and ingested with a for-loop:
+All NEAT tricam data directories may be discovered and ingested with a for-loop:
 ```bash
 for d in /path/to/archive/neat/tricam/data/*/obsdata; do
   python3 add-neat-palomar.py $d;
 done
 ```
 
-The ingestion would fail on two directories in V1.0 of the PDS3 data set: p20020627 and p20020814.  p20020627 has three files duplicated from p20020626, and p20020814 has three duplicated from p20020813.  The checksums are different, but a visual inspection of the images suggests they are essentially the same data.  The duplicate file names in p20020627 and p20020814 are hard-coded into the ingestion script, and skipped to avoid duplication.  It relies on the PRODUCT_CREATION_TIME keyword in the PDS3 label, which are different.
+And similarly for the GEODSS script and data:
+```bash
+for d in /path/to/archive/neat/geodss/data/*/obsdata; do
+  python3 add-neat-maui-geodss.py $d;
+done
+```
+
+The tricam ingestion would fail on two directories in V1.0 of the PDS3 data set: p20020627 and p20020814.  p20020627 has three files duplicated from p20020626, and p20020814 has three duplicated from p20020813.  The checksums are different, but a visual inspection of the images suggests they are essentially the same data.  The duplicate file names in p20020627 and p20020814 are hard-coded into the ingestion script, and skipped to avoid duplication.  It relies on the PRODUCT_CREATION_TIME keyword in the PDS3 label, which are different.
 
 ## Modifying existing surveys
 
