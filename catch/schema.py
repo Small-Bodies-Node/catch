@@ -15,8 +15,6 @@ class NEATPalomar(Obs):
     id = Column(BigInteger, primary_key=True)
     obsid = Column(BigInteger, ForeignKey('obs.obsid', onupdate='CASCADE',
                                           ondelete='CASCADE'))
-    ra_c = Column(Float(32), doc='Right Ascension of field center (deg)')
-    dec_c = Column(Float(32), doc='Declination of field center (deg)')
     productid = Column(String(64), doc='Archive product id', unique=True)
     instrument = Column(String(64), doc='Instrument / detector name')
     __mapper_args__ = {
@@ -32,8 +30,6 @@ class NEATMauiGEODSS(Obs):
     id = Column(BigInteger, primary_key=True)
     obsid = Column(BigInteger, ForeignKey('obs.obsid', onupdate='CASCADE',
                                           ondelete='CASCADE'))
-    ra_c = Column(Float(32), doc='Right Ascension of field center (deg)')
-    dec_c = Column(Float(32), doc='Declination of field center (deg)')
     productid = Column(String(64), doc='Archive product id', unique=True)
     instrument = Column(String(64), doc='Instrument / detector name')
     __mapper_args__ = {

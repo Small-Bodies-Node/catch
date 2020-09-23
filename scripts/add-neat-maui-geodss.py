@@ -56,7 +56,6 @@ with Catch(Config.from_file(), save_log=True) as catch:
                 wcs.wcs.cdelt = h['CDELT1'], h['CDELT2']
             except KeyError:
                 continue
-            ra_c, dec_c = wcs.all_pix2world([[shape[0] / 2, shape[1] / 2]], 0)[0]
 
             v = wcs.all_pix2world([[0, 0], [0, shape[1]], [shape[0], shape[1]],
                                    [shape[0], 0]], 0)
@@ -64,8 +63,6 @@ with Catch(Config.from_file(), save_log=True) as catch:
 
             obs.append(NEATMauiGEODSS(
                 id=product_id_to_int_id(label['PRODUCT_ID']),
-                ra_c=ra_c,
-                dec_c=dec_c,
                 productid=label['PRODUCT_ID'],
                 instrument=label['INSTRUMENT_NAME'],
                 jd_start=label['START_TIME'].jd,

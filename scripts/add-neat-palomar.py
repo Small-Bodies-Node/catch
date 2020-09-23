@@ -1,5 +1,6 @@
 # Licensed with the 3-clause BSD license.  See LICENSE for details.
 import os
+from glob import glob
 import argparse
 import numpy as np
 from astropy.io import fits
@@ -12,7 +13,7 @@ from catch.config import Config
 from sbsearch.util import FieldOfView, RADec
 
 parser = argparse.ArgumentParser('add-neat-palomar')
-parser.add_argument('labels', nargs='*')
+parser.add_argument('path', help='directory containing NEAT PDS3 labels (.lbl suffix)')
 
 args = parser.parse_args()
 
@@ -25,7 +26,7 @@ def product_id_to_int_id(pid):
 
 with Catch(Config.from_file(), save_log=True) as catch:
     obs = []
-    for labelfn in args.labels:
+    for labelfn in glob(os.path.join(args.path, '*.lbl')):
         path = os.path.dirname(labelfn)
         label = pds3.PDS3Label(labelfn)
 
@@ -46,7 +47,6 @@ with Catch(Config.from_file(), save_log=True) as catch:
             wcs.wcs.cdelt = h['CDELT1'], h['CDELT2']
         except KeyError:
             continue
-        ra_c, dec_c = wcs.all_pix2world([[shape[0] / 2, shape[1] / 2]], 0)[0]
 
         v = wcs.all_pix2world([[0, 0], [0, shape[1]], [shape[0], shape[1]],
                                [shape[0], 0]], 0)
@@ -54,8 +54,6 @@ with Catch(Config.from_file(), save_log=True) as catch:
 
         obs.append(NEATPalomar(
             id=product_id_to_int_id(label['PRODUCT_ID']),
-            ra_c=ra_c,
-            dec_c=dec_c,
             productid=label['PRODUCT_ID'],
             instrument=label['INSTRUMENT_NAME'],
             jd_start=label['START_TIME'].jd,

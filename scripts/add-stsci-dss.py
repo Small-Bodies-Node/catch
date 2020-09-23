@@ -30,7 +30,6 @@ with Catch(Config.from_file(), save_log=True) as catch:
         shape = np.array((h['XPIXELS'], h['YPIXELS'])
 
         wcs = WCS(h)
-        ra_c, dec_c = wcs.all_pix2world([[shape[0] / 2, shape[1] / 2]], 0)[0]
 
         v = wcs.all_pix2world([[0, 0], [0, shape[1]], [shape[0], shape[1]],
                                [shape[0], 0]], 0)
@@ -38,8 +37,6 @@ with Catch(Config.from_file(), save_log=True) as catch:
 
         obs.append(STScIDSS(
             id=product_id_to_int_id(label['PLTLABEL']),
-            ra_c=ra_c,
-            dec_c=dec_c,
             label=label['PLTLABEL'],
 
             stop
