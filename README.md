@@ -16,6 +16,20 @@ Detailed instructions are TBD.
 VACUUM ANALYZE obs;
 ```
 
+### NEAT Palomar / GEODSS
+
+The NEAT scripts require the PDS labels and FITS headers.  The scripts assume the FITS files are compressed (fpacked) with a ".fz" suffix, but can be easily modified to change that.  The scripts examine one directory at a time, looking for PDS3 labels (*.lbl):
+```bash
+python3 add-neat-palomar.py /path/to/archive/neat/tricam/data/p20011120/obsdata/
+```
+
+All NEAT data directories may be discovered and ingested with a for-loop:
+```bash
+for d in /path/to/archive/neat/tricam/data/*/obsdata; do
+  python3 add-neat-palomar.py $d;
+done
+```
+
 ## Modifying existing surveys
 
 After inserting, updating, or deleting survey observations, connect to the database and optimize the observation table's spatial index: `VACUUM ANALYZE obs;`.
