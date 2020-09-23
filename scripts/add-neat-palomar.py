@@ -13,9 +13,20 @@ from catch.config import Config
 from sbsearch.util import FieldOfView, RADec
 
 parser = argparse.ArgumentParser('add-neat-palomar')
-parser.add_argument('path', help='directory containing NEAT PDS3 labels (.lbl suffix)')
+parser.add_argument(
+    'path', help='directory containing NEAT PDS3 labels (.lbl suffix)')
 
 args = parser.parse_args()
+
+# Files to skip, based on file name and PRODUCT_CREATION_TIME.  See catch README for notes.
+skip = {
+    '20020814063615d.lbl': '2014-12-03T19:42:48.000',
+    '20020814063615e.lbl': '2014-12-03T19:42:48.000',
+    '20020814063615f.lbl': '2014-12-03T19:42:48.000',
+    '20020626063738d.lbl': '2014-12-03T19:42:07.000',
+    '20020626063738e.lbl': '2014-12-03T19:42:07.000',
+    '20020626063738f.lbl': '2014-12-03T19:42:07.000',
+}
 
 
 def product_id_to_int_id(pid):
@@ -29,6 +40,10 @@ with Catch(Config.from_file(), save_log=True) as catch:
     for labelfn in glob(os.path.join(args.path, '*.lbl')):
         path = os.path.dirname(labelfn)
         label = pds3.PDS3Label(labelfn)
+
+        if os.path.basename(labelfn) in skip:
+            if label['PRODUCT_CREATION_TIME'] == skip[os.path.basename(labelfn)]:
+                continue
 
         # local archive has compressed data:
         datafn = os.path.join(path, label['^IMAGE'][0]) + '.fz'
