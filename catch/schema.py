@@ -14,8 +14,8 @@ class NEATPalomar(Obs):
     __tablename__ = 'neat_palomar'
     id = Column(BigInteger, primary_key=True)
     obsid = Column(BigInteger, ForeignKey('obs.obsid', onupdate='CASCADE',
-                                          ondelete='CASCADE'))
-    productid = Column(String(64), doc='Archive product id', unique=True)
+                                          ondelete='CASCADE'), index=True)
+    productid = Column(String(64), doc='Archive product id', unique=True, index=True)
     instrument = Column(String(64), doc='Instrument / detector name')
     __mapper_args__ = {
         'polymorphic_identity': 'neat_palomar'
@@ -29,8 +29,8 @@ class NEATMauiGEODSS(Obs):
     __tablename__ = 'neat_maui_geodss'
     id = Column(BigInteger, primary_key=True)
     obsid = Column(BigInteger, ForeignKey('obs.obsid', onupdate='CASCADE',
-                                          ondelete='CASCADE'))
-    productid = Column(String(64), doc='Archive product id', unique=True)
+                                          ondelete='CASCADE'), index=True)
+    productid = Column(String(64), doc='Archive product id', unique=True, index=True)
     instrument = Column(String(64), doc='Instrument / detector name')
     __mapper_args__ = {
         'polymorphic_identity': 'neat_maui_geodss'
@@ -38,6 +38,37 @@ class NEATMauiGEODSS(Obs):
     __data_source_name__ = 'NEAT GEODSS'
     __obscode__ = '566'
     __product_path__ = 'neat/geodss/data'
+
+
+class SkyMapper(Obs):
+    __tablename__ = 'skymapper'
+    id = Column(BigInteger, primary_key=True)
+    obsid = Column(BigInteger, ForeignKey('obs.obsid', onupdate='CASCADE',
+<<<<<<< HEAD
+                                          ondelete='CASCADE'), index=True)
+    productid = Column(String(64), doc='Archive product id', unique=True, index=True)
+    sb_mag = Column(Float(16), doc='Surface brightness estimate (ABmag)')
+    field_id = Column(Integer, doc='Field ID')
+    image_type = Column(String(
+        2), doc='Type of image: fs=Fast Survey, ms=Main Survey, std=Standard Field (images)')
+    zpapprox = Column(
+        Float(16), doc='Approximate photometric zeropoint for the exposure')
+=======
+                                          ondelete='CASCADE'))
+    ra_c = Column(Float(32), doc='Right Ascension of field center (deg)')
+    dec_c = Column(Float(32), doc='Declination of field center (deg)')
+    productid = Column(String(64), doc='Archive product id', unique=True)
+    sb_mag = Column(Float(16), doc='Surface brightness estimate (ABmag)')
+    field_id = Column(Integer, doc='Field ID') 
+    image_type = Column(String(2), doc='Type of image: fs=Fast Survey, ms=Main Survey, std=Standard Field (images)')
+    zpapprox = Column(Float(16), doc='Approximate photometric zeropoint for the exposure')
+>>>>>>> 8a35f3cbfb57e9689f247685b27bccb32b17128d
+    __mapper_args__ = {
+        'polymorphic_identity': 'skymapper'
+    }
+    __data_source_name__ = 'SkyMapper'
+    __obscode__ = '413'
+    __product_path__ = None
 
 
 class CatchQueries(Base):

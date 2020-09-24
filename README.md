@@ -39,6 +39,13 @@ done
 
 The tricam ingestion would fail on two directories in V1.0 of the PDS3 data set: p20020627 and p20020814.  p20020627 has three files duplicated from p20020626, and p20020814 has three duplicated from p20020813.  The checksums are different, but a visual inspection of the images suggests they are essentially the same data.  The duplicate file names in p20020627 and p20020814 are hard-coded into the ingestion script, and skipped to avoid duplication.  It relies on the PRODUCT_CREATION_TIME keyword in the PDS3 label, which are different.
 
+### SkyMapper DR2
+
+SkyMapper Data Release 2 exposure (images) and CCD tables are available at [http://skymapper.anu.edu.au/_data/DR2/].  Download these tables and run the corresponding catch script:
+```bash
+python3 add-skymapper.py dr2_images.csv.gz dr2_ccds.csv.gz
+```
+
 ## Modifying existing surveys
 
 After inserting, updating, or deleting survey observations, connect to the database and optimize the observation table's spatial index: `VACUUM ANALYZE obs;`.
