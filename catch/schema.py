@@ -44,6 +44,7 @@ class SkyMapper(Obs):
     __tablename__ = 'skymapper'
     id = Column(BigInteger, primary_key=True)
     obsid = Column(BigInteger, ForeignKey('obs.obsid', onupdate='CASCADE',
+<<<<<<< HEAD
                                           ondelete='CASCADE'), index=True)
     productid = Column(String(64), doc='Archive product id', unique=True, index=True)
     sb_mag = Column(Float(16), doc='Surface brightness estimate (ABmag)')
@@ -52,6 +53,16 @@ class SkyMapper(Obs):
         2), doc='Type of image: fs=Fast Survey, ms=Main Survey, std=Standard Field (images)')
     zpapprox = Column(
         Float(16), doc='Approximate photometric zeropoint for the exposure')
+=======
+                                          ondelete='CASCADE'))
+    ra_c = Column(Float(32), doc='Right Ascension of field center (deg)')
+    dec_c = Column(Float(32), doc='Declination of field center (deg)')
+    productid = Column(String(64), doc='Archive product id', unique=True)
+    sb_mag = Column(Float(16), doc='Surface brightness estimate (ABmag)')
+    field_id = Column(Integer, doc='Field ID') 
+    image_type = Column(String(2), doc='Type of image: fs=Fast Survey, ms=Main Survey, std=Standard Field (images)')
+    zpapprox = Column(Float(16), doc='Approximate photometric zeropoint for the exposure')
+>>>>>>> 8a35f3cbfb57e9689f247685b27bccb32b17128d
     __mapper_args__ = {
         'polymorphic_identity': 'skymapper'
     }
