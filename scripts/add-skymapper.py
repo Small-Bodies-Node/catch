@@ -44,7 +44,7 @@ def get_rows(filename):
 
 def cov2fov(cov):
     """Convert coverage string from CCD table to FieldOfView object."""
-    v = (np.array(re.findall(r'[0-9\.+-]+', cov.replace(' ', '')), float)
+    v = (np.array(re.findall(r'[0-9e\.+-]+', cov.replace(' ', '')), float)
          .reshape((4, 2)))
     return str(FieldOfView(RADec(v, unit='rad')))
 
