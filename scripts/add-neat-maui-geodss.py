@@ -14,6 +14,7 @@ from sbsearch.util import FieldOfView, RADec
 parser = argparse.ArgumentParser('add-neat-maui-geodss')
 parser.add_argument('path')
 parser.add_argument('-r', action='store_true', help='recursive search')
+parser.add_argument('-u', action='store_true', help='update')
 
 args = parser.parse_args()
 
@@ -21,7 +22,7 @@ args = parser.parse_args()
 def product_id_to_int_id(pid):
     s = pid.split('_')[-1]
     s = s[:-1] + str(ord(s[-1]) - 65)
-    return int(s[2:])
+    return int(s)
 
 
 with Catch(Config.from_file(), save_log=True) as catch:
@@ -40,7 +41,6 @@ with Catch(Config.from_file(), save_log=True) as catch:
                 catch.logger.warning('not a GEODSS image label: ' + labelfn)
                 continue
 
-            catch.logger.info(labelfn)
             # local archive has compressed data:
             datafn = os.path.join(path, label['^IMAGE'][0]) + '.fz'
             h = fits.getheader(datafn, ext=1)
@@ -70,10 +70,10 @@ with Catch(Config.from_file(), save_log=True) as catch:
                 fov=fov,
                 filter=label['FILTER_NAME'],
                 exposure=label['EXPOSURE_DURATION'].value,
-                airmass=label['AIRMASS']
+                airmass=label['AIRMASS'] if label['AIRMASS'] != 'UNK' else None
             ))
 
-        catch.add_observations(obs, update=False)
+        catch.add_observations(obs, update=args.u)
 
         if not args.r:
             break
