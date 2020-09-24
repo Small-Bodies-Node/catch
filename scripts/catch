@@ -29,15 +29,22 @@ with Catch(Config.from_args(args), save_log=True, debug=args.debug) as catch:
     job_id = uuid.uuid4()
     count = catch.query(args.desg, job_id, source=args.source, cached=args.cached,
                         eph_source='jpl')
+    columns = set()
     for row in catch.caught(job_id):
         r = {}
         for table in row:
             for k in table.__table__.columns.keys():
                 r[k] = getattr(table, k)
+        columns = columns.union(set(r.keys()))
         rows.append(r)
 
 if rows == []:
     print('# none found')
 else:
+    # make sure all rows have all columns; probably want a faster solution in the future
+    for i in range(len(rows)):
+        new_row = dict.fromkeys(columns)
+        new_row.update(rows[i])
+        rows[i] = new_row
     tab = Table(rows=rows)
     tab.pprint(-1, -1)
