@@ -2,8 +2,12 @@
 
 __all__ = ['NEATPalomar']
 
-from sqlalchemy import Table, Column, Integer, BigInteger, Float, String, ForeignKey
-from sqlalchemy.orm import relationship
+from sqlalchemy import (
+    Column, ForeignKey,
+    Integer, BigInteger, SmallInteger,
+    Float,
+    String
+)
 from sbsearch.schema import Base, Obs, Found, Obj
 
 
@@ -15,7 +19,7 @@ class NEATPalomar(Obs):
     id = Column(BigInteger, primary_key=True)
     obsid = Column(BigInteger, ForeignKey('obs.obsid', onupdate='CASCADE',
                                           ondelete='CASCADE'), index=True)
-    productid = Column(String(64), doc='Archive product id',
+    productid = Column(String(64), doc='Archive product ID',
                        unique=True, index=True)
     instrument = Column(String(64), doc='Instrument / detector name')
     __mapper_args__ = {
@@ -31,7 +35,7 @@ class NEATMauiGEODSS(Obs):
     id = Column(BigInteger, primary_key=True)
     obsid = Column(BigInteger, ForeignKey('obs.obsid', onupdate='CASCADE',
                                           ondelete='CASCADE'), index=True)
-    productid = Column(String(64), doc='Archive product id',
+    productid = Column(String(64), doc='Archive product ID',
                        unique=True, index=True)
     instrument = Column(String(64), doc='Instrument / detector name')
     __mapper_args__ = {
@@ -42,12 +46,35 @@ class NEATMauiGEODSS(Obs):
     __product_path__ = 'neat/geodss/data'
 
 
+class PS1DR2(Obs):
+    __tablename__ = 'ps1dr2'
+    id = Column(BigInteger, primary_key=True, doc='PS1 forcedWarpID')
+    obsid = Column(BigInteger, ForeignKey('obs.obsid', onupdate='CASCADE',
+                                          ondelete='CASCADE'),
+                   index=True, nullable=False)
+    productid = Column(String(64), doc='Archive product ID',
+                       unique=True, index=True, nullable=False)
+    telescope_id = Column(SmallInteger, doc='PS1 telescope ID', nullable=False)
+    frame_id = Column(Integer, doc='PS1 frame ID', nullable=False)
+    projection_id = Column(
+        SmallInteger, doc='PS1 projection cell ID', nullable=False)
+    skycell_id = Column(SmallInteger, doc='PS1 sky cell ID', nullable=False)
+    filter_id = Column(
+        SmallInteger, doc='PS1 filter ID: grizy = 1-5', nullable=False)
+    __mapper_args__ = {
+        'polymorphic_identity': 'ps1dr2'
+    }
+    __data_source_name__ = 'PanSTARRS 1 DR2'
+    __obscode__ = 'F51'
+    __product_path__ = None
+
+
 class SkyMapper(Obs):
     __tablename__ = 'skymapper'
     id = Column(BigInteger, primary_key=True)
     obsid = Column(BigInteger, ForeignKey('obs.obsid', onupdate='CASCADE',
                                           ondelete='CASCADE'), index=True)
-    productid = Column(String(64), doc='Archive product id',
+    productid = Column(String(64), doc='Archive product ID',
                        unique=True, index=True)
     sb_mag = Column(Float(16), doc='Surface brightness estimate (ABmag)')
     field_id = Column(Integer, doc='Field ID')

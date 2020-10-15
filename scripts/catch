@@ -24,6 +24,22 @@ parser.add_argument(
 
 args = parser.parse_args()
 
+
+def ps1cutout_url(row):
+    """Return PS1 DR2 cutout URL."""
+    if 'skycell' in row['productid']:
+        url = (
+            'https://ps1images.stsci.edu/cgi-bin/fitscut.cgi?'
+            f'red=rings.v3.skycell/{row["projection_id"]:04d}'
+            f'/{row["skycell_id"]:03d}/{row["productid"]}'
+            f'&ra={row["ra"]}&dec={row["dec"]}&size=300'
+            '&format=jpeg'
+        )
+    else:
+        url = None
+    return url
+
+
 rows = []
 with Catch(Config.from_args(args), save_log=True, debug=args.debug) as catch:
     job_id = uuid.uuid4()
@@ -35,7 +51,8 @@ with Catch(Config.from_args(args), save_log=True, debug=args.debug) as catch:
         for table in row:
             for k in table.__table__.columns.keys():
                 r[k] = getattr(table, k)
-        columns = columns.union(set(r.keys()))
+        r['cutout'] = ps1cutout_url(r)
+        columns = columns.union(r.keys())
         rows.append(r)
 
 if rows == []:
