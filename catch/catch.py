@@ -311,7 +311,7 @@ class Catch(SBSearch):
         if sources is None:
             return self.SOURCES.keys()
 
-        invalid_sources = set(sources) - set(self.sources.keys())
+        invalid_sources = set(sources) - set(self.SOURCES.keys())
         if len(invalid_sources) > 0:
             raise InvalidSourceName(invalid_sources)
 
