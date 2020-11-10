@@ -7,13 +7,13 @@ import logging
 from astropy.table import Table
 from catch import Catch, Config
 
-sources = list(Catch.SOURCES.keys()) + ['any']
+sources = list(Catch.SOURCES.keys())
 
 parser = argparse.ArgumentParser('catch')
 parser.add_argument('desg')
 parser.add_argument(
-    '--source', default='any', choices=sources,
-    help='search this observation source')
+    '--source', dest='sources', action='append', choices=sources,
+    help='search these observation sources')
 parser.add_argument(
     '--force', dest='cached', action='store_false',
     help='do not use cached results')
@@ -33,8 +33,8 @@ def cutout_url(row):
 rows = []
 with Catch(Config.from_args(args), save_log=True, debug=args.debug) as catch:
     job_id = uuid.uuid4()
-    count = catch.query(args.desg, job_id, source=args.source, cached=args.cached,
-                        eph_source='jpl')
+    count = catch.query(args.desg, job_id, sources=args.sources,
+                        cached=args.cached, eph_source='jpl')
     columns = set()
     for row in catch.caught(job_id):
         r = {}

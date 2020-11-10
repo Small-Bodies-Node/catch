@@ -113,7 +113,7 @@ class Catch(SBSearch):
         self.db.session.delete(query)
         self.db.session.commit()
 
-    def query(self, target, job_id, source='any', cached=True, **kwargs):
+    def query(self, target, job_id, sources=None, cached=True, **kwargs):
         """Try to catch an object in survey data.
 
         Publishes messages to the Python logging system under the name
@@ -128,10 +128,9 @@ class Catch(SBSearch):
         job_id : uuid.UUID or string
             Unique ID for this query.  UUID version 4.
 
-        source : string, optional
-            Observation source table name.  See
-            ``Catch.SOURCES.keys()`` for possible values, or use
-            ``'any'`` to search each survey.
+        sources : list of strings, optional
+            Limit search to these sources.  See ``Catch.SOURCES.keys()``
+            for possible values.
 
         cached : bool, optional
             Use cached results, if possible.
@@ -148,7 +147,7 @@ class Catch(SBSearch):
 
         """
 
-        sources = self._validate_source(source)
+        _sources = self._validate_sources(sources)
         job_id = uuid.UUID(str(job_id), version=4)
 
         # logger for CATCH-APIs messages
@@ -164,7 +163,7 @@ class Catch(SBSearch):
             task_messenger.addHandler(console)
 
         count = 0
-        for source in sources:
+        for source in _sources:
             self.logger.debug('Query {}'.format(source))
             source_name = self.SOURCES[source].__data_source_name__
 
@@ -308,15 +307,13 @@ class Catch(SBSearch):
         self.logger.debug('query Added caught objects')
         return len(foundids)
 
-    def _validate_source(self, source):
-        if source == 'any':
-            sources = self.SOURCES.keys()
-        else:
-            sources = [source]
+    def _validate_sources(self, sources):
+        if sources is None:
+            return self.SOURCES.keys()
 
-        for source in sources:
-            if source not in self.SOURCES:
-                raise InvalidSourceName(source)
+        invalid_sources = set(sources) - set(self.sources.keys())
+        if len(invalid_sources) > 0:
+            raise InvalidSourceName(invalid_sources)
 
         return sources
 
