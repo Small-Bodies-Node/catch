@@ -237,10 +237,10 @@ class Catch(SBSearch):
     def skymapper_cutout_url(found, obs, size=0.0833, format='fits'):
         """Return SkyMapper cutout URL.
 
-        http://skymapper.anu.edu.au/how-to-access/#public_siap
+        https://skymapper.anu.edu.au/how-to-access/#public_siap
 
         For example:
-            http://api.skymapper.nci.org.au/public/siap/dr2/get_image?IMAGE=20140425124821-10&SIZE=0.0833&POS=189.99763,-11.62305&FORMAT=fits
+            https://api.skymapper.nci.org.au/public/siap/dr2/get_image?IMAGE=20140425124821-10&SIZE=0.0833&POS=189.99763,-11.62305&FORMAT=fits
 
         size in deg
 
@@ -249,7 +249,7 @@ class Catch(SBSearch):
         """
 
         return (
-            'http://api.skymapper.nci.org.au/public/siap/dr2/get_image?'
+            'https://api.skymapper.nci.org.au/public/siap/dr2/get_image?'
             f'IMAGE={obs.productid}&SIZE={size}&POS={found.ra},{found.dec}&FORMAT={format}'
         )
 
