@@ -224,7 +224,9 @@ class Catch(SBSearch):
 
         """
 
-        sources = self._validate_source(source)
+        sources = self._validate_sources(                                    
+            None if source == 'any' else [source]                            
+        )                                                                    
 
         cached = True
         for source in sources:
