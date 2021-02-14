@@ -27,8 +27,8 @@ class Config(sbsearch.config.Config):
     """
 
     DEFAULT_FILES: List[str] = [
-        'catch.cfg',
-        '.catch.cfg',
+        'catch.config',
+        '.catch.config',
         os.path.expanduser('~/.config/catch.config')
     ]
 
