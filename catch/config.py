@@ -3,7 +3,7 @@
 __all__ = ['Config']
 
 import os
-import uuid
+from typing import Dict, List, Union
 import sbsearch.config
 
 _config_example = '''
@@ -26,8 +26,13 @@ class Config(sbsearch.config.Config):
 
     """
 
-    DEFAULT_FILES = ['catch.config', '.catch.config',
-                     os.path.expanduser('~/.config/catch.config')]
+    DEFAULT_FILES: List[str] = [
+        'catch.cfg',
+        '.catch.cfg',
+        os.path.expanduser('~/.config/catch.config')
+    ]
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    DEFAULT_PARAMETERS: Dict[str, Union[str, float, int, bool]] = {
+        "database": "sqlite://",
+        "log": "/dev/null"
+    }

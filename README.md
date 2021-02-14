@@ -1,20 +1,16 @@
-# catch v0.5.3
+# catch v1.0.0-dev
 SBN astronomical survey data search tool 
 
 ## Adding new surveys
 
-Detailed instructions are TBD.
+Detailed instructions are TBW.
 
-1. Create mapper object in schema.
+1. Download and inspect the data source, determine which metadata are important for user searches, i.e., which will be saved to the database.  Exposure start/stop and field of view are required.
 
-1. Add source name and mapper object to `Catch.SOURCES`.
+1. Create object for the new survey in ``model``.
 
-1. Create script to ingest data into database and save to `script/`.
+1. Create script to ingest data into database and save to `script/`, and run it.
 
-1. Connect to the database and optimize the observation table's spatial index:
-```
-VACUUM ANALYZE obs;
-```
 
 ### NEAT Palomar / GEODSS
 
@@ -53,7 +49,7 @@ After inserting, updating, or deleting survey observations, connect to the datab
 If the observation table for an existing survey is modified, especially if new observations are added, then the queries against that survey must be reset.  If the survey source name is named "asdf" (defined via attribute `Catch.SOURCES`), then connect to the database and execute the following SQL command:
 
 ```
-DELETE FROM catch_queries WHERE source='asdf';
+DELETE FROM catch_query WHERE source='asdf';
 ```
 
 ## Database tasks
@@ -64,11 +60,11 @@ The database shouldn't need any periodic maintenance.  However, the following ta
 
 To clear the query table, connect to the database and execute the following SQL command:
 ```
-DELETE FROM catch_queries WHERE TRUE;
+DELETE FROM catch_query WHERE TRUE;
 ```
-which will clear the `catch_queries` and `caught` tables.  To verify:
+which will clear the `catch_query` and `caught` tables.  To verify:
 ```
-surveys=> SELECT COUNT(*) FROM catch_queries;
+surveys=> SELECT COUNT(*) FROM catch_query;
  count 
 -------
      0
@@ -85,14 +81,14 @@ Note, the `obj` and `found` tables will still be populated with objects and obse
 
 ### Found objects reset
 
-To reset the found objects, both the `catch_queries` and `obj` tables must be cleared.  Connect to the database and execute the following SQL commands:
+To reset the found objects, both the `catch_query` and `obj` tables must be cleared.  Connect to the database and execute the following SQL commands:
 ```
-DELETE FROM catch_queries WHERE TRUE;
+DELETE FROM catch_query WHERE TRUE;
 DELETE FROM obj WHERE TRUE;
 ```
 which will also clear the found objects table, `found`.
 
-Note, the `found` table cannot be reset independently from the `catch_queries` table, otherwise new queries with the cache enabled (`Catch.query(... cached=True)`) may find a previous query, assume the object was not found in the database, and return no results.
+Note, the `found` table cannot be reset independently from the `catch_query` table, otherwise new queries with the cache enabled (`Catch.query(... cached=True)`) may find a previous query, assume the object was not found in the database, and return no results.
 
 ### Backup
 
