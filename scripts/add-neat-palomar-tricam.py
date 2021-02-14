@@ -33,7 +33,7 @@ def product_id_to_int_id(pid):
     return int(s[2:])
 
 
-with Catch(Config.from_file()) as catch:
+with Catch.with_config(Config.from_file()) as catch:
     for path, dirnames, filenames in os.walk(args.path):
         catch.logger.info('inspecting ' + path)
         observations = []
@@ -82,8 +82,8 @@ with Catch(Config.from_file()) as catch:
                 id=product_id_to_int_id(label['PRODUCT_ID']),
                 product_id=label['PRODUCT_ID'],
                 instrument=label['INSTRUMENT_NAME'],
-                mjd_start=label['START_TIME'].jd,
-                mjd_stop=label['STOP_TIME'].jd,
+                mjd_start=label['START_TIME'].mjd,
+                mjd_stop=label['STOP_TIME'].mjd,
                 filter=label['FILTER_NAME'],
                 exposure=label['EXPOSURE_DURATION'].to_value('s'),
                 airmass=label['AIRMASS']
@@ -91,7 +91,7 @@ with Catch(Config.from_file()) as catch:
             obs.set_fov(ra, dec)
             observations.append(obs)
 
-        catch.add_observations(obs)
+        catch.add_observations(observations)
 
         if not args.r:
             break
