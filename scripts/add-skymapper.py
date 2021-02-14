@@ -6,10 +6,9 @@ import csv
 
 import numpy as np
 
-from sbsearch.util import FieldOfView, RADec
 from sbsearch.logging import ProgressTriangle
 from catch import Catch
-from catch.schema import SkyMapper
+from catch.model import SkyMapper
 from catch.config import Config
 
 parser = argparse.ArgumentParser(
@@ -43,10 +42,10 @@ def get_rows(filename):
 
 
 def cov2fov(cov):
-    """Convert coverage string from CCD table to FieldOfView object."""
-    v = (np.array(re.findall(r'[0-9e\.+-]+', cov.replace(' ', '')), float)
-         .reshape((4, 2)))
-    return str(FieldOfView(RADec(v, unit='rad')))
+    """Convert coverage string from CCD table to ra, dec."""
+    fov = (np.array(re.findall(r'[0-9e\.+-]+', cov.replace(' ', '')), float)
+           .reshape((4, 2))).T
+    return fov
 
 
 # read in images table, sort into a dictionary keyed by image_id
@@ -60,8 +59,8 @@ for row in get_rows(args.image_table):
         images[k][col] = row[col]
 
 # connect to catch database
-with Catch(Config.from_args(args), save_log=True, debug=False) as catch:
-    obs = []
+with Catch.with_config(Config.from_args(args)) as catch:
+    observations = []
     count = 0
     tri = ProgressTriangle(1, catch.logger, base=2)
     # iterate over rows in CCD table
@@ -69,33 +68,33 @@ with Catch(Config.from_args(args), save_log=True, debug=False) as catch:
         # image_id,ccd,filename,maskname,image,filter,mjd_obs,fwhm,elong,
         # nsatpix,sb_mag,phot_nstar,header,coverage
         image = images[row['image_id']]
-        fov = cov2fov(row['coverage'])
+        ra, dec = cov2fov(row['coverage'])
         sb_mag = None if row['sb_mag'] == '' else float(row['sb_mag'])
 
         # SkyMapper object inherits sbsearch.schema.Obs columns.
         # Note that 'source' and 'obsid' will be defined via sqlalchemy's polymorphism machinery.
-        obs.append(SkyMapper(
+        obs = SkyMapper(
             id=int(row['image'].replace('-', '')),
-            jd_start=float(row['mjd_obs']) + 2400000.5,
-            jd_stop=float(row['mjd_obs']) + 2400000.5 +
-            float(image['exp_time']) / 86400,
-            fov=fov,
+            mjd_start=float(row['mjd_obs']),
+            mjd_stop=float(row['mjd_obs']) + float(image['exp_time']) / 86400,
             filter=row['filter'],
             exposure=float(image['exp_time']),
             seeing=float(row['fwhm_ccd']),
             airmass=image['airmass'],
-            productid=row['image'],
+            product_id=row['image'],
             sb_mag=sb_mag,
             field_id=int(image['field_id']),
             image_type=image['image_type'],
             zpapprox=image['zpapprox']
-        ))
+        )
+        obs.set_fov(ra, dec)
+        observations.append(obs)
 
         # add 10000 at a time
         tri.update()
         if tri.i % 10000 == 0:
-            catch.add_observations(obs, update=False)
-            obs = []
+            catch.add_observations(observations)
+            observations = []
 
     # add any remaining files
-    catch.add_observations(obs, update=False)
+    catch.add_observations(observations)

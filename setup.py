@@ -11,7 +11,7 @@ if __name__ == "__main__":
           author_email="msk@astro.umd.edu",
           url="https://github.com/Small-Bodies-Node/catch",
           packages=find_packages(),
-          install_requires=['sbsearch>=2.0.0'],
+          install_requires=['sbsearch>=2.0.0.dev0'],
           setup_requires=['pytest-runner'],
           tests_require=['pytest'],
           scripts=['scripts/catch'],
