@@ -33,7 +33,7 @@ def product_id_to_int_id(pid):
     return int(s[2:])
 
 
-with Catch(Config.from_file(), save_log=True, debug=True) as catch:
+with Catch(Config.from_file()) as catch:
     for path, dirnames, filenames in os.walk(args.path):
         catch.logger.info('inspecting ' + path)
         observations = []
