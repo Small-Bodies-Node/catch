@@ -175,10 +175,52 @@ class Catch(SBSearch):
 
         return count
 
-    def _find_catch_query(self, target: str, source: Observation) -> CatchQuery:
+    def is_query_cached(self, target: str, source_keys: Optional[str] = None
+                        ) -> str:
+        """Determine if this query has already been cached.
+
+
+        Parameters
+        ----------
+        target : string
+            Target for which to search.
+
+        source_keys : list of strings, optional
+            Limit search to these sources.  See ``Catch.sources.keys()``
+            for possible values.
+
+
+        Returns
+        -------
+        cached : bool
+            ``False`` if any source specified by ``source_keys`` is not yet
+            cached for this ``target``.
+
+        """
+
+        source_keys = (
+            list(self.sources.keys())
+            if source_keys is None
+            else source_keys
+        )
+
+        sources: List[Observation] = [
+            self.sources[name] for name in source_keys
+            if name != 'observation'
+        ]
+
+        cached: bool = True  # assume cached until proven otherwise
+        for source in sources:
+            self.source = source
+            cached = self._find_catch_query(target, source) is not None
+
+        return cached
+
+    def _find_catch_query(self, target: str, source: Observation
+                          ) -> Union[CatchQuery, None]:
         """Find query ID for this target and source.
 
-        Returns the last search with status=='finished'.
+        Returns the last search with status=='finished', ``None`` otherwise.
 
         """
 
