@@ -28,6 +28,26 @@ class NEATPalomarTricam(Observation):
     __data_source_name__ = 'NEAT Palomar Tricam'
     __obscode__ = '644'
 
+    @property
+    def archive_url(self):
+        return None
+
+    def cutout_url(self, ra, dec, size=0.0833, format='fits'):
+        """URL to cutout ``size`` around ``ra``, ``dec`` in deg.
+
+        For example:
+            https://sbnsurveys.astro.umd.edu/api/get/<product_id>
+
+        format = fits, jpeg, png
+
+        """
+
+        return None
+
+    def preview_url(self, ra, dec, size=0.0833, format='jpeg'):
+        """Web preview image."""
+        return self.cutout_url(ra, dec, size=size, format=format)
+
 
 class NEATMauiGEODSS(Observation):
     __tablename__ = 'neat_maui_geodss'
@@ -44,6 +64,26 @@ class NEATMauiGEODSS(Observation):
     __data_source_name__ = 'NEAT Maui GEODSS'
     __obscode__ = '566'
 
+    @property
+    def archive_url(self):
+        return None
+
+    def cutout_url(self, ra, dec, size=0.0833, format='fits'):
+        """URL to cutout ``size`` around ``ra``, ``dec`` in deg.
+
+        For example:
+            https://sbnsurveys.astro.umd.edu/api/get/<product_id>
+
+        format = fits, jpeg, png
+
+        """
+
+        return None
+
+    def preview_url(self, ra, dec, size=0.0833, format='jpeg'):
+        """Web preview image for cutout."""
+        return self.cutout_url(ra, dec, size=size, format=format)
+
 
 class SkyMapper(Observation):
     __tablename__ = 'skymapper'
@@ -55,7 +95,7 @@ class SkyMapper(Observation):
     sb_mag = Column(Float(16), doc='Surface brightness estimate (ABmag)')
     field_id = Column(Integer, doc='Field ID')
     image_type = Column(String(
-        2), doc='Type of image: fs=Fast Survey, ms=Main Survey, std=Standard Field (images)')
+        3), doc='Type of image: fs=Fast Survey, ms=Main Survey, std=Standard Field (images)')
     zpapprox = Column(
         Float(16), doc='Approximate photometric zeropoint for the exposure')
     __mapper_args__ = {
@@ -63,6 +103,31 @@ class SkyMapper(Observation):
     }
     __data_source_name__ = 'SkyMapper'
     __obscode__ = '413'
+
+    @property
+    def archive_url(self):
+        return None
+
+    def cutout_url(self, ra, dec, size=0.0833, format='fits'):
+        """URL to cutout ``size`` around ``ra``, ``dec`` in deg.
+
+        https://skymapper.anu.edu.au/how-to-access/#public_siap
+
+        For example:
+            https://api.skymapper.nci.org.au/public/siap/dr2/get_image?IMAGE=20140425124821-10&SIZE=0.0833&POS=189.99763,-11.62305&FORMAT=fits
+
+        format = fits, png, or mask
+
+        """
+
+        return (
+            'https://api.skymapper.nci.org.au/public/siap/dr2/get_image?'
+            f'IMAGE={self.product_id}&SIZE={size}&POS={ra},{dec}&FORMAT={format}'
+        )
+
+    def preview_url(self, ra, dec, size=0.0833):
+        """Web preview image for cutout."""
+        return self.cutout_url(ra, dec, size=size, format='png')
 
 
 class CatchQuery(Base):
