@@ -3,6 +3,7 @@
 __all__ = ['Catch']
 
 import uuid
+import logging
 from typing import Dict, List, Optional, Tuple, Union
 
 from sqlalchemy.orm import Session
@@ -39,6 +40,7 @@ class Catch(SBSearch):
                          uncertainty_ellipse=False, padding=0,
                          logger_name='Catch', **kwargs)
         self.debug: bool = debug
+        self.logger.setLevel(logging.DEBUG if debug else logging.INFO)
 
     @property
     def sources(self) -> Dict[str, Observation]:
