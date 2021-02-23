@@ -45,7 +45,6 @@ class Catch(SBSearch):
         super().__init__(database, *args, min_edge_length=3e-4,
                          uncertainty_ellipse=uncertainty_ellipse,
                          padding=padding, logger_name='Catch', **kwargs)
-        self.verify()
         self.debug: bool = debug
         self.logger.setLevel(logging.DEBUG if debug else logging.INFO)
 
@@ -326,18 +325,3 @@ class Catch(SBSearch):
 
         self.db.session.commit()
         return n
-
-    def verify(self):
-        metadata: MetaData = MetaData()
-        metadata.reflect(self.db.engine)
-
-        missing: bool = False
-        name: str
-        for name in Base.metadata.tables.keys():
-            if name not in metadata.tables.keys():
-                missing = True
-                self.logger.error('{} is missing from database'.format(name))
-
-        if missing:
-            Base.metadata.create_all(self.db.engine)
-            self.logger.info('Created database tables.')
