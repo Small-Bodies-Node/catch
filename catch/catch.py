@@ -129,9 +129,9 @@ class Catch(SBSearch):
         job_id = uuid.UUID(str(job_id), version=4)
 
         task_messenger: TaskMessenger = TaskMessenger(job_id, debug=self.debug)
-        task_messenger.send('Searching for %s in %d survey%s.',
-                            target, len(sources),
-                            "" if len(sources) == 1 else "s")
+        task_messenger.debug('Searching for %s in %d survey%s.',
+                             target, len(sources),
+                             "" if len(sources) == 1 else "s")
 
         count = 0
         for source in sources:
