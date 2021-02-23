@@ -308,23 +308,3 @@ class Catch(SBSearch):
 
         self.db.session.commit()
         return n
-
-    @staticmethod
-    def skymapper_cutout_url(found, obs, size=0.0833, format='fits'):
-        """Return SkyMapper cutout URL.
-
-        https://skymapper.anu.edu.au/how-to-access/#public_siap
-
-        For example:
-            https://api.skymapper.nci.org.au/public/siap/dr2/get_image?IMAGE=20140425124821-10&SIZE=0.0833&POS=189.99763,-11.62305&FORMAT=fits
-
-        size in deg
-
-        format = fits, png, or mask
-
-        """
-
-        return (
-            'https://api.skymapper.nci.org.au/public/siap/dr2/get_image?'
-            f'IMAGE={obs.product_id}&SIZE={size}&POS={found.ra},{found.dec}&FORMAT={format}'
-        )

@@ -25,11 +25,6 @@ parser.add_argument(
 args = parser.parse_args()
 
 
-def cutout_url(row):
-    if row.Obs.source == 'skymapper':
-        return Catch.skymapper_cutout_url(row.Found, row.Obs)
-
-
 rows = []
 with Catch(Config.from_args(args), save_log=True, debug=args.debug) as catch:
     job_id = uuid.uuid4()
@@ -45,7 +40,7 @@ with Catch(Config.from_args(args), save_log=True, debug=args.debug) as catch:
                 r[k] = getattr(table, k)
         columns = columns.union(set(r.keys()))
 
-        r['url'] = cutout_url(row)
+        r['url'] = row.Observation.cutout_url(row.Found.ra, row.Found.dec)
 
         rows.append(r)
 
