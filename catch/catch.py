@@ -12,7 +12,7 @@ from astropy.time import Time
 from sbsearch import SBSearch
 from sbsearch.target import MovingTarget
 
-from .model import (CatchQuery, Caught, Observation, Found, Ephemeris,
+from .model import (Base, CatchQuery, Caught, Observation, Found, Ephemeris,
                     UnspecifiedSurvey)
 from .exceptions import CatchException, FindObjectError, EphemerisError
 from .logging import TaskMessenger
@@ -45,6 +45,7 @@ class Catch(SBSearch):
         super().__init__(database, *args, min_edge_length=3e-4,
                          uncertainty_ellipse=uncertainty_ellipse,
                          padding=padding, logger_name='Catch', **kwargs)
+        self.db.verify(Base)
         self.debug: bool = debug
         self.logger.setLevel(logging.DEBUG if debug else logging.INFO)
 

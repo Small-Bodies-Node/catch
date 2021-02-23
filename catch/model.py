@@ -10,7 +10,8 @@ __all__ = [
 ]
 
 from sqlalchemy import Column, Integer, Integer, Float, String, ForeignKey
-from sbsearch.model import *
+from sbsearch.model import (Base, Observation, Found, Ephemeris, Obj,
+                            UnspecifiedSurvey)
 from sqlalchemy.sql.sqltypes import Boolean
 
 
