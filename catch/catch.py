@@ -12,9 +12,9 @@ from astropy.time import Time
 from sbsearch import SBSearch
 from sbsearch.target import MovingTarget
 
-from .model import (CatchQuery, Caught, Observation, Found, Ephemeris, Obj,
-                    Designation, UnspecifiedSurvey)
-from .exceptions import CatchException, FindObjectError, EphemerisError, DataSourceError
+from .model import (CatchQuery, Caught, Observation, Found, Ephemeris,
+                    UnspecifiedSurvey)
+from .exceptions import CatchException, FindObjectError, EphemerisError
 from .logging import TaskMessenger
 
 
@@ -27,18 +27,24 @@ class Catch(SBSearch):
     database : str or Session
         Database URL or initialized sqlalchemy Session.
 
+    uncertainty_ellipse : bool, optional
+        Search considering the uncertainty ellipse.
+
+    padding : float, optional
+        Additional padding to the search area, arcmin.
+
     debug : bool, optional
         Enable debugging messages.
 
     """
 
     def __init__(self, database: Union[str, Session], *args,
+                 uncertainty_ellipse: bool = False, padding: float = 0,
                  debug: bool = False, **kwargs) -> None:
-        # fixed min_edge_length value (1 arcmin), set defaults for
-        # uncertainty_ellipse, padding
+        # fixed min_edge_length value (1 arcmin)
         super().__init__(database, *args, min_edge_length=3e-4,
-                         uncertainty_ellipse=False, padding=0,
-                         logger_name='Catch', **kwargs)
+                         uncertainty_ellipse=uncertainty_ellipse,
+                         padding=padding, logger_name='Catch', **kwargs)
         self.debug: bool = debug
         self.logger.setLevel(logging.DEBUG if debug else logging.INFO)
 
@@ -148,7 +154,9 @@ class Catch(SBSearch):
                 job_id=job_id.hex,
                 source=source.__tablename__,
                 date=Time.now().iso,
-                status='in progress'
+                status='in progress',
+                uncertainty_ellipse=self.uncertainty_ellipse,
+                padding=self.padding
             )
             self.db.session.add(q)
             self.db.session.commit()
@@ -180,6 +188,9 @@ class Catch(SBSearch):
     def is_query_cached(self, target: str, source_keys: Optional[str] = None
                         ) -> str:
         """Determine if this query has already been cached.
+
+
+        ``uncertainty_ellipse`` and ``padding`` parameters are also checked.
 
 
         Parameters
@@ -222,6 +233,8 @@ class Catch(SBSearch):
                           ) -> Union[CatchQuery, None]:
         """Find query ID for this target and source.
 
+        ``uncertainty_ellipse`` and ``padding`` parameters are also checked.
+
         Returns the last search with status=='finished', ``None`` otherwise.
 
         """
@@ -231,6 +244,8 @@ class Catch(SBSearch):
             .filter(CatchQuery.query == target)
             .filter(CatchQuery.source == source.__tablename__)
             .filter(CatchQuery.status == 'finished')
+            .filter(CatchQuery.uncertainty_ellipse == self.uncertainty_ellipse)
+            .filter(CatchQuery.padding == self.padding)
             .order_by(CatchQuery.query_id.desc())
             .first()
         )

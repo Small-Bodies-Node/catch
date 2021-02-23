@@ -11,6 +11,7 @@ __all__ = [
 
 from sqlalchemy import Column, Integer, Integer, Float, String, ForeignKey
 from sbsearch.model import *
+from sqlalchemy.sql.sqltypes import Boolean
 
 
 class NEATPalomarTricam(Observation):
@@ -138,7 +139,10 @@ class CatchQuery(Base):
     query = Column(String(128), index=True, doc="User's query string")
     source = Column(String(128), doc="Survey source table queried")
     date = Column(String(64), doc="Date query was executed")
-    status = Column(String(64), doc="query status")
+    status = Column(String(64), doc="Query status")
+    uncertainty_ellipse = Column(
+        Boolean, doc="Query uncertainty_ellipse parameter")
+    padding = Column(Float(16), doc="Query padding parameter")
 
 
 class Caught(Base):
