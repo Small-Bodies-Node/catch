@@ -68,7 +68,7 @@ with Catch.with_config(Config.from_args(args)) as catch:
         # image_id,ccd,filename,maskname,image,filter,mjd_obs,fwhm,elong,
         # nsatpix,sb_mag,phot_nstar,header,coverage
         image = images[row['image_id']]
-        ra, dec = cov2fov(row['coverage'])
+        ra, dec = np.degrees(cov2fov(row['coverage']))
         sb_mag = None if row['sb_mag'] == '' else float(row['sb_mag'])
 
         # SkyMapper object inherits sbsearch.schema.Obs columns.
