@@ -7,35 +7,36 @@ import logging
 from astropy.table import Table
 from catch import Catch, Config
 
-sources = list(Catch.SOURCES.keys())
+#sources = list(Catch('sqlite://').sources.keys())
 
 parser = argparse.ArgumentParser('catch')
 parser.add_argument('desg')
 parser.add_argument(
-    '--source', dest='sources', action='append', choices=sources,
-    help='search these observation sources')
+    '--source', dest='sources', action='append',
+    help='search this observation source (may be used multiple times)')
 parser.add_argument(
     '--force', dest='cached', action='store_false',
     help='do not use cached results')
 parser.add_argument(
     '--config', help='CATCH configuration file')
-parser.add_argument(
-    '--debug', action='store_true', help='debug mode')
+#parser.add_argument(
+#    '--debug', action='store_true', help='debug mode')
 
 args = parser.parse_args()
 
 
 rows = []
-with Catch(Config.from_args(args), save_log=True, debug=args.debug) as catch:
+config = Config.from_args(args)
+with Catch.with_config(config) as catch:
     job_id = uuid.uuid4()
     count = catch.query(args.desg, job_id, sources=args.sources,
-                        cached=args.cached, eph_source='jpl')
+                        cached=args.cached)
     columns = set()
     for row in catch.caught(job_id):
         r = {}
         for table in row:
             for k in dir(type(table)):
-                if k.startswith('_'):
+                if k.startswith('_') or k in ['terms', 'set_fov', 'metadata']:
                     continue
                 r[k] = getattr(table, k)
         columns = columns.union(set(r.keys()))

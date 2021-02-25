@@ -76,7 +76,7 @@ with Catch.with_config(Config.from_file()) as catch:
             obs.set_fov(ra, dec)
             observations.append(obs)
 
-        catch.add_observations(obs)
+        catch.add_observations(observations)
 
         if not args.r:
             break
