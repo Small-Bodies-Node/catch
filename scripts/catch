@@ -14,11 +14,9 @@ parser.add_argument('desg')
 parser.add_argument(
     '--source', dest='sources', action='append',
     help='search this observation source (may be used multiple times)')
-parser.add_argument(
-    '--force', dest='cached', action='store_false',
+parser.add_argument('--force', dest='cached', action='store_false',
     help='do not use cached results')
-parser.add_argument(
-    '--config', help='CATCH configuration file')
+parser.add_argument('--config', help='CATCH configuration file')
 #parser.add_argument(
 #    '--debug', action='store_true', help='debug mode')
 

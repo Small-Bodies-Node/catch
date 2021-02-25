@@ -109,3 +109,6 @@ venv.bak/
 .vscode
 temp/**
 Pipfile*
+*.config
+!catch.example.config
+*.log

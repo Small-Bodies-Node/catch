@@ -13,6 +13,7 @@ from catch.config import Config
 parser = argparse.ArgumentParser('add-neat-maui-geodss')
 parser.add_argument('path')
 parser.add_argument('-r', action='store_true', help='recursive search')
+parser.add_argument('--config', help='CATCH configuration file')
 #parser.add_argument('-u', action='store_true', help='update')
 
 args = parser.parse_args()
@@ -24,7 +25,7 @@ def product_id_to_int_id(pid):
     return int(s)
 
 
-with Catch.with_config(Config.from_file()) as catch:
+with Catch.with_config(Config.from_file(args.config)) as catch:
     for path, dirnames, filenames in os.walk(args.path):
         catch.logger.info('inspecting ' + path)
         observations = []

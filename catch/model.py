@@ -9,7 +9,7 @@ __all__ = [
     'Obj'
 ]
 
-from sqlalchemy import Column, Integer, Integer, Float, String, ForeignKey
+from sqlalchemy import Column, BigInteger, Integer, Float, String, ForeignKey
 from sbsearch.model import (Base, Observation, Found, Ephemeris, Obj,
                             UnspecifiedSurvey)
 from sqlalchemy.sql.sqltypes import Boolean
@@ -17,7 +17,7 @@ from sqlalchemy.sql.sqltypes import Boolean
 
 class NEATPalomarTricam(Observation):
     __tablename__ = 'neat_palomar_tricam'
-    id = Column(Integer, primary_key=True)
+    id = Column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True)
     observation_id = Column(
         Integer, ForeignKey('observation.observation_id', onupdate='CASCADE',
                             ondelete='CASCADE'), index=True)
@@ -53,7 +53,7 @@ class NEATPalomarTricam(Observation):
 
 class NEATMauiGEODSS(Observation):
     __tablename__ = 'neat_maui_geodss'
-    id = Column(Integer, primary_key=True)
+    id = Column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True)
     observation_id = Column(
         Integer, ForeignKey('observation.observation_id', onupdate='CASCADE',
                             ondelete='CASCADE'), index=True)
@@ -89,7 +89,7 @@ class NEATMauiGEODSS(Observation):
 
 class SkyMapper(Observation):
     __tablename__ = 'skymapper'
-    id = Column(Integer, primary_key=True)
+    id = Column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True)
     observation_id = Column(Integer, ForeignKey('observation.observation_id', onupdate='CASCADE',
                                                 ondelete='CASCADE'), index=True)
     product_id = Column(String(64), doc='Archive product id',

@@ -13,6 +13,7 @@ from catch.config import Config
 parser = argparse.ArgumentParser('add-neat-palomar')
 parser.add_argument('path', help='directory')
 parser.add_argument('-r', action='store_true', help='recursive search')
+parser.add_argument('--config', help='CATCH configuration file')
 
 args = parser.parse_args()
 
@@ -33,7 +34,7 @@ def product_id_to_int_id(pid):
     return int(s[2:])
 
 
-with Catch.with_config(Config.from_file()) as catch:
+with Catch.with_config(Config.from_file(args.config)) as catch:
     for path, dirnames, filenames in os.walk(args.path):
         catch.logger.info('inspecting ' + path)
         observations = []
