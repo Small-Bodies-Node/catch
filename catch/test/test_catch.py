@@ -65,9 +65,15 @@ def failed_search(self, *args):
 
 
 def test_query_all(catch, caplog, monkeypatch):
+    cached = catch.is_query_cached('2P')
+    assert not cached
+
     job_id = uuid.uuid4()
     n = catch.query('2P', job_id)
     assert n == 2
+
+    cached = catch.is_query_cached('2P')
+    assert cached
 
     # should be 1 for each survey
     caught = catch.caught(job_id)

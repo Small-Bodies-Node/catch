@@ -3,17 +3,18 @@
 __all__ = ['Catch']
 
 import uuid
+import logging
 from typing import Dict, List, Optional, Tuple, Union
 
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, MetaData
 from astropy.time import Time
 from sbsearch import SBSearch
 from sbsearch.target import MovingTarget
 
-from .model import (CatchQuery, Caught, Observation, Found, Ephemeris, Obj,
-                    Designation, UnspecifiedSurvey)
-from .exceptions import CatchException, FindObjectError, EphemerisError, DataSourceError
+from .model import (Base, CatchQuery, Caught, Observation, Found, Ephemeris,
+                    UnspecifiedSurvey)
+from .exceptions import CatchException, FindObjectError, EphemerisError
 from .logging import TaskMessenger
 
 
@@ -26,19 +27,26 @@ class Catch(SBSearch):
     database : str or Session
         Database URL or initialized sqlalchemy Session.
 
+    uncertainty_ellipse : bool, optional
+        Search considering the uncertainty ellipse.
+
+    padding : float, optional
+        Additional padding to the search area, arcmin.
+
     debug : bool, optional
         Enable debugging messages.
 
     """
 
     def __init__(self, database: Union[str, Session], *args,
+                 uncertainty_ellipse: bool = False, padding: float = 0,
                  debug: bool = False, **kwargs) -> None:
-        # fixed min_edge_length value (1 arcmin), set defaults for
-        # uncertainty_ellipse, padding
+        # fixed min_edge_length value (1 arcmin)
         super().__init__(database, *args, min_edge_length=3e-4,
-                         uncertainty_ellipse=False, padding=0,
-                         logger_name='Catch', **kwargs)
+                         uncertainty_ellipse=uncertainty_ellipse,
+                         padding=padding, logger_name='Catch', **kwargs)
         self.debug: bool = debug
+        self.logger.setLevel(logging.DEBUG if debug else logging.INFO)
 
     @property
     def sources(self) -> Dict[str, Observation]:
@@ -146,7 +154,9 @@ class Catch(SBSearch):
                 job_id=job_id.hex,
                 source=source.__tablename__,
                 date=Time.now().iso,
-                status='in progress'
+                status='in progress',
+                uncertainty_ellipse=self.uncertainty_ellipse,
+                padding=self.padding
             )
             self.db.session.add(q)
             self.db.session.commit()
@@ -175,10 +185,57 @@ class Catch(SBSearch):
 
         return count
 
-    def _find_catch_query(self, target: str, source: Observation) -> CatchQuery:
+    def is_query_cached(self, target: str, source_keys: Optional[str] = None
+                        ) -> str:
+        """Determine if this query has already been cached.
+
+
+        ``uncertainty_ellipse`` and ``padding`` parameters are also checked.
+
+
+        Parameters
+        ----------
+        target : string
+            Target for which to search.
+
+        source_keys : list of strings, optional
+            Limit search to these sources.  See ``Catch.sources.keys()``
+            for possible values.
+
+
+        Returns
+        -------
+        cached : bool
+            ``False`` if any source specified by ``source_keys`` is not yet
+            cached for this ``target``.
+
+        """
+
+        source_keys = (
+            list(self.sources.keys())
+            if source_keys is None
+            else source_keys
+        )
+
+        sources: List[Observation] = [
+            self.sources[name] for name in source_keys
+            if name != 'observation'
+        ]
+
+        cached: bool = True  # assume cached until proven otherwise
+        for source in sources:
+            self.source = source
+            cached = self._find_catch_query(target, source) is not None
+
+        return cached
+
+    def _find_catch_query(self, target: str, source: Observation
+                          ) -> Union[CatchQuery, None]:
         """Find query ID for this target and source.
 
-        Returns the last search with status=='finished'.
+        ``uncertainty_ellipse`` and ``padding`` parameters are also checked.
+
+        Returns the last search with status=='finished', ``None`` otherwise.
 
         """
 
@@ -187,6 +244,8 @@ class Catch(SBSearch):
             .filter(CatchQuery.query == target)
             .filter(CatchQuery.source == source.__tablename__)
             .filter(CatchQuery.status == 'finished')
+            .filter(CatchQuery.uncertainty_ellipse == self.uncertainty_ellipse)
+            .filter(CatchQuery.padding == self.padding)
             .order_by(CatchQuery.query_id.desc())
             .first()
         )
@@ -266,23 +325,3 @@ class Catch(SBSearch):
 
         self.db.session.commit()
         return n
-
-    @staticmethod
-    def skymapper_cutout_url(found, obs, size=0.0833, format='fits'):
-        """Return SkyMapper cutout URL.
-
-        https://skymapper.anu.edu.au/how-to-access/#public_siap
-
-        For example:
-            https://api.skymapper.nci.org.au/public/siap/dr2/get_image?IMAGE=20140425124821-10&SIZE=0.0833&POS=189.99763,-11.62305&FORMAT=fits
-
-        size in deg
-
-        format = fits, png, or mask
-
-        """
-
-        return (
-            'https://api.skymapper.nci.org.au/public/siap/dr2/get_image?'
-            f'IMAGE={obs.product_id}&SIZE={size}&POS={found.ra},{found.dec}&FORMAT={format}'
-        )

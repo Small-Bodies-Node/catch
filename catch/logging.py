@@ -12,13 +12,13 @@ class TaskMessenger:
         self.logger: logging.Logger = logging.getLogger(
             'CATCH-APIs {}'.format(job_hex))
         self.logger.setLevel(logging.DEBUG if debug else logging.INFO)
-        self.logger.handlers = []  # clear previous handlers
-        # always log to the console
-        formatter: logging.Formatter = logging.Formatter(
-            '%(levelname)s ({}): %(message)s'.format(job_hex))
-        console: logging.StreamHandler = logging.StreamHandler()
-        console.setFormatter(formatter)
-        self.logger.addHandler(console)
+        if len(self.logger.handlers) == 0:
+            # always log to the console
+            formatter: logging.Formatter = logging.Formatter(
+                '%(levelname)s  %(asctime)s ({}): %(message)s'.format(job_hex))
+            console: logging.StreamHandler = logging.StreamHandler()
+            console.setFormatter(formatter)
+            self.logger.addHandler(console)
 
     def send(self, message: str, *args):
         """Send a informational message to CATCH-APIs."""
