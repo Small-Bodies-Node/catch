@@ -170,7 +170,7 @@ class Catch(SBSearch):
                 self.db.session.commit()
             else:
                 try:
-                    n = self._query(q, target)
+                    n = self._query(q, target, task_messenger)
                 except CatchException as e:
                     q.status = 'errored'
                     task_messenger.error(str(e))
@@ -281,7 +281,7 @@ class Catch(SBSearch):
 
         return len(founds)
 
-    def _query(self, query: CatchQuery, target: str):
+    def _query(self, query: CatchQuery, target: str, task_messenger: TaskMessenger):
         # date range for this survey
         mjd_start: float
         mjd_stop: float
@@ -303,6 +303,8 @@ class Catch(SBSearch):
             )
         except Exception as e:
             raise EphemerisError('Could not get an ephemeris.') from e
+        self.logger.info('Obtained ephemeris from JPL Horizons.')
+        task_messenger.send('Obtained ephemeris from JPL Horizons.')
 
         try:
             observations: List[self.source] = (

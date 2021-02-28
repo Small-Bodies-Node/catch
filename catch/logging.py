@@ -15,7 +15,7 @@ class TaskMessenger:
         if len(self.logger.handlers) == 0:
             # always log to the console
             formatter: logging.Formatter = logging.Formatter(
-                '%(levelname)s  %(asctime)s ({}): %(message)s'.format(job_hex))
+                '%(levelname)s %(asctime)s ({}): %(message)s'.format(job_hex))
             console: logging.StreamHandler = logging.StreamHandler()
             console.setFormatter(formatter)
             self.logger.addHandler(console)
