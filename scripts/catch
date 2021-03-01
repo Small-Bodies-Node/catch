@@ -5,8 +5,12 @@ import argparse
 import uuid
 from astropy.table import Table
 from catch import Catch, Config
+from catch.config import _config_example
 
-parser = argparse.ArgumentParser('catch')
+parser = argparse.ArgumentParser(
+    'catch',
+    epilog=f'Configuration files are JSON-formatted:\n{_config_example}'
+)
 parser.add_argument('desg')
 parser.add_argument(
     '--source', dest='sources', action='append',
