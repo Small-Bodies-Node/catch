@@ -177,8 +177,8 @@ class Catch(SBSearch):
                     self.logger.error(e)
                 else:
                     count += n
-                    task_messenger.send('Caught %d observation%s in %s.',
-                                        n, '' if n == 1 else 's', source_name)
+                    task_messenger.send('Caught %d observation%s.',
+                                        n, '' if n == 1 else 's')
                     q.status = 'finished'
                 finally:
                     self.db.session.commit()
@@ -289,6 +289,12 @@ class Catch(SBSearch):
             func.min(self.source.mjd_start),
             func.max(self.source.mjd_stop)
         ).one()
+
+        task_messenger.send(
+            'Query %s from %s to %s.', self.source.__data_source_name__,
+            Time(mjd_start, format='mjd').iso[:10],
+            Time(mjd_stop, format='mjd').iso[:10]
+        )
 
         if None in [mjd_start, mjd_stop]:
             # no observations in the database for this source
