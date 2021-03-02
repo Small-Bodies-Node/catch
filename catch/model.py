@@ -20,7 +20,7 @@ class NEATPalomarTricam(Observation):
     id = Column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True)
     observation_id = Column(
         Integer, ForeignKey('observation.observation_id', onupdate='CASCADE',
-                            ondelete='CASCADE'), index=True)
+                            ondelete='CASCADE'), nullable=False, index=True)
     product_id = Column(String(64), doc='Archive product id',
                         unique=True, index=True)
     instrument = Column(String(64), doc='Instrument / detector name')
@@ -56,7 +56,7 @@ class NEATMauiGEODSS(Observation):
     id = Column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True)
     observation_id = Column(
         Integer, ForeignKey('observation.observation_id', onupdate='CASCADE',
-                            ondelete='CASCADE'), index=True)
+                            ondelete='CASCADE'), nullable=False, index=True)
     product_id = Column(String(64), doc='Archive product id',
                         unique=True, index=True)
     instrument = Column(String(64), doc='Instrument / detector name')
@@ -91,7 +91,7 @@ class SkyMapper(Observation):
     __tablename__ = 'skymapper'
     id = Column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True)
     observation_id = Column(Integer, ForeignKey('observation.observation_id', onupdate='CASCADE',
-                                                ondelete='CASCADE'), index=True)
+                                                ondelete='CASCADE'), nullable=False, index=True)
     product_id = Column(String(64), doc='Archive product id',
                         unique=True, index=True)
     sb_mag = Column(Float(16), doc='Surface brightness estimate (ABmag)')
@@ -157,4 +157,4 @@ class Caught(Base):
         Integer, ForeignKey('found.found_id',
                             onupdate='CASCADE',
                             ondelete='CASCADE'),
-        primary_key=True)
+        nullable=False, index=True)
