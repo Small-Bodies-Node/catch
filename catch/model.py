@@ -147,14 +147,23 @@ class CatchQuery(Base):
 
 
 class Caught(Base):
+    """Links Found to CatchQuery.
+
+    The combination of query_id and found_id is unique, therefore we use a
+    primary key based on the two columns.
+
+    """
+
     __tablename__ = 'caught'
+
     query_id = Column(
         Integer, ForeignKey('catch_query.query_id',
                             onupdate='CASCADE',
                             ondelete='CASCADE'),
         primary_key=True)
+
     found_id = Column(
         Integer, ForeignKey('found.found_id',
                             onupdate='CASCADE',
                             ondelete='CASCADE'),
-        nullable=False, index=True)
+        primary_key=True)
