@@ -112,3 +112,4 @@ Pipfile*
 *.config
 !catch.example.config
 *.log
+catch/version.py
