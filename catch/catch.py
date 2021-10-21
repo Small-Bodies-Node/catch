@@ -11,6 +11,7 @@ from sqlalchemy import func, MetaData
 from astropy.time import Time
 from sbsearch import SBSearch
 from sbsearch.target import MovingTarget
+from sbsearch.exceptions import DesignationError
 
 from .model import (Base, CatchQuery, Caught, Observation, Found, Ephemeris,
                     UnspecifiedSurvey)
@@ -281,7 +282,24 @@ class Catch(SBSearch):
 
         return len(founds)
 
-    def _query(self, query: CatchQuery, target: str, task_messenger: TaskMessenger):
+    def _query(self, query: CatchQuery, target_name: str, task_messenger: TaskMessenger):
+        """Run the actual query.
+
+        1. Find the date range of the current survey.  If ``None`` then the
+           survey has no observations: silently return no results.
+
+        2. Notify the user of the survey and date range being searched.
+
+        3. Get the target's ephemeris over the survey date range.
+
+        4. If the ephemeris query succeeded, then this is a good target.  Save
+           it to the target database.
+
+        5. Query the database for observations of the target ephemeris.
+
+        6. Observations found?  Then add them to the found and caught tables.
+
+        """
         # date range for this survey
         mjd_start: float
         mjd_stop: float
@@ -290,17 +308,20 @@ class Catch(SBSearch):
             func.max(self.source.mjd_stop)
         ).one()
 
-        task_messenger.send(
-            'Query %s from %s to %s.', self.source.__data_source_name__,
-            Time(mjd_start, format='mjd').iso[:10],
-            Time(mjd_stop, format='mjd').iso[:10]
-        )
-
         if None in [mjd_start, mjd_stop]:
             # no observations in the database for this source
             return 0
 
-        target: MovingTarget = MovingTarget(target)
+        # notify the user of survey and date range being searched
+        task_messenger.send(
+            'Query %s from %s to %s.',
+            self.source.__data_source_name__,
+            Time(mjd_start, format='mjd').iso[:10],
+            Time(mjd_stop, format='mjd').iso[:10]
+        )
+
+        # get target ephemeris
+        target: MovingTarget = MovingTarget(target_name, db=self.db)
         try:
             eph: List[Ephemeris] = target.ephemeris(
                 self.source.__obscode__,
@@ -312,6 +333,14 @@ class Catch(SBSearch):
         self.logger.info('Obtained ephemeris from JPL Horizons.')
         task_messenger.send('Obtained ephemeris from JPL Horizons.')
 
+        # ephemeris was successful, add target to database
+        try:
+            target.add()
+        except DesignationError:
+            # already in the database
+            target = MovingTarget.from_designation(target_name, db=self.db)
+
+        # Query the database for observations of the target ephemeris
         try:
             observations: List[self.source] = (
                 self.find_observations_by_ephemeris(eph)
@@ -320,6 +349,7 @@ class Catch(SBSearch):
             raise FindObjectError(
                 'Critical error: could not search database for this target.') from e
 
+        # Observations found?  Then add them to the found and caught tables.
         n: int = 0
         if len(observations) > 0:
             found: Found

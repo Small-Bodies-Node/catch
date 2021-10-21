@@ -4,16 +4,23 @@ import uuid
 import pytest
 
 import numpy as np
+from astropy.tests.helper import remote_data
+import sqlalchemy as sa
 
 from ..catch import Catch
 from ..config import Config
 from ..model import (NEATMauiGEODSS, NEATPalomarTricam, Ephemeris, Found,
                      SkyMapper)
 
+# dummy_surveys survey parameters
+GEODSS_START = 50814.0
+TRICAM_OFFSET = 1461
+EXPTIME = 30 / 86400
+SLEWTIME = 7 / 86400
+
 
 def dummy_surveys():
-    mjd_start = 50814.0
-    exp = 30 / 86400
+    mjd_start = GEODSS_START
     fov = np.array(((-0.5, 0.5, 0.5, -0.5), (-0.5, -0.5, 0.5, 0.5))) * 5
     observations = []
     for dec in np.linspace(-30, 90, 36):
@@ -21,19 +28,19 @@ def dummy_surveys():
             _fov = fov + np.array([[ra], [dec]])
             obs = NEATMauiGEODSS(
                 mjd_start=mjd_start,
-                mjd_stop=mjd_start + exp,
+                mjd_stop=mjd_start + EXPTIME,
             )
             obs.set_fov(*_fov)
             observations.append(obs)
 
             obs = NEATPalomarTricam(
-                mjd_start=mjd_start + 1461,
-                mjd_stop=mjd_start + exp + 1461,
+                mjd_start=mjd_start + TRICAM_OFFSET,
+                mjd_stop=mjd_start + EXPTIME + TRICAM_OFFSET,
             )
             obs.set_fov(*_fov)
             observations.append(obs)
 
-            mjd_start += exp + 7 / 86400
+            mjd_start += EXPTIME + SLEWTIME
 
     return observations
 
@@ -46,7 +53,7 @@ def test_skymapper_url():
         ra=12.3,
         dec=-4.56
     )
-    url = Catch.skymapper_cutout_url(found, obs, size=0.1)
+    url = obs.cutout_url(found.ra, found.dec, size=0.1)
     assert url == ('https://api.skymapper.nci.org.au/public/siap/dr2/get_image?'
                    f'IMAGE={obs.product_id}&SIZE=0.1&POS={found.ra},{found.dec}&FORMAT=fits')
 
@@ -64,12 +71,33 @@ def failed_search(self, *args):
     raise Exception
 
 
+def test_source_time_limits(catch):
+    mjd_start, mjd_stop = catch.db.session.query(
+        sa.func.min(NEATMauiGEODSS.mjd_start),
+        sa.func.max(NEATMauiGEODSS.mjd_stop)
+    ).one()
+    assert mjd_start == GEODSS_START
+    assert np.isclose(mjd_stop, 50814.0 + 900 * (EXPTIME + SLEWTIME))
+
+    mjd_start, mjd_stop = catch.db.session.query(
+        sa.func.min(NEATPalomarTricam.mjd_start),
+        sa.func.max(NEATPalomarTricam.mjd_stop)
+    ).one()
+    assert mjd_start == GEODSS_START + TRICAM_OFFSET
+    assert np.isclose(mjd_stop, 50814.0 + 900 * (EXPTIME + SLEWTIME)
+                      + TRICAM_OFFSET)
+
+
+@remote_data
 def test_query_all(catch, caplog, monkeypatch):
+    # test data only exists for:
+    source_keys = None  # ['neat_palomar_tricam', 'neat_maui_geodss']
+
     cached = catch.is_query_cached('2P')
     assert not cached
 
     job_id = uuid.uuid4()
-    n = catch.query('2P', job_id)
+    n = catch.query('2P', job_id, source_keys=source_keys)
     assert n == 2
 
     cached = catch.is_query_cached('2P')
