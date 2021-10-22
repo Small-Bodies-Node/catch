@@ -14,7 +14,7 @@ from sbsearch.target import MovingTarget
 from sbsearch.exceptions import DesignationError
 
 from .model import (Base, CatchQuery, Caught, Observation, Found, Ephemeris,
-                    UnspecifiedSurvey)
+                    ExampleSurvey)
 from .exceptions import CatchException, FindObjectError, EphemerisError
 from .logging import TaskMessenger
 
@@ -56,11 +56,10 @@ class Catch(SBSearch):
         The dictionary is keyed by database table name.
 
         """
-        # skip UnspecifiedSurvey
         return {
             source.__tablename__: source
-            for source in [Observation] + Observation.__subclasses__()
-            if source not in [UnspecifiedSurvey]
+            for source in Observation.__subclasses__()
+            if source not in [ExampleSurvey]
         }
 
     def caught(self, job_id: Union[uuid.UUID, str]

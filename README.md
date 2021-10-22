@@ -2,15 +2,44 @@
 
 SBN astronomical survey data search tool.
 
-## Adding new surveys
 
-Detailed instructions are TBW.
+## Initial setup
 
-1. Download and inspect the data source, determine which metadata are important for user searches, i.e., which will be saved to the database.  Exposure start/stop and field of view are required.
+1. Install catch and supporting libraries, e.g.:
 
-1. Create object for the new survey in ``model``.
+   ```bash
+   pip install https://github.com/Small-Bodies-Node/catch
+   ```
 
-1. Create script to ingest data into database and save to `script/`, and run it.
+1. Copy ``catch.example.config`` to ``catch.config`` and edit:
+   1. Decide which database backend will be used, e.g., sqlite, postgresql, or mariadb.
+      1. For sqlite: set "database" in ``catch.config`` to, e.g., "sqlite:////path/to/catch.db".
+      1. For postgresql:
+         1. Set "database" to, e.g.:
+            1. postgresql:///catch
+            1. postgresql://user:password@/catch?host=/tmp
+            1. postgresql://user:password@host/catch
+         1. Create that database and allow user access, e.g.:
+
+            ```bash
+            createdb catch
+            psql -d catch
+            ```
+
+            For the user who maintains catch:
+
+            ```sql
+            GRANT ALL PRIVILEGES ON DATABASE catch TO user;
+            ```
+
+            For the user who runs catch: TBD
+
+      1. For mariadb, ?
+
+   1. Edit log file location.
+1. Run the provided script `scripts/catch` to initialize the databases: `python3 scripts/catch verify`.
+
+## Harvest metadata
 
 ### NEAT Palomar / GEODSS
 
@@ -55,6 +84,19 @@ If the observation table for an existing survey is modified, especially if new o
 ```sql
 DELETE FROM catch_query WHERE source='asdf';
 ```
+
+## Adding new surveys
+
+Detailed instructions are TBW.
+
+1. Download and inspect the data source, determine which metadata are important for user searches, i.e., which will be saved to the database.  Exposure start/stop and field of view are required.
+
+1. Copy `sbsearch/model/example_survey.py` from the sbsearch repository to `catch/model/survey_name.py`, and edit as instructed by the comments.  Add additional methods to the main survey object as described in `catch/model/neat_palomar_tricam.py`.
+
+1. Edit `sbsearch/model/__init__.py` to import the main data object from that file, following the other surveys as examples.
+
+1. Create a script to harvest metadata into the database and save to `scripts/`.  Run it.
+
 
 ## Database tasks
 
