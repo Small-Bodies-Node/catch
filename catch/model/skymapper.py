@@ -12,7 +12,7 @@ __all__: List[str] = [
 
 
 class SkyMapper(Observation):
-    __tablename__ = 'SkyMapper'
+    __tablename__ = 'skymapper'
     __data_source_name__ = 'SkyMapper'
     __obscode__ = '413'
 
@@ -35,7 +35,7 @@ class SkyMapper(Observation):
         Float(16), doc='Approximate photometric zeropoint for the exposure')
 
     __mapper_args__ = {
-        'polymorphic_identity': 'SkyMapper'
+        'polymorphic_identity': 'skymapper'
     }
 
     @property
@@ -65,15 +65,15 @@ class SkyMapper(Observation):
 
 
 class SkyMapperSpatialTerm(Base):
-    __tablename__ = 'SkyMapper_spatial_terms'
+    __tablename__ = 'skymapper_spatial_terms'
     term_id = Column(BigIntegerType, primary_key=True)
     source_id = Column(BigIntegerType,
-                       ForeignKey('SkyMapper.id', onupdate='CASCADE',
+                       ForeignKey('skymapper.id', onupdate='CASCADE',
                                   ondelete='CASCADE'),
                        nullable=False, index=True)
     term = Column(String(32), nullable=False)
 
-    SkyMapper = sa.orm.relationship("SkyMapper",
+    skymapper = sa.orm.relationship("SkyMapper",
                                     back_populates="terms")
 
     def __repr__(self) -> str:
@@ -83,6 +83,6 @@ class SkyMapperSpatialTerm(Base):
 
 
 SkyMapperSpatialTermIndex = Index(
-    "ix_SkyMapper_spatial_terms",
+    "ix_skymapper_spatial_terms",
     SkyMapperSpatialTerm.term
 )
