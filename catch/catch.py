@@ -174,7 +174,7 @@ class Catch(SBSearch):
                 except CatchException as e:
                     q.status = 'errored'
                     task_messenger.error(str(e))
-                    self.logger.error(e)
+                    self.logger.error(e, exc_info=self.debug)
                 else:
                     count += n
                     task_messenger.send('Caught %d observation%s.',
