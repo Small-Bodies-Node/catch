@@ -7,13 +7,13 @@ import logging
 from typing import Dict, List, Optional, Tuple, Union
 
 from sqlalchemy.orm import Session
-from sqlalchemy import func, MetaData
+from sqlalchemy import func
 from astropy.time import Time
 from sbsearch import SBSearch
 from sbsearch.target import MovingTarget
 from sbsearch.exceptions import DesignationError
 
-from .model import (Base, CatchQuery, Caught, Observation, Found, Ephemeris,
+from .model import (CatchQuery, Caught, Observation, Found, Ephemeris,
                     ExampleSurvey)
 from .exceptions import CatchException, FindObjectError, EphemerisError
 from .logging import TaskMessenger
