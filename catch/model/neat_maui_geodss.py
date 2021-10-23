@@ -22,7 +22,7 @@ class NEATMauiGEODSS(Observation):
                             nullable=False, index=True)
 
     terms = sa.orm.relationship("NEATMauiGEODSSSpatialTerm",
-                                back_populates=__tablename__)
+                                back_populates='source')
 
     __mapper_args__ = {
         'polymorphic_identity': 'neat_maui_geodss'
@@ -59,8 +59,7 @@ class NEATMauiGEODSSSpatialTerm(Base):
                        nullable=False, index=True)
     term = Column(String(32), nullable=False)
 
-    neat_maui_geodss = sa.orm.relationship("NEATMauiGEODSS",
-                                           back_populates="terms")
+    source = sa.orm.relationship("NEATMauiGEODSS", back_populates="terms")
 
     def __repr__(self) -> str:
         return (f'<{self.__class__.__name__} term_id={self.term_id}'

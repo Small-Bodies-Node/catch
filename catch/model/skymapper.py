@@ -25,7 +25,7 @@ class SkyMapper(Observation):
                             index=True)
 
     terms = sa.orm.relationship("SkyMapperSpatialTerm",
-                                back_populates=__tablename__)
+                                back_populates='source')
 
     sb_mag = Column(Float(16), doc='Surface brightness estimate (ABmag)')
     field_id = Column(Integer, doc='Field ID')
@@ -73,8 +73,7 @@ class SkyMapperSpatialTerm(Base):
                        nullable=False, index=True)
     term = Column(String(32), nullable=False)
 
-    skymapper = sa.orm.relationship("SkyMapper",
-                                    back_populates="terms")
+    source = sa.orm.relationship("SkyMapper", back_populates="terms")
 
     def __repr__(self) -> str:
         return (f'<{self.__class__.__name__} term_id={self.term_id}'
