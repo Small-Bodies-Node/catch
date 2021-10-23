@@ -40,7 +40,6 @@ SBN astronomical survey data search tool.
 1. Run the provided script `scripts/catch` to initialize the databases: `python3 scripts/catch verify`.
 
 ## Harvest metadata
-
 ### NEAT Palomar / GEODSS
 
 The NEAT scripts require the PDS labels and FITS headers.  The scripts assume the FITS files are compressed (fpacked) with a ".fz" suffix, but can be easily modified to change that.  The scripts examine one directory at a time, looking for PDS3 labels (*.lbl):
@@ -67,6 +66,8 @@ done
 
 The tricam ingestion would fail on two directories in V1.0 of the PDS3 data set: p20020627 and p20020814.  p20020627 has three files duplicated from p20020626, and p20020814 has three duplicated from p20020813.  The checksums are different, but a visual inspection of the images suggests they are essentially the same data.  The duplicate file names in p20020627 and p20020814 are hard-coded into the ingestion script, and skipped to avoid duplication.  It relies on the PRODUCT_CREATION_TIME keyword in the PDS3 label, which are different.
 
+Then, optimize the new tables (see below).
+
 ### SkyMapper DR2
 
 SkyMapper Data Release 2 exposure (images) and CCD tables are available at [http://skymapper.anu.edu.au/_data/DR2/].  Download these tables and run the corresponding catch script:
@@ -75,15 +76,12 @@ SkyMapper Data Release 2 exposure (images) and CCD tables are available at [http
 python3 add-skymapper.py dr2_images.csv.gz dr2_ccds.csv.gz
 ```
 
+Then, optimize the new tables (see below).
+
 ## Modifying existing surveys
 
-After inserting, updating, or deleting survey observations, connect to the database and optimize the observation table's spatial index: `VACUUM ANALYZE obs;`.
+After inserting, updating, or deleting survey observations, connect to the database and optimize the observation table's spatial index: `VACUUM ANALYZE skymapper, skymapper_spatial_terms;`.
 
-If the observation table for an existing survey is modified, especially if new observations are added, then the queries against that survey must be reset.  If the survey source name is named "asdf" (defined via attribute `Catch.SOURCES`), then connect to the database and execute the following SQL command:
-
-```sql
-DELETE FROM catch_query WHERE source='asdf';
-```
 
 ## Adding new surveys
 
@@ -101,6 +99,15 @@ Detailed instructions are TBW.
 ## Database tasks
 
 The database shouldn't need any periodic maintenance.  However, the following tasks may be of use.
+
+### Optimize observation tables
+
+After adding new observations to a survey, the tables may be optimized with, e.g.,:
+
+```sql
+VACUUM ANALYZE observation, skymapper, skymapper_spatial_terms;
+```
+
 
 ### Query reset
 
@@ -130,7 +137,7 @@ Note, the `obj` and `found` tables will still be populated with objects and obse
 
 ### Found objects reset
 
-To reset the found objects, both the `catch_query` and `obj` tables must be cleared.  Connect to the database and execute the following SQL commands:
+Revise: ??? To reset the found objects, both the `catch_query` and `obj` tables must be cleared ???  Connect to the database and execute the following SQL commands:
 
 ```sql
 DELETE FROM catch_query WHERE TRUE;
@@ -151,19 +158,7 @@ pg_dump -Fc -b -v -f "catch-surveys.backup" surveys
 
 ### Restore
 
-Before the CATCH database can be restored, the PostGIS extensions must be loaded on the server and the SBSearch coordinate system (a normal sphere), must be defined.  This requirement is documented in the [`sbsearch` README](https://github.com/Small-Bodies-Node/sbsearch/blob/master/README.md).  If the PostgreSQL server has already been used for CATCH, then verify that the coordinate system exists with:
-
-```sql
-surveys=> SELECT * FROM public.spatial_ref_sys WHERE auth_name = 'SBSearch';
- srid  | auth_name | auth_srid |                                                                  srtext                                                                   |              proj4text               
--------+-----------+-----------+-------------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------
- 40001 | SBSearch  |         1 | GEOGCS["Normal Sphere (r=6370997)",DATUM["unknown",SPHEROID["sphere",6370997,0]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]] | +proj=longlat +ellps=sphere +no_defs
-(1 row)
-```
-
-If this is a new PostgreSQL instance, then see the [`sbsearch` README](https://github.com/Small-Bodies-Node/sbsearch/blob/master/README.md) for setup instructions.
-
-Once the PostGIS extension is loaded and SBSearch coordinate system defined, the database backup created with `pg_dump` (as above) may be restored with `pg_restore`.  Again, for a CATCH database named "surveys":
+The database backup created with `pg_dump` (as above) may be restored with `pg_restore`.  Again, for a CATCH database named "surveys":
 
 ```bash
 pg_restore --clean --if-exists -d surveys catch-surveys.backup
