@@ -23,6 +23,8 @@ def catch_cli(*args):
         epilog=f'Configuration files are JSON-formatted:\n{_config_example}'
     )
     parser.add_argument('--config', help='CATCH configuration file')
+    parser.add_argument('--database', help='use this database URI')
+    parser.add_argument('--log', help='save log messages to this file')
     parser.add_argument('--debug', action='store_true', help='debug mode')
     subparsers = parser.add_subparsers(help='sub-command help')
 

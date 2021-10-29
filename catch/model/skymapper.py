@@ -1,8 +1,7 @@
 # Licensed with the 3-clause BSD license.  See LICENSE for details.
 
 from typing import List
-import sqlalchemy as sa
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, Index
+from sqlalchemy import Column, Integer, String, Float, ForeignKey
 
 from sbsearch.model.core import BigIntegerType, Base, Observation
 
@@ -23,9 +22,8 @@ class SkyMapper(Observation):
                                        ondelete='CASCADE'),
                             nullable=False,
                             index=True)
-
-    terms = sa.orm.relationship("SkyMapperSpatialTerm",
-                                back_populates='source')
+    product_id = Column(String(64), doc='Archive product id',
+                        unique=True, index=True)
 
     sb_mag = Column(Float(16), doc='Surface brightness estimate (ABmag)')
     field_id = Column(Integer, doc='Field ID')
@@ -62,26 +60,3 @@ class SkyMapper(Observation):
     def preview_url(self, ra, dec, size=0.0833):
         """Web preview image for cutout."""
         return self.cutout_url(ra, dec, size=size, format='png')
-
-
-class SkyMapperSpatialTerm(Base):
-    __tablename__ = 'skymapper_spatial_terms'
-    term_id = Column(BigIntegerType, primary_key=True)
-    source_id = Column(BigIntegerType,
-                       ForeignKey('skymapper.id', onupdate='CASCADE',
-                                  ondelete='CASCADE'),
-                       nullable=False, index=True)
-    term = Column(String(32), nullable=False)
-
-    source = sa.orm.relationship("SkyMapper", back_populates="terms")
-
-    def __repr__(self) -> str:
-        return (f'<{self.__class__.__name__} term_id={self.term_id}'
-                f' observation_id={self.source_id},'
-                f' term={repr(self.term)}>')
-
-
-SkyMapperSpatialTermIndex = Index(
-    "ix_skymapper_spatial_terms",
-    SkyMapperSpatialTerm.term
-)

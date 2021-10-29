@@ -33,6 +33,6 @@ class Config(sbsearch.config.Config):
     ]
 
     DEFAULT_PARAMETERS: Dict[str, Union[str, float, int, bool]] = {
-        "database": "sqlite://",
+        "database": "postgresql://user@host/database",
         "log": "/dev/null"
     }

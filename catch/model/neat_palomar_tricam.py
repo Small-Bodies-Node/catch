@@ -3,7 +3,8 @@
 
 To create a new survey, use this file or `sbsearch/model/example_survey.py` from
 the sbsearch source code as examples.  The latter has detailed comments on what
-to edit.
+to edit.  Then, add the survey to the top of `__init__.py` so that it is
+imported and included in `__all__`.
 
 The catch survey data model requires one property and two methods for each
 survey object:
@@ -23,8 +24,7 @@ __all__ = [
     'NEATPalomarTricam'
 ]
 
-import sqlalchemy as sa
-from sqlalchemy import Column, String, ForeignKey, Index
+from sqlalchemy import Column, String, ForeignKey
 from sbsearch.model.core import Base, Observation, BigIntegerType
 
 
@@ -33,15 +33,15 @@ class NEATPalomarTricam(Observation):
     __data_source_name__ = 'NEAT Palomar Tricam'
     __obscode__ = '644'  # MPC observatory code
 
-    id = Column(BigIntegerType, primary_key=True)
+    source_id = Column(BigIntegerType, primary_key=True)
     observation_id = Column(BigIntegerType,
                             ForeignKey('observation.observation_id',
                                        onupdate='CASCADE',
                                        ondelete='CASCADE'),
-                            nullable=False, index=True)
-
-    terms = sa.orm.relationship("NEATPalomarTricamSpatialTerm",
-                                back_populates='source')
+                            nullable=False,
+                            index=True)
+    product_id = Column(String(64), doc='Archive product id',
+                        unique=True, index=True)
 
     __mapper_args__ = {
         'polymorphic_identity': 'neat_palomar_tricam'
@@ -66,27 +66,3 @@ class NEATPalomarTricam(Observation):
     def preview_url(self, ra, dec, size=0.0833, format='jpeg'):
         """Web preview image."""
         return self.cutout_url(ra, dec, size=size, format=format)
-
-
-class NEATPalomarTricamSpatialTerm(Base):
-    __tablename__ = 'neat_palomar_tricam_spatial_terms'
-    term_id = Column(BigIntegerType, primary_key=True)
-    source_id = Column(BigIntegerType,
-                       ForeignKey('neat_palomar_tricam.id',
-                                  onupdate='CASCADE',
-                                  ondelete='CASCADE'),
-                       nullable=False, index=True)
-    term = Column(String(32), nullable=False)
-
-    source = sa.orm.relationship("NEATPalomarTricam", back_populates="terms")
-
-    def __repr__(self) -> str:
-        return (f'<{self.__class__.__name__} term_id={self.term_id}'
-                f' observation_id={self.source_id},'
-                f' term={repr(self.term)}>')
-
-
-NEATPalomarTricamSpatialTermIndex = Index(
-    "ix_neat_palomar_tricam_spatial_terms",
-    NEATPalomarTricamSpatialTerm.term
-)

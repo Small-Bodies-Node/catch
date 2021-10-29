@@ -2,7 +2,6 @@
 
 SBN astronomical survey data search tool.
 
-
 ## Initial setup
 
 1. Install catch and supporting libraries, e.g.:
@@ -12,34 +11,44 @@ SBN astronomical survey data search tool.
    ```
 
 1. Copy ``catch.example.config`` to ``catch.config`` and edit:
-   1. Decide which database backend will be used, e.g., sqlite, postgresql, or mariadb.
-      1. For sqlite: set "database" in ``catch.config`` to, e.g., "sqlite:////path/to/catch.db".
-      1. For postgresql:
-         1. Set "database" to, e.g.:
-            1. postgresql:///catch
-            1. postgresql://user:password@/catch?host=/tmp
-            1. postgresql://user:password@host/catch
-         1. Create that database and allow user access, e.g.:
+   1. Set "database" to, e.g.:
+      1. postgresql:///catch
+      1. postgresql://user:password@/catch?host=/tmp
+      1. postgresql://user:password@host/catch
+   1. Create that database and allow user access, e.g.:
 
-            ```bash
-            createdb catch
-            psql -d catch
-            ```
+      ```bash
+      createdb catch
+      psql -d catch
+      ```
 
-            For the user who maintains catch:
+      For the user who maintains catch:
 
-            ```sql
-            GRANT ALL PRIVILEGES ON DATABASE catch TO user;
-            ```
+      ```sql
+      GRANT ALL PRIVILEGES ON DATABASE catch TO user;
+      ```
 
-            For the user who runs catch: TBD
-
-      1. For mariadb, ?
+      For day-to-day operations, a more limited set of privileges may be used:
+      TBD
 
    1. Edit log file location.
-1. Run the provided script `scripts/catch` to initialize the databases: `python3 scripts/catch verify`.
+1. Run the installed script `catch` to initialize the databases: `catch verify`.  See `catch` script below for more.
+
+## `catch` script
+
+The `catch` script is installed along with the library.  `catch --help` displays the online help.
+
+* The CATCH configuration file can be explicitly specified as a parameter: `catch --config=/path/to/catch.config`.
+
+* As an alternative, the database and log path may be directly specified, e.g.: `catch --database=postgresql://@/catch --log=catch.temp.log`
+
+* `catch` has three sub-commands:
+  * `verify` to verify the database tables (and create them as needed), e.g., `catch verify`.
+  * `sources` to list obervational sources, e.g., `catch sources`.
+  * `search` to search for a target, e.g., `catch search 65P`.  The search and results are stored in the CATCH database tables, as usual.
 
 ## Harvest metadata
+
 ### NEAT Palomar / GEODSS
 
 The NEAT scripts require the PDS labels and FITS headers.  The scripts assume the FITS files are compressed (fpacked) with a ".fz" suffix, but can be easily modified to change that.  The scripts examine one directory at a time, looking for PDS3 labels (*.lbl):
@@ -80,8 +89,7 @@ Then, optimize the new tables (see below).
 
 ## Modifying existing surveys
 
-After inserting, updating, or deleting survey observations, connect to the database and optimize the observation table's spatial index: `VACUUM ANALYZE skymapper, skymapper_spatial_terms;`.
-
+After deleting any observations, the observation spatial index must be regenerated: `REINDEX ix_observation_spatial_terms`.
 
 ## Adding new surveys
 
@@ -95,7 +103,6 @@ Detailed instructions are TBW.
 
 1. Create a script to harvest metadata into the database and save to `scripts/`.  Run it.
 
-
 ## Database tasks
 
 The database shouldn't need any periodic maintenance.  However, the following tasks may be of use.
@@ -107,7 +114,6 @@ After adding new observations to a survey, the tables may be optimized with, e.g
 ```sql
 VACUUM ANALYZE observation, skymapper, skymapper_spatial_terms;
 ```
-
 
 ### Query reset
 

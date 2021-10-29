@@ -60,6 +60,7 @@ for row in get_rows(args.image_table):
 
 # connect to catch database
 with Catch.with_config(Config.from_args(args)) as catch:
+    catch.db.drop_spatial_index()
     observations = []
     count = 0
     tri = ProgressTriangle(1, catch.logger, base=2)
@@ -98,3 +99,5 @@ with Catch.with_config(Config.from_args(args)) as catch:
 
     # add any remaining files
     catch.add_observations(observations)
+
+    catch.db.create_spatial_index()

@@ -23,3 +23,7 @@ class EphemerisError(CatchException):
 
 class DataSourceError(CatchException):
     pass
+
+
+class DataSourceWarning(CatchException):
+    pass

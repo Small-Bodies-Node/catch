@@ -15,7 +15,8 @@ from sbsearch.exceptions import DesignationError
 
 from .model import (CatchQuery, Caught, Observation, Found, Ephemeris,
                     ExampleSurvey)
-from .exceptions import CatchException, FindObjectError, EphemerisError
+from .exceptions import (CatchException, DataSourceError, DataSourceWarning,
+                         FindObjectError, EphemerisError)
 from .logging import TaskMessenger
 
 
@@ -94,8 +95,8 @@ class Catch(SBSearch):
         return rows
 
     def query(self, target: str, job_id: Union[uuid.UUID, str],
-              source_keys: Optional[str] = None, cached: bool = True,
-              **kwargs) -> int:
+              source_keys: Optional[str] = None,
+              cached: bool = True, **kwargs) -> int:
         """Try to catch an object in survey data.
 
         Publishes messages to the Python logging system under the name
@@ -171,6 +172,9 @@ class Catch(SBSearch):
             else:
                 try:
                     n = self._query(q, target, task_messenger)
+                except DataSourceWarning as e:
+                    task_messenger.send(str(e))
+                    q.status = 'finished'
                 except CatchException as e:
                     q.status = 'errored'
                     task_messenger.error(str(e))
@@ -308,8 +312,8 @@ class Catch(SBSearch):
         ).one()
 
         if None in [mjd_start, mjd_stop]:
-            # no observations in the database for this source
-            return 0
+            raise DataSourceWarning(
+                f'No observations to search in database for {self.source.__data_source_name__}.')
 
         # notify the user of survey and date range being searched
         task_messenger.send(

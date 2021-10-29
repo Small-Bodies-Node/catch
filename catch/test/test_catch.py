@@ -6,11 +6,12 @@ import pytest
 import numpy as np
 from astropy.tests.helper import remote_data
 import sqlalchemy as sa
+import testing.postgresql
 
 from ..catch import Catch
 from ..config import Config
-from ..model import (NEATMauiGEODSS, NEATPalomarTricam, Ephemeris, Found,
-                     SkyMapper)
+from ..model import (NEATMauiGEODSS, NEATPalomarTricam, Found, SkyMapper)
+
 
 # dummy_surveys survey parameters
 GEODSS_START = 50814.0
@@ -19,7 +20,7 @@ EXPTIME = 30 / 86400
 SLEWTIME = 7 / 86400
 
 
-def dummy_surveys():
+def dummy_surveys(postgresql):
     mjd_start = GEODSS_START
     fov = np.array(((-0.5, 0.5, 0.5, -0.5), (-0.5, -0.5, 0.5, 0.5))) * 5
     observations = []
@@ -42,7 +43,21 @@ def dummy_surveys():
 
             mjd_start += EXPTIME + SLEWTIME
 
-    return observations
+    config = Config(database=postgresql.url(), log='/dev/null', debug=True)
+    with Catch.with_config(config) as catch:
+        catch.add_observations(observations)
+
+
+Postgresql = testing.postgresql.PostgresqlFactory(
+    cache_initialized_db=True, on_initialized=dummy_surveys)
+
+
+@pytest.fixture(name='catch')
+def fixture_catch():
+    with Postgresql() as postgresql:
+        config = Config(database=postgresql.url(), log='/dev/null', debug=True)
+        with Catch.with_config(config) as catch:
+            yield catch
 
 
 def test_skymapper_url():
@@ -56,15 +71,6 @@ def test_skymapper_url():
     url = obs.cutout_url(found.ra, found.dec, size=0.1)
     assert url == ('https://api.skymapper.nci.org.au/public/siap/dr2/get_image?'
                    f'IMAGE={obs.product_id}&SIZE=0.1&POS={found.ra},{found.dec}&FORMAT=fits')
-
-
-@pytest.fixture(name='catch')
-def fixture_catch():
-    config = Config(database='sqlite://',
-                    log='/dev/null', debug=True)
-    with Catch.with_config(config) as catch:
-        catch.add_observations(dummy_surveys())
-        yield catch
 
 
 def failed_search(self, *args):
