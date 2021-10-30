@@ -13,10 +13,9 @@ from sbsearch import SBSearch
 from sbsearch.target import MovingTarget
 from sbsearch.exceptions import DesignationError
 
-from .model import (CatchQuery, Caught, Observation, Found, Ephemeris,
-                    ExampleSurvey)
-from .exceptions import (CatchException, DataSourceError, DataSourceWarning,
-                         FindObjectError, EphemerisError)
+from .model import (CatchQuery, Observation, Found, Ephemeris, ExampleSurvey)
+from .exceptions import (CatchException, DataSourceWarning, FindObjectError,
+                         EphemerisError)
 from .logging import TaskMessenger
 
 
@@ -49,6 +48,9 @@ class Catch(SBSearch):
                          padding=padding, logger_name='Catch', **kwargs)
         self.debug: bool = debug
         self.logger.setLevel(logging.DEBUG if debug else logging.INFO)
+        self._found_attributes = [
+            attr for attr in dir(Found)
+            if attr[0] != '_' and attr not in ['found_id', 'query_id']]
 
     @property
     def sources(self) -> Dict[str, Observation]:
@@ -83,12 +85,16 @@ class Catch(SBSearch):
 
         job_id: uuid.UUID = uuid.UUID(str(job_id), version=4)
 
+        # find job_id in CatchQuery table
+        query_ids: List[int] = (self.db.session.query(CatchQuery.query_id)
+                                .filter(CatchQuery.job_id == job_id.hex)
+                                .all())
+
+        # get results from Found
         rows: List[Tuple[Found, Observation]] = (
             self.db.session.query(Found, Observation)
-            .join(Caught, Found.found_id == Caught.found_id)
-            .join(CatchQuery, CatchQuery.query_id == Caught.query_id)
             .join(Observation, Found.observation_id == Observation.observation_id)
-            .filter(CatchQuery.job_id == job_id.hex)
+            .filter(Found.query_id.in_(query_ids))
             .all()
         )
 
@@ -269,19 +275,16 @@ class Catch(SBSearch):
 
         founds: List[Found] = (
             self.db.session.query(Found)
-            .join(Caught, Caught.found_id == Found.found_id)
-            .filter(Caught.query_id == cached_query.query_id)
+            .filter(Found.query_id == cached_query.query_id)
             .all()
         )
 
         found: Found
-        for found in founds:
-            self.db.session.add(
-                Caught(
-                    query_id=query.query_id,
-                    found_id=found.found_id
-                )
-            )
+        for i in range(len(founds)):
+            found = Found(query_id=query.query_id)
+            for k in self._found_attributes:
+                setattr(found, k, getattr(founds[i], k))
+            self.db.session.add(found)
 
         return len(founds)
 
@@ -300,7 +303,7 @@ class Catch(SBSearch):
 
         5. Query the database for observations of the target ephemeris.
 
-        6. Observations found?  Then add them to the found and caught tables.
+        6. Observations found?  Then add them to the found table.
 
         """
         # date range for this survey
@@ -324,7 +327,7 @@ class Catch(SBSearch):
         )
 
         # get target ephemeris
-        target: MovingTarget = MovingTarget(target_name, db=self.db)
+        target: MovingTarget = self.get_designation(target_name)
         try:
             eph: List[Ephemeris] = target.ephemeris(
                 self.source.__obscode__,
@@ -352,17 +355,13 @@ class Catch(SBSearch):
             raise FindObjectError(
                 'Critical error: could not search database for this target.') from e
 
-        # Observations found?  Then add them to the found and caught tables.
-        n: int = 0
-        if len(observations) > 0:
-            found: Found
-            for found in self.add_found(target, observations):
-                caught = Caught(
-                    query_id=query.query_id,
-                    found_id=found.found_id
-                )
-                self.db.session.add(caught)
-                n += 1
+        # Observations found?  Then add them to the found table.
+        founds: List[Found] = self.add_found(target, observations)
+
+        # include query_id
+        found: Found
+        for found in founds:
+            found.query_id = query.query_id
 
         self.db.session.commit()
-        return n
+        return len(founds)
