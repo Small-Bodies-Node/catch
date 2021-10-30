@@ -1,4 +1,4 @@
-# catch v1.0.0-dev
+# catch v1.0.0
 
 SBN astronomical survey data search tool.
 
