@@ -112,7 +112,7 @@ The database shouldn't need any periodic maintenance.  However, the following ta
 After adding new observations to a survey, the tables may be optimized with, e.g.,:
 
 ```sql
-VACUUM ANALYZE observation, skymapper, skymapper_spatial_terms;
+VACUUM ANALYZE;
 ```
 
 ### Query reset
@@ -123,16 +123,10 @@ To clear the query table, connect to the database and execute the following SQL 
 DELETE FROM catch_query WHERE TRUE;
 ```
 
-which will clear the `catch_query` and `caught` tables.  To verify:
+To verify:
 
 ```sql
 surveys=> SELECT COUNT(*) FROM catch_query;
- count 
--------
-     0
-(1 row)
-
-surveys=> SELECT COUNT(*) FROM caught;
  count 
 -------
      0
@@ -143,14 +137,12 @@ Note, the `obj` and `found` tables will still be populated with objects and obse
 
 ### Found objects reset
 
-Revise: ??? To reset the found objects, both the `catch_query` and `obj` tables must be cleared ???  Connect to the database and execute the following SQL commands:
+To reset the found objects, the `catch_query` and `found` tables must be cleared.  Connect to the database and execute the following SQL commands:
 
 ```sql
 DELETE FROM catch_query WHERE TRUE;
-DELETE FROM obj WHERE TRUE;
+DELETE FROM found WHERE TRUE;
 ```
-
-which will also clear the found objects table, `found`.
 
 Note, the `found` table cannot be reset independently from the `catch_query` table, otherwise new queries with the cache enabled (`Catch.query(... cached=True)`) may find a previous query, assume the object was not found in the database, and return no results.
 
@@ -159,7 +151,7 @@ Note, the `found` table cannot be reset independently from the `catch_query` tab
 Save the database to a file with `pg_dump`.  For a CATCH database named "surveys":
 
 ```bash
-pg_dump -Fc -b -v -f "catch-surveys.backup" surveys
+pg_dump -Fc -b -v -f "catch.backup" catch
 ```
 
 ### Restore
@@ -167,5 +159,5 @@ pg_dump -Fc -b -v -f "catch-surveys.backup" surveys
 The database backup created with `pg_dump` (as above) may be restored with `pg_restore`.  Again, for a CATCH database named "surveys":
 
 ```bash
-pg_restore --clean --if-exists -d surveys catch-surveys.backup
+pg_restore --clean --if-exists -d catch catch.backup
 ```
