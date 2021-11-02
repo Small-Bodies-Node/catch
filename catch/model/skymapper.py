@@ -1,9 +1,8 @@
 # Licensed with the 3-clause BSD license.  See LICENSE for details.
 
 from typing import List
-from sqlalchemy import Column, Integer, String, Float, ForeignKey
-
-from sbsearch.model.core import BigIntegerType, Base, Observation
+from sqlalchemy import BigInteger, Column, Integer, String, Float, ForeignKey
+from sbsearch.model.core import Base, Observation
 
 __all__: List[str] = [
     'SkyMapper'
@@ -15,15 +14,15 @@ class SkyMapper(Observation):
     __data_source_name__ = 'SkyMapper'
     __obscode__ = '413'
 
-    id = Column(BigIntegerType, primary_key=True)
-    observation_id = Column(BigIntegerType,
+    id = Column(BigInteger, primary_key=True)
+    observation_id = Column(BigInteger,
                             ForeignKey('observation.observation_id',
                                        onupdate='CASCADE',
                                        ondelete='CASCADE'),
                             nullable=False,
                             index=True)
     product_id = Column(String(64), doc='Archive product id',
-                        unique=True, index=True)
+                        unique=True, index=True, nullable=False)
 
     sb_mag = Column(Float(16), doc='Surface brightness estimate (ABmag)')
     field_id = Column(Integer, doc='Field ID')

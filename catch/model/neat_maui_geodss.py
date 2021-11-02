@@ -4,8 +4,8 @@ __all__ = [
     'NEATMauiGEODSS'
 ]
 
-from sqlalchemy import Column, String, ForeignKey
-from sbsearch.model.core import Base, Observation, BigIntegerType
+from sqlalchemy import BigInteger, Column, String, ForeignKey
+from sbsearch.model.core import Base, Observation
 
 
 class NEATMauiGEODSS(Observation):
@@ -13,15 +13,15 @@ class NEATMauiGEODSS(Observation):
     __data_source_name__ = 'NEAT Maui GEODSS'
     __obscode__ = '566'
 
-    source_id = Column(BigIntegerType, primary_key=True)
-    observation_id = Column(BigIntegerType,
+    source_id = Column(BigInteger, primary_key=True)
+    observation_id = Column(BigInteger,
                             ForeignKey('observation.observation_id',
                                        onupdate='CASCADE',
                                        ondelete='CASCADE'),
                             nullable=False,
                             index=True)
     product_id = Column(String(64), doc='Archive product id',
-                        unique=True, index=True)
+                        unique=True, index=True, nullable=False)
 
     __mapper_args__ = {
         'polymorphic_identity': 'neat_maui_geodss'
