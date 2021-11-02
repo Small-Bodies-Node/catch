@@ -1,6 +1,17 @@
 # catch v1.0.0
 
-SBN astronomical survey data search tool.
+Planetary Data System Small Bodies Node (PDS-SBN) astronomical survey data search tool.
+
+## Overview
+
+`catch` finds observations of comets and asteroids in sky survey data.  The primary goal is to enable searches on PDS-SBN-archived datasets, but datasets archived elsewhere may be included.  It is built on the [`sbsearch`](https://github.com/Small-Bodies-Node/sbsearch) library and designed to support web-based searches via [`catch-apis`](https://github.com/Small-Bodies-Node/catch-apis).
+
+To illustrate the technique, an example search for comet 65P/Gunn in July/August 2017 is shown in Figure 1.  The ephemeris was transformed into a database query using the S2 library, which describes lines or areas in spherical coordinates with a nested grid of cells.  The ephemeris cells are compared to the `catch` database, which stores the cell identifiers for all images in the SkyMapper survey.  Observations with cells matching any of the ephemeris cells are considered as candidate observations of the comet.  Each candidate is checked in detail for the intersection of the ephemeris and observation field-of-view, including time.
+
+Figure 1.  Ephemeris (dashed line) and S2 query cells (thin solid lines) for comet 65P/Gunn over the time period 2017 Jul 15 to Aug 15.  The field-of-view for a SkyMapper Southern Survey image that matched the ephemeris query is shown (thick solid line).  Of all the cells queried, the shaded S2 cell matched the SkyMapper image.
+![S2 cell boundaries and comet 65P ephemeris](figures/query-cells-65p-20170715-20170815.png)
+
+
 
 ## Initial setup
 
@@ -112,7 +123,7 @@ The database shouldn't need any periodic maintenance.  However, the following ta
 After adding new observations to a survey, the tables may be optimized with, e.g.,:
 
 ```sql
-VACUUM ANALYZE observation, skymapper, skymapper_spatial_terms;
+VACUUM ANALYZE;
 ```
 
 ### Query reset
@@ -123,16 +134,10 @@ To clear the query table, connect to the database and execute the following SQL 
 DELETE FROM catch_query WHERE TRUE;
 ```
 
-which will clear the `catch_query` and `caught` tables.  To verify:
+To verify:
 
 ```sql
 surveys=> SELECT COUNT(*) FROM catch_query;
- count 
--------
-     0
-(1 row)
-
-surveys=> SELECT COUNT(*) FROM caught;
  count 
 -------
      0
@@ -143,14 +148,12 @@ Note, the `obj` and `found` tables will still be populated with objects and obse
 
 ### Found objects reset
 
-Revise: ??? To reset the found objects, both the `catch_query` and `obj` tables must be cleared ???  Connect to the database and execute the following SQL commands:
+To reset the found objects, the `catch_query` and `found` tables must be cleared.  Connect to the database and execute the following SQL commands:
 
 ```sql
 DELETE FROM catch_query WHERE TRUE;
-DELETE FROM obj WHERE TRUE;
+DELETE FROM found WHERE TRUE;
 ```
-
-which will also clear the found objects table, `found`.
 
 Note, the `found` table cannot be reset independently from the `catch_query` table, otherwise new queries with the cache enabled (`Catch.query(... cached=True)`) may find a previous query, assume the object was not found in the database, and return no results.
 
@@ -159,7 +162,7 @@ Note, the `found` table cannot be reset independently from the `catch_query` tab
 Save the database to a file with `pg_dump`.  For a CATCH database named "surveys":
 
 ```bash
-pg_dump -Fc -b -v -f "catch-surveys.backup" surveys
+pg_dump -Fc -b -v -f "catch.backup" catch
 ```
 
 ### Restore
@@ -167,5 +170,5 @@ pg_dump -Fc -b -v -f "catch-surveys.backup" surveys
 The database backup created with `pg_dump` (as above) may be restored with `pg_restore`.  Again, for a CATCH database named "surveys":
 
 ```bash
-pg_restore --clean --if-exists -d surveys catch-surveys.backup
+pg_restore --clean --if-exists -d catch catch.backup
 ```

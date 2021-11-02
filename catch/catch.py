@@ -327,7 +327,7 @@ class Catch(SBSearch):
         )
 
         # get target ephemeris
-        target: MovingTarget = self.get_designation(target_name)
+        target: MovingTarget = MovingTarget(target_name, db=self.db)
         try:
             eph: List[Ephemeris] = target.ephemeris(
                 self.source.__obscode__,
@@ -339,12 +339,8 @@ class Catch(SBSearch):
         self.logger.info('Obtained ephemeris from JPL Horizons.')
         task_messenger.send('Obtained ephemeris from JPL Horizons.')
 
-        # ephemeris was successful, add target to database
-        try:
-            target.add()
-        except DesignationError:
-            # already in the database
-            target = MovingTarget.from_designation(target_name, db=self.db)
+        # ephemeris was successful, add target to database, if needed
+        target = self.get_designation(target_name, add=True)
 
         # Query the database for observations of the target ephemeris
         try:
