@@ -268,17 +268,19 @@ handles = []
 handles.extend(ax.plot(ra, dec, label=target, **ephemeris_style))
 
 for obs in obs_by_ephemeris:
-    poly = obs_to_poly(obs, label=obs.product_id,
+    poly = obs_to_poly(obs, label='Matched by intersection',
                        facecolor='none', **matched_obs_style)
     ax.add_artist(poly)
     handles.append(poly)
 
 obs_terms = sum([obs.spatial_terms for obs in obs_by_ephemeris], [])
+matched = 0
 for term, cell in query_cells.items():
     if term in obs_terms:
         fc = 'tab:pink'
         alpha = 0.5
         label = 'Matched S2 cell'
+        matched += 1
     else:
         fc = 'none'
         alpha = 1
@@ -288,7 +290,7 @@ for term, cell in query_cells.items():
                         label=label)
     ax.add_artist(poly)
 
-    if label is not None:
+    if label is not None and matched == 1:
         handles.append(poly)
 
 plt.setp(ax, xlim=ax.get_xlim()[::-1], xlabel='RA (deg)', ylabel='Dec (deg)',
