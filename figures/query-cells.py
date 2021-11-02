@@ -296,4 +296,8 @@ plt.setp(ax, xlim=ax.get_xlim()[::-1], xlabel='RA (deg)', ylabel='Dec (deg)',
 ax.minorticks_on()
 ax.legend(handles=handles, loc='lower right')
 plt.tight_layout(pad=0.2)
+
+annotate(ax, dates[0], ra[0], dec[0])
+annotate(ax, dates[1], ra[-1], dec[-1])
+
 plt.savefig(f'query-cells-{file_suffix}.png')
