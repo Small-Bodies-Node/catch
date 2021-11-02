@@ -113,3 +113,11 @@ Pipfile*
 !catch.example.config
 *.log
 catch/version.py
+
+# figures, only keep specific files
+figures/*png
+!figures/query-cells-65p-20170715-20170815.png
+!figures/query-cells-dec-time-65p-20170715-20170815.png
+!figures/query-cells-ra-dec-65p-20170715-20170815.png
+!figures/query-cells-ra-time-65p-20170715-20170815.png
+!figures/query-cells-ra-dec-time-65p-20170715-20170815.png
