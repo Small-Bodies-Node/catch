@@ -80,9 +80,8 @@ with Catch.with_config(Config.from_file(args.config)) as catch:
             ], 0).T
 
             obs = NEATPalomarTricam(
-                id=product_id_to_int_id(label['PRODUCT_ID']),
+                source_id=product_id_to_int_id(label['PRODUCT_ID']),
                 product_id=label['PRODUCT_ID'],
-                instrument=label['INSTRUMENT_NAME'],
                 mjd_start=label['START_TIME'].mjd,
                 mjd_stop=label['STOP_TIME'].mjd,
                 filter=label['FILTER_NAME'],
