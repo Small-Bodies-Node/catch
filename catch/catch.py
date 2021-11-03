@@ -11,7 +11,6 @@ from sqlalchemy import func
 from astropy.time import Time
 from sbsearch import SBSearch
 from sbsearch.target import MovingTarget
-from sbsearch.exceptions import DesignationError
 
 from .model import (CatchQuery, Observation, Found, Ephemeris, ExampleSurvey)
 from .exceptions import (CatchException, DataSourceWarning, FindObjectError,
@@ -101,7 +100,7 @@ class Catch(SBSearch):
         return rows
 
     def query(self, target: str, job_id: Union[uuid.UUID, str],
-              source_keys: Optional[str] = None,
+              sources: Optional[str] = None,
               cached: bool = True, **kwargs) -> int:
         """Try to catch an object in survey data.
 
@@ -117,7 +116,7 @@ class Catch(SBSearch):
         job_id : uuid.UUID or string
             Unique ID for this query.  UUID version 4.
 
-        source_keys : list of strings, optional
+        sources : list of strings, optional
             Limit search to these sources.  See ``Catch.sources.keys()``
             for possible values.
 
@@ -132,15 +131,16 @@ class Catch(SBSearch):
 
         """
 
-        source_keys = (
-            list(self.sources.keys())
-            if source_keys is None
-            else source_keys
-        )
-        sources: List[Observation] = [
-            self.sources[name] for name in source_keys
-            if name != 'observation'
-        ]
+        # validate sources
+        if sources is None:
+            sources = self.sources.keys()
+        else:
+            for source in sources:
+                try:
+                    self.sources[source]
+                except KeyError:
+                    raise ValueError('Unknown source: {}')
+
         job_id = uuid.UUID(str(job_id), version=4)
 
         task_messenger: TaskMessenger = TaskMessenger(job_id, debug=self.debug)
@@ -151,15 +151,15 @@ class Catch(SBSearch):
         count = 0
         for source in sources:
             self.source = source
-            source_name = source.__data_source_name__
+            source_name = self.source.__data_source_name__
             self.logger.debug('Query {}'.format(source_name))
 
-            cached_query = self._find_catch_query(target, source)
+            cached_query = self._find_catch_query(target)
 
             q = CatchQuery(
                 query=str(target),
                 job_id=job_id.hex,
-                source=source.__tablename__,
+                source=self.source.__tablename__,
                 date=Time.now().iso,
                 status='in progress',
                 uncertainty_ellipse=self.uncertainty_ellipse,
@@ -195,7 +195,7 @@ class Catch(SBSearch):
 
         return count
 
-    def is_query_cached(self, target: str, source_keys: Optional[str] = None
+    def is_query_cached(self, target: str, sources: Optional[str] = None
                         ) -> str:
         """Determine if this query has already been cached.
 
@@ -208,7 +208,7 @@ class Catch(SBSearch):
         target : string
             Target for which to search.
 
-        source_keys : list of strings, optional
+        sources : list of strings, optional
             Limit search to these sources.  See ``Catch.sources.keys()``
             for possible values.
 
@@ -221,26 +221,24 @@ class Catch(SBSearch):
 
         """
 
-        source_keys = (
-            list(self.sources.keys())
-            if source_keys is None
-            else source_keys
-        )
-
-        sources: List[Observation] = [
-            self.sources[name] for name in source_keys
-            if name != 'observation'
-        ]
+        # validate sources
+        if sources is not None:
+            sources = self.sources.keys()
+        else:
+            for source in sources:
+                try:
+                    self.sources[source]
+                except KeyError:
+                    raise ValueError('Unknown source: {}')
 
         cached: bool = True  # assume cached until proven otherwise
         for source in sources:
             self.source = source
-            cached = self._find_catch_query(target, source) is not None
+            cached = self._find_catch_query(target) is not None
 
         return cached
 
-    def _find_catch_query(self, target: str, source: Observation
-                          ) -> Union[CatchQuery, None]:
+    def _find_catch_query(self, target: str) -> Union[CatchQuery, None]:
         """Find query ID for this target and source.
 
         ``uncertainty_ellipse`` and ``padding`` parameters are also checked.
@@ -252,7 +250,7 @@ class Catch(SBSearch):
         q: int = (
             self.db.session.query(CatchQuery)
             .filter(CatchQuery.query == target)
-            .filter(CatchQuery.source == source.__tablename__)
+            .filter(CatchQuery.source == self.source.__tablename__)
             .filter(CatchQuery.status == 'finished')
             .filter(CatchQuery.uncertainty_ellipse == self.uncertainty_ellipse)
             .filter(CatchQuery.padding == self.padding)
@@ -351,13 +349,17 @@ class Catch(SBSearch):
             raise FindObjectError(
                 'Critical error: could not search database for this target.') from e
 
-        # Observations found?  Then add them to the found table.
-        founds: List[Found] = self.add_found(target, observations)
+        if len(observations) > 0:
+            # Observations found?  Then add them to the found table.
+            founds: List[Found] = self.add_found(target, observations)
 
-        # include query_id
-        found: Found
-        for found in founds:
-            found.query_id = query.query_id
+            # include query_id
+            found: Found
+            for found in founds:
+                found.query_id = query.query_id
 
-        self.db.session.commit()
-        return len(founds)
+            self.db.session.commit()
+
+            return len(founds)
+        else:
+            return 0
