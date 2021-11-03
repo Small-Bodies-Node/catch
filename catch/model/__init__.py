@@ -10,16 +10,17 @@ __all__ = [
     'NEATPalomarTricam',
     'NEATMauiGEODSS',
     'SkyMapper',
+    'PS1DR2',
 ]
 
 from sqlalchemy import Column, Integer, Float, String, ForeignKey
-from sbsearch.model.core import (Base, Observation, Found, Ephemeris, Obj,
-                                 BigIntegerType)
+from sbsearch.model.core import Base, Observation, Found, Ephemeris, Obj
 from sbsearch.model.example_survey import ExampleSurvey
 from sqlalchemy.sql.sqltypes import Boolean
 from .neat_palomar_tricam import NEATPalomarTricam
 from .neat_maui_geodss import NEATMauiGEODSS
 from .skymapper import SkyMapper
+from .ps1dr2 import PS1DR2
 
 
 class CatchQuery(Base):
