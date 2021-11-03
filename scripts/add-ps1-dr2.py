@@ -165,17 +165,19 @@ def get_rows(start_offset):
     limit = 10000
     offset = start_offset
     while True:
+        # left join on warp_files to avoid duplicates in warp_meta
         rows = db.execute('''
         SELECT forcedWarpID,projectionID,skyCellID,m.filterID,
           frameID,telescopeID,expStart,expTime,airmass,
           crval1,crval2,crpix1,crpix2,filename
-        FROM warp_meta AS m
-        INNER JOIN warp_files AS f ON (
+        FROM warp_files AS f
+        LEFT JOIN warp_meta AS m ON (
             m.projectionID = f.projcell
             AND m.skyCellID = f.skycell
             AND m.filterID = f.filterid
             AND m.expStart = f.mjdobs
         )
+        WHERE m.projectionID NOT NULL
         LIMIT ? OFFSET ?
         ''', (limit, offset)).fetchall()
 
@@ -224,8 +226,14 @@ with Catch.with_config(config) as catch:
         # spatial_terms are generated upon db insertion.
 
         if args.add_only or args.update:
+            # obs = catch.db.session.query(PS1DR2).filter(
+            #     PS1DR2.source_id == row['forcedWarpID']).first()
+
+            # can't use forcedWarpID due to the ~650 double matches between
+            # warp_meta and warp_files.
             obs = catch.db.session.query(PS1DR2).filter(
-                PS1DR2.source_id == row['forcedWarpID']).first()
+                PS1DR2.product_id == row['filename']
+            ).first()
             if obs is None:
                 # create a new row
                 obs = PS1DR2()
