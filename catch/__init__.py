@@ -14,6 +14,7 @@ def catch_cli(*args):
     import sys
     import argparse
     import uuid
+    from astropy.time import Time
     from astropy.table import Table
     from catch import Catch, Config
     from catch.config import _config_example
@@ -88,6 +89,8 @@ def catch_cli(*args):
 
                 r['cutout_url'] = row.Observation.cutout_url(
                     row.Found.ra, row.Found.dec)
+
+                r['date'] = Time(row.Found.mjd, format='mjd').iso
 
                 rows.append(r)
 
