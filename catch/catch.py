@@ -11,6 +11,7 @@ from sqlalchemy import func
 from astropy.time import Time
 from sbsearch import SBSearch
 from sbsearch.target import MovingTarget
+import sbsearch.core
 
 from .model import (CatchQuery, Observation, Found, Ephemeris, ExampleSurvey)
 from .exceptions import (CatchException, DataSourceWarning, FindObjectError,
@@ -36,20 +37,27 @@ class Catch(SBSearch):
     debug : bool, optional
         Enable debugging messages.
 
+    arc_limit : float, optional
+        Maximal ephemeris arc length with which to search the database,
+        radians.
+
+    time_limit : float, optional
+        Maximal ephemeris time length with which to search the database, days.
+
     """
 
     def __init__(self, database: Union[str, Session], *args,
                  uncertainty_ellipse: bool = False, padding: float = 0,
-                 debug: bool = False, **kwargs) -> None:
+                 **kwargs) -> None:
         # fixed min_edge_length value (1 arcmin)
         super().__init__(database, *args, min_edge_length=3e-4,
                          uncertainty_ellipse=uncertainty_ellipse,
                          padding=padding, logger_name='Catch',
-                         debug=debug, **kwargs)
+                         **kwargs)
 
         # override sbsearch default logging behavior, which is a mix of DEBUG
         # and INFO.
-        self.logger.setLevel(logging.DEBUG if debug else logging.INFO)
+        self.logger.setLevel(logging.DEBUG if self.debug else logging.INFO)
 
         self._found_attributes = [
             attr for attr in dir(Found)

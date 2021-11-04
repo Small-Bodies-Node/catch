@@ -25,6 +25,10 @@ def catch_cli(*args):
     parser.add_argument('--config', help='CATCH configuration file')
     parser.add_argument('--database', help='use this database URI')
     parser.add_argument('--log', help='save log messages to this file')
+    parser.add_argument('--arc-limit', type=float,
+                        help='maximal arc length to search, radians')
+    parser.add_argument('--time-limit', type=float,
+                        help='maximal time length to search, days')
     parser.add_argument('--debug', action='store_true', help='debug mode')
     subparsers = parser.add_subparsers(help='sub-command help')
 
