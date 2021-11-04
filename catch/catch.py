@@ -234,7 +234,7 @@ class Catch(SBSearch):
         """
 
         # validate sources
-        if sources is not None:
+        if sources is None:
             sources = self.sources.keys()
         else:
             for source in sources:

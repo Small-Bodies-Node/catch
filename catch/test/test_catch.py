@@ -124,7 +124,7 @@ def test_query_all(catch, caplog, monkeypatch):
     # second query should be a cached result
     job_id = uuid.uuid4()
     n = catch.query('2P', job_id, source_keys=['neat_palomar_tricam'])
-    assert n == 1
+    assert n == 2  # one for each survey
 
     assert (
         (f'CATCH-APIs {job_id.hex}', 20,
@@ -133,7 +133,7 @@ def test_query_all(catch, caplog, monkeypatch):
     )
 
     caught = catch.caught(job_id)
-    assert len(caught) == 1
+    assert len(caught) == 2  # one for each survey
     assert isinstance(caught[0][1], NEATPalomarTricam)
 
     # trigger ephemeris error
