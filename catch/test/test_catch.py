@@ -1,6 +1,7 @@
 # Licensed with the 3-clause BSD license.  See LICENSE for details.
 
 import uuid
+from numpy.core.fromnumeric import product
 import pytest
 
 import numpy as np
@@ -24,12 +25,15 @@ def dummy_surveys(postgresql):
     mjd_start = GEODSS_START
     fov = np.array(((-0.5, 0.5, 0.5, -0.5), (-0.5, -0.5, 0.5, 0.5))) * 5
     observations = []
+    product_id = 0
     for dec in np.linspace(-30, 90, 36):
         for ra in np.linspace(0, 360, int(36 * np.cos(np.radians(dec)))):
+            product_id += 1
             _fov = fov + np.array([[ra], [dec]])
             obs = NEATMauiGEODSS(
                 mjd_start=mjd_start,
                 mjd_stop=mjd_start + EXPTIME,
+                product_id=product_id,
             )
             obs.set_fov(*_fov)
             observations.append(obs)
@@ -37,6 +41,7 @@ def dummy_surveys(postgresql):
             obs = NEATPalomarTricam(
                 mjd_start=mjd_start + TRICAM_OFFSET,
                 mjd_stop=mjd_start + EXPTIME + TRICAM_OFFSET,
+                product_id=product_id,
             )
             obs.set_fov(*_fov)
             observations.append(obs)
