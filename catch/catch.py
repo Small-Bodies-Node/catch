@@ -44,9 +44,13 @@ class Catch(SBSearch):
         # fixed min_edge_length value (1 arcmin)
         super().__init__(database, *args, min_edge_length=3e-4,
                          uncertainty_ellipse=uncertainty_ellipse,
-                         padding=padding, logger_name='Catch', **kwargs)
-        self.debug: bool = debug
+                         padding=padding, logger_name='Catch',
+                         debug=debug, **kwargs)
+
+        # override sbsearch default logging behavior, which is a mix of DEBUG
+        # and INFO.
         self.logger.setLevel(logging.DEBUG if debug else logging.INFO)
+
         self._found_attributes = [
             attr for attr in dir(Found)
             if attr[0] != '_' and attr not in ['found_id', 'query_id']]
