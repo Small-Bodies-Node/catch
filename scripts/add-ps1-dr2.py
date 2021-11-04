@@ -165,19 +165,19 @@ def get_rows(start_offset):
     limit = 10000
     offset = start_offset
     while True:
-        # left join on warp_files to avoid duplicates in warp_meta
+        # inner join with group by to avoid duplicates in warp_meta
         rows = db.execute('''
         SELECT forcedWarpID,projectionID,skyCellID,m.filterID,
           frameID,telescopeID,expStart,expTime,airmass,
           crval1,crval2,crpix1,crpix2,filename
         FROM warp_files AS f
-        LEFT JOIN warp_meta AS m ON (
+        INNER JOIN warp_meta AS m ON (
             m.projectionID = f.projcell
             AND m.skyCellID = f.skycell
             AND m.filterID = f.filterid
             AND m.expStart = f.mjdobs
         )
-        WHERE m.projectionID NOT NULL
+        GROUP BY filename
         LIMIT ? OFFSET ?
         ''', (limit, offset)).fetchall()
 
