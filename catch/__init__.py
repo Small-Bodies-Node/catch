@@ -44,6 +44,7 @@ def catch_cli(*args):
         help='search this observation source (may be used multiple times)')
     search.add_argument('--force', dest='cached', action='store_false',
                         help='do not use cached results')
+    search.add_argument('-o', help='write table to this file')
 
     args = parser.parse_args()
 
@@ -56,7 +57,7 @@ def catch_cli(*args):
     if args.command == 'verify':
         print('Verify databases and create as needed.\n')
 
-    SKIP_COLUMNS = ['terms', 'metadata',
+    SKIP_COLUMNS = ['spatial_terms', 'metadata',
                     'cutout_url', 'preview_url', 'set_fov']
 
     rows = []
@@ -82,7 +83,7 @@ def catch_cli(*args):
                         r[k] = getattr(table, k)
                 columns = columns.union(set(r.keys()))
 
-                r['url'] = row.Observation.cutout_url(
+                r['cutout_url'] = row.Observation.cutout_url(
                     row.Found.ra, row.Found.dec)
 
                 rows.append(r)
@@ -96,4 +97,8 @@ def catch_cli(*args):
                 for col in columns:
                     rows[i][col] = rows[i].get(col)
             tab = Table(rows=rows)
-            tab.pprint(-1, -1)
+            if args.o:
+                tab.write(args.o, format='ascii.fixed_width_two_line',
+                          overwrite=True)
+            else:
+                tab.pprint(-1, -1)
