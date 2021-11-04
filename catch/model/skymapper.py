@@ -14,7 +14,7 @@ class SkyMapper(Observation):
     __data_source_name__ = 'SkyMapper'
     __obscode__ = '413'
 
-    id = Column(BigInteger, primary_key=True)
+    source_id = Column(BigInteger, primary_key=True)
     observation_id = Column(BigInteger,
                             ForeignKey('observation.observation_id',
                                        onupdate='CASCADE',
