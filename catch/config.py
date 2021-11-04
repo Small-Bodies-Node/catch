@@ -9,7 +9,8 @@ import sbsearch.config
 _config_example = '''
 {
   "database": "postgresql://user:password@host/database",
-  "log": "/path/to/catch.log"
+  "log": "/path/to/catch.log",
+  "debug": false
 }
 '''
 
@@ -34,5 +35,6 @@ class Config(sbsearch.config.Config):
 
     DEFAULT_PARAMETERS: Dict[str, Union[str, float, int, bool]] = {
         "database": "postgresql://user@host/database",
-        "log": "/dev/null"
+        "log": "/dev/null",
+        "debug": False
     }
