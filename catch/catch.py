@@ -11,7 +11,6 @@ from sqlalchemy import func
 from astropy.time import Time
 from sbsearch import SBSearch
 from sbsearch.target import MovingTarget
-import sbsearch.core
 
 from .model import (CatchQuery, Observation, Found, Ephemeris, ExampleSurvey)
 from .exceptions import (CatchException, DataSourceWarning, FindObjectError,
@@ -50,7 +49,9 @@ class Catch(SBSearch):
                  uncertainty_ellipse: bool = False, padding: float = 0,
                  **kwargs) -> None:
         # fixed min_edge_length value (1 arcmin)
-        super().__init__(database, *args, min_edge_length=3e-4,
+        super().__init__(database, *args,
+                         min_edge_length=1e-3,
+                         max_edge_length=0.017,
                          uncertainty_ellipse=uncertainty_ellipse,
                          padding=padding, logger_name='Catch',
                          **kwargs)
