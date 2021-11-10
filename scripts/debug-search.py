@@ -18,7 +18,7 @@ from catch.model import SkyMapper
 
 config = Config.from_file('../catch.config', debug=True)
 with Catch.with_config(config) as catch:
-    catch.db.engine.echo = True  # set to true to see SQL statements
+    catch.db.engine.echo = False  # set to true to see SQL statements
 
     expected = (catch.db.session.query(SkyMapper)
                 .filter(SkyMapper.product_id == '20170806095706-22')
