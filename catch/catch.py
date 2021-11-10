@@ -6,7 +6,7 @@ import uuid
 import logging
 from typing import Dict, List, Optional, Tuple, Union
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, Query
 from sqlalchemy import func
 from astropy.time import Time
 from sbsearch import SBSearch
@@ -48,7 +48,6 @@ class Catch(SBSearch):
     def __init__(self, database: Union[str, Session], *args,
                  uncertainty_ellipse: bool = False, padding: float = 0,
                  **kwargs) -> None:
-        # fixed min_edge_length value (1 arcmin)
         super().__init__(database, *args,
                          min_edge_length=1e-3,
                          max_edge_length=0.017,
@@ -318,12 +317,16 @@ class Catch(SBSearch):
 
         """
         # date range for this survey
+        q: Query = self.db.session.query(
+            func.min(Observation.mjd_start),
+            func.max(Observation.mjd_stop)
+        )
+        if self.source.__tablename__ != 'observation':
+            q = q.filter(Observation.source == self.source.__tablename__)
+
         mjd_start: float
         mjd_stop: float
-        mjd_start, mjd_stop = self.db.session.query(
-            func.min(self.source.mjd_start),
-            func.max(self.source.mjd_stop)
-        ).one()
+        mjd_start, mjd_stop = q.one()
 
         if None in [mjd_start, mjd_stop]:
             raise DataSourceWarning(

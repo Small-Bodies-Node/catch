@@ -16,19 +16,24 @@ from catch.model import SkyMapper
 # For CATCH with min_edge_length = 3e-4 rad, spatial index terms are:
 # $9e8c1,9e8c1,9e8c4,9e8d,9e8c,9e9,9ec,$9e8c7,9e8c7,$9e8ea04,9e8ea04,9e8ea1,9e8ea4,9e8eb,9e8ec,9e8f,$9e8ea0c,9e8ea0c,$9e8ea74,9e8ea74,9e8ea7
 
-config = Config.from_file()
+config = Config.from_file('../catch.config', debug=True)
 with Catch.with_config(config) as catch:
-    catch.debug = True
+    catch.db.engine.echo = True  # set to true to see SQL statements
 
     expected = (catch.db.session.query(SkyMapper)
                 .filter(SkyMapper.product_id == '20170806095706-22')
                 .all())[0]
 
+    # benchmark queries
+    t = []
+
     # full survey search
+    t.append(Time.now())
     job_id = uuid.uuid4()
     count = catch.query('65P', job_id, sources=['skymapper'], cached=False,
                         debug=True)
     full = catch.caught(job_id)
+    t.append(Time.now())
 
     comet = catch.get_designation('65P', add=True)
     eph = comet.ephemeris(SkyMapper, start=Time('2017-08-01'),
@@ -39,8 +44,21 @@ with Catch.with_config(config) as catch:
     mjd = np.array([row.mjd for row in eph])
     query = catch.indexer.query_line(ra, dec)
 
+    catch.logger.debug(
+        '=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=')
+    t.append(Time.now())
+    approx_no_time = catch.find_observations_intersecting_line(ra, dec)
+    catch.logger.debug(
+        '=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=')
+    t.append(Time.now())
     approx = catch.find_observations_by_ephemeris(eph, approximate=True)
+    catch.logger.debug(
+        '=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=')
+    t.append(Time.now())
     detailed = catch.find_observations_by_ephemeris(eph, approximate=False)
+    catch.logger.debug(
+        '=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=')
+    t.append(Time.now())
 
     dates = Time([obs.mjd_start for obs in
                   [expected] + detailed], format='mjd')
@@ -52,6 +70,18 @@ with Catch.with_config(config) as catch:
     print('Does ephemeris query match returned observations?',
           [len(set(row[1].spatial_terms).intersection(set(query))) > 0
            for row in full])
+
+    print(f'''--------------------
+catch.query: {(t[1] - t[0]).jd * 86400}
+
+ephemeris: {(t[2] - t[1]).jd * 86400}
+
+30-day period searches:
+  line intersection: {(t[3] - t[2]).jd * 86400}
+  find by ephemeris approximate: {(t[4] - t[3]).jd * 86400}
+  find by ephemeris detailed: {(t[5] - t[4]).jd * 86400}
+--------------------
+''')
 
     catch.db.session.expunge_all()
 
