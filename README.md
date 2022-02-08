@@ -168,10 +168,12 @@ pg_dump --format=custom --no-owner -f "catch.backup" catch
 To save a sub-set of the tables, e.g., for copying the survey metadata but not cached searches, exclude the the following tables: catch_query, designation, ephemeris, found, obj, and orbit.  The remaining tables should only be survey metadata.
 
 ```bash
-pg_dump --format=custom --no-owner --exclude-table=catch_query \
-  --exclude-table=designation --exclude-table=ephemeris \
-  --exclude-table=found --exclude-table=obj --exclude-table=orbit \
-  -f "catch.backup" catch
+# DRAFT
+pg_dump --format=custom --no-owner --exclude-table='catch_query*' \
+  --exclude-table='designation*' --exclude-table='ephemeris*' \
+  --exclude-table='found*' --exclude-table='obj*' --exclude-table='orbit*' \
+  --no-acl -f "catch.backup" catch
+# DRAFT
 ```
 
 ### Restore
@@ -182,4 +184,4 @@ The database backup created with `pg_dump` (as above) may be restored with `pg_r
 pg_restore --clean --if-exists -d catch catch.backup
 ```
 
-**Warning**  Backups limited to survey metadata cannot be restored to a previously populated database without first clearing the catch_query and found tables (see [Found objects reset](#found-objects-reset)).
+**Warning**  Backups limited to survey metadata cannot be restored to a previously populated database without first clearing the catch_query and found tables.  See [Found objects reset](#found-objects-reset) for instructions.
