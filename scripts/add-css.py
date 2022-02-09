@@ -133,7 +133,6 @@ def new_labels(db, listfile):
                 if processed is None:
                     processed_count += 1
                     yield path
-                    break
 
     logger = logging.getLogger("add-css")
     logger.info(
