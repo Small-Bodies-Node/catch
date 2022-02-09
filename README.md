@@ -1,4 +1,4 @@
-# catch v1.0.0
+# catch v1.0.2
 
 Planetary Data System Small Bodies Node (PDS-SBN) astronomical survey data search tool.
 
@@ -162,13 +162,26 @@ Note, the `found` table cannot be reset independently from the `catch_query` tab
 Save the database to a file with `pg_dump`.  For a CATCH database named "surveys":
 
 ```bash
-pg_dump -Fc -b -v -f "catch.backup" catch
+pg_dump --format=custom --no-owner -f "catch.backup" catch
+```
+
+To save a sub-set of the tables, e.g., for copying the survey metadata but not cached searches, exclude the the following tables: catch_query, designation, ephemeris, found, obj, and orbit.  The remaining tables should only be survey metadata.
+
+```bash
+# DRAFT
+pg_dump --format=custom --no-owner --exclude-table='catch_query*' \
+  --exclude-table='designation*' --exclude-table='ephemeris*' \
+  --exclude-table='found*' --exclude-table='obj*' --exclude-table='orbit*' \
+  --no-acl -f "catch.backup" catch
+# DRAFT
 ```
 
 ### Restore
 
-The database backup created with `pg_dump` (as above) may be restored with `pg_restore`.  Again, for a CATCH database named "surveys":
+The database backup created with `pg_dump` (as above) may be restored with `pg_restore`.  Again, for a CATCH database named "catch":
 
 ```bash
 pg_restore --clean --if-exists -d catch catch.backup
 ```
+
+**Warning**  Backups limited to survey metadata cannot be restored to a previously populated database without first clearing the catch_query and found tables.  See [Found objects reset](#found-objects-reset) for instructions.
