@@ -75,7 +75,7 @@ def harvester_db(filename):
         db.close()
 
 
-def get_new_list(date):
+def get_new_list():
     """Download a new file list.
 
     Downloaded files are renamed using the time of the download.
