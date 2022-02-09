@@ -39,7 +39,9 @@ def _parse_args() -> argparse.Namespace:
         description="Add CSS data to CATCH.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("--db", default="css.db", help="harvester tracking database")
+    parser.add_argument(
+        "--db", default="add-css.db", help="harvester tracking database"
+    )
     parser.add_argument(
         "--config",
         default="catch.config",
