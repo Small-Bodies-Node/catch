@@ -12,7 +12,7 @@ dates = ('2017-07-15', '2017-08-15')
 #dates = ('2017-01-01', '2017-12-31')
 #dates = ('2014-03-15', '2018-03-15')
 view = (10, -110)  # elevation, azimuth for 3D plot
-config = Config(database='postgresql://@/catch',
+config = Config(database='postgresql://@/catch_dev',
                 log='/dev/null',
                 debug=True)
 
@@ -132,19 +132,23 @@ matched_obs_line_style = {k: v for (k, v) in matched_obs_style.items()
 handles = []
 handles.extend(ax.plot(ra, dec, label=target, **ephemeris_style))
 
+poly = None
 for obs in all_obs:
     poly = obs_to_poly(obs, **all_obs_style)
     ax.add_artist(poly)
 
-poly.set_label('Matched by approximate search')
-handles.append(poly)
+if poly:
+    poly.set_label('Matched by approximate search')
+    handles.append(poly)
 
+poly = None
 for obs in obs_by_ephemeris:
     poly = obs_to_poly(obs, **matched_obs_style)
     ax.add_artist(poly)
 
-poly.set_label('Matched by intersection')
-handles.append(poly)
+if poly:
+    poly.set_label('Matched by intersection')
+    handles.append(poly)
 
 plt.setp(ax, xlim=ax.get_xlim()[::-1], xlabel='RA (deg)', ylabel='Dec (deg)',
          aspect=1, adjustable='datalim')
