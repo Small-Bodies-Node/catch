@@ -1,8 +1,10 @@
-from contextlib import contextmanager
+import sys
 import re
 import argparse
 import logging
 import sqlite3
+from contextlib import contextmanager
+
 import requests
 from astropy.time import Time
 
@@ -204,6 +206,7 @@ def main():
     for handler in logger.handlers:
         handler.setFormatter(formatter)
     logger.setLevel(logging.INFO)
+    logger.info("Logging setup.")
 
     if args.dry_run:
         logger.info("Dry run, databases will not be updated.")
