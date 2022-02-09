@@ -235,6 +235,7 @@ def main():
                     logger.error(
                         "A fatal error occurred processing %s", path, exc_info=True
                     )
+                    raise
 
                 logger.debug("%s: %s", path, msg)
 
