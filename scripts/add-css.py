@@ -12,6 +12,7 @@ from pds4_tools import pds4_read
 
 from catch import Catch, Config
 from catch.model.catalina import CatalinaBigelow, CatalinaKittPeak, CatalinaLemmon
+from sbsearch.logging import ProgressTriangle
 
 # URL for the latest list of all files.
 LATEST_FILES = (
@@ -224,6 +225,8 @@ def main():
         with Catch.with_config(args.config) as catch:
             observations = []
             failed = 0
+
+            tri = ProgressTriangle(1, logger=logger, base=2)
             for path in new_labels(db, listfile):
                 try:
                     observations.append(process(path))
@@ -238,6 +241,7 @@ def main():
                     raise
 
                 logger.debug("%s: %s", path, msg)
+                tri.update()
 
                 if args.dry_run:
                     continue
