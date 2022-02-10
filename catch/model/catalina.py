@@ -68,7 +68,7 @@ class CatalinaBigelow(Observation):
 
     @property
     def telescope(self) -> str:
-        return self._telescope.get(self.product_id.split(":")[5][:3])
+        return self._telescopes.get(self.product_id.split(":")[5][:3])
 
     @property
     def archive_url(self) -> str:
@@ -131,7 +131,7 @@ class CatalinaLemmon(Observation):
 
     @property
     def telescope(self) -> str:
-        return self._telescope.get(self.product_id.split(":")[5][:3])
+        return self._telescopes.get(self.product_id.split(":")[5][:3])
 
     @property
     def archive_url(self) -> str:
@@ -191,7 +191,7 @@ class CatalinaKittPeak(Observation):
 
     @property
     def telescope(self) -> str:
-        return self._telescope.get(self.product_id.split(":")[5][:3])
+        return self._telescopes.get(self.product_id.split(":")[5][:3])
 
     @property
     def archive_url(self) -> str:
