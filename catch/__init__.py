@@ -5,7 +5,6 @@ except ImportError:
 
 from .catch import *
 from .config import *
-from . import model
 
 
 def catch_cli(*args):
@@ -77,9 +76,7 @@ def catch_cli(*args):
             print("Available sources:\n  *", "\n  * ".join(catch.sources.keys()))
         elif args.command == "search":
             job_id = uuid.uuid4()
-            count = catch.query(
-                args.desg, job_id, sources=args.sources, cached=args.cached
-            )
+            catch.query(args.desg, job_id, sources=args.sources, cached=args.cached)
             columns = set()
             for row in catch.caught(job_id):
                 r = {}
