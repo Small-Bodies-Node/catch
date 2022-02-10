@@ -1,4 +1,4 @@
-# catch v1.0.2
+# catch v1.1.0
 
 Planetary Data System Small Bodies Node (PDS-SBN) astronomical survey data search tool.
 
@@ -98,6 +98,29 @@ python3 add-skymapper.py dr2_images.csv.gz dr2_ccds.csv.gz
 
 Then, optimize the new tables (see below).
 
+### Pan-STARRS 1 DR2
+
+Pan-STARRS 1 DR2 as archived at STScI's MAST is available.  CATCH currently searches the "warp" images, which are processed data created from multiple CCDs taken from the same exposure.  Three files are needed to add this survey to the database.
+
+* warp metadata: downloaded from MAST CASJobs
+  * Query:
+    ```sql
+    SELECT w.forcedWarpID,w.projectionID,w.skyCellID,w.filterID,w.frameID,f.telescopeID,
+    f.expStart,f.expTime,f.airmass,w.crval1,w.crval2,w.crpix1,w.crpix2
+    FROM ForcedWarpMeta as w INNER JOIN FrameMeta as f ON w.frameID = f.frameID;
+    ```
+  * Download as FITS binary table.
+* warp files list: a FITS table of warp file names and observation dates (MJD-OBS keyword in the FITS headers).  This is required in order to associate an observation time from the warp metadata table (expStart) with a specific warp FITS file.  The table was originally provided by Rick White at STScI, generated from the archive.
+* PS1 project cell definitions: https://outerspace.stsci.edu/download/attachments/10257181/ps1grid.fits?version=3&modificationDate=1532367528459&api=v2
+
+Harvest the metadata with the `add-ps1-dr2.py` script:
+
+```bash
+python3 add-ps1-dr2.py ps1warp.fit mjd-table.fits ps1grid.fits
+```
+
+IIRC, these data take several hours to ingest (be sure to optimize the tables afterward).  The script has a few options that may be useful in case the process is interrupted and needs to be restarted.
+
 ## Modifying existing surveys
 
 After deleting any observations, the observation spatial index must be regenerated: `REINDEX ix_observation_spatial_terms`.
@@ -185,3 +208,8 @@ pg_restore --clean --if-exists -d catch catch.backup
 ```
 
 **Warning**  Backups limited to survey metadata cannot be restored to a previously populated database without first clearing the catch_query and found tables.  See [Found objects reset](#found-objects-reset) for instructions.
+
+
+## Acknowledgements
+
+Thanks to Rick White (STScI) for assistance with the Pan-STARRS 1 archive.
