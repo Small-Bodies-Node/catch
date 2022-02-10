@@ -114,42 +114,6 @@ class CatalinaBigelow(Observation, CatalinaSkySurvey):
         String(128), doc="Archive product id", unique=True, index=True, nullable=False
     )
 
-    # @property
-    # def telescope(self) -> str:
-    #     return self._telescopes.get(self.product_id.split(":")[5][:3])
-
-    # @property
-    # def archive_url(self) -> str:
-    #     # generate from PDS4 LID, e.g.,
-    #     # urn:nasa:pds:gbo.ast.catalina.survey:data_calibrated:703_20220120_2b_n02006_01_0001.arch
-    #     # https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.catalina.survey/data_calibrated/703/2022/22Jan20/703_20220120_2B_N02006_01_0001.arch.xml
-    #     lid: List[str] = self.product_id.split(":")
-    #     tel: str = lid[5][:3]
-    #     year: str = lid[5][5:9]
-    #     Mon: str = _month_to_Mon[lid[5][9:11]]
-    #     day: str = lid[5][11:13]
-    #     return f"{_ARCHIVE_URL_PREFIX}/{tel}/{year}/{year[-2:]}{Mon}{day}/{lid[5]}.fz"
-
-    # def cutout_url(
-    #     self, ra: float, dec: float, size: float = 0.0833, format: str = "fits"
-    # ) -> str:
-    #     """URL to cutout ``size`` around ``ra``, ``dec`` in deg.
-
-    #     For example:
-    #         https://sbnsurveys.astro.umd.edu/api/get/<product_id>
-
-    #     format = fits, jpeg, png
-
-    #     """
-
-    #     return None
-
-    # def preview_url(
-    #     self, ra: float, dec: float, size: float = 0.0833, format: str = "jpeg"
-    # ) -> str:
-    #     """Web preview image."""
-    #     return self.cutout_url(ra, dec, size=size, format=format)
-
 
 class CatalinaLemmon(Observation, CatalinaSkySurvey):
     __tablename__ = "catalina_lemmon"
@@ -177,44 +141,6 @@ class CatalinaLemmon(Observation, CatalinaSkySurvey):
         String(128), doc="Archive product id", unique=True, index=True, nullable=False
     )
 
-    # @property
-    # def telescope(self) -> str:
-    #     return self._telescopes.get(self.product_id.split(":")[5][:3])
-
-    # @property
-    # def archive_url(self) -> str:
-    #     # generate from PDS4 LID, e.g.,
-    #     # urn:nasa:pds:gbo.ast.catalina.survey:data_calibrated:703_20220120_2b_n02006_01_0001.arch
-    #     # https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.catalina.survey/data_calibrated/703/2022/22Jan20/703_20220120_2B_N02006_01_0001.arch.xml
-    #     lid: List[str] = self.product_id.split(":")
-    #     tel: str
-    #     date: str
-    #     tel, date = lid[5].split("_")[:2]
-    #     year: str = date[:4]
-    #     Mon: str = _month_to_Mon[date[4:6]]
-    #     day: str = date[6:]
-    #     return f"{_ARCHIVE_URL_PREFIX}/{tel.upper()}/{year}/{year[-2:]}{Mon}{day}/{lid[5].upper()}.fz"
-
-    # def cutout_url(
-    #     self, ra: float, dec: float, size: float = 0.0833, format: str = "fits"
-    # ) -> str:
-    #     """URL to cutout ``size`` around ``ra``, ``dec`` in deg.
-
-    #     For example:
-    #         https://sbnsurveys.astro.umd.edu/api/get/<product_id>
-
-    #     format = fits, jpeg, png
-
-    #     """
-
-    #     return None
-
-    # def preview_url(
-    #     self, ra: float, dec: float, size: float = 0.0833, format: str = "jpeg"
-    # ) -> str:
-    #     """Web preview image."""
-    #     return self.cutout_url(ra, dec, size=size, format=format)
-
 
 class CatalinaKittPeak(Observation, CatalinaSkySurvey):
     __tablename__ = "catalina_kittpeak"
@@ -238,39 +164,3 @@ class CatalinaKittPeak(Observation, CatalinaSkySurvey):
     product_id = Column(
         String(128), doc="Archive product id", unique=True, index=True, nullable=False
     )
-
-    # @property
-    # def telescope(self) -> str:
-    #     return self._telescopes.get(self.product_id.split(":")[5][:3])
-
-    # @property
-    # def archive_url(self) -> str:
-    #     # generate from PDS4 LID, e.g.,
-    #     # urn:nasa:pds:gbo.ast.catalina.survey:data_calibrated:703_20220120_2b_n02006_01_0001.arch
-    #     # https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.catalina.survey/data_calibrated/703/2022/22Jan20/703_20220120_2B_N02006_01_0001.arch.xml
-    #     lid: List[str] = self.product_id.split(":")
-    #     tel: str = lid[5][:3]
-    #     year: str = lid[5][5:9]
-    #     Mon: str = _month_to_Mon[lid[5][9:11]]
-    #     day: str = lid[5][11:13]
-    #     return f"{_ARCHIVE_URL_PREFIX}/{tel}/{year}/{year[-2:]}{Mon}{day}/{lid[5]}.fz"
-
-    # def cutout_url(
-    #     self, ra: float, dec: float, size: float = 0.0833, format: str = "fits"
-    # ) -> str:
-    #     """URL to cutout ``size`` around ``ra``, ``dec`` in deg.
-
-    #     For example:
-    #         https://sbnsurveys.astro.umd.edu/api/get/<product_id>
-
-    #     format = fits, jpeg, png
-
-    #     """
-
-    #     return None
-
-    # def preview_url(
-    #     self, ra: float, dec: float, size: float = 0.0833, format: str = "jpeg"
-    # ) -> str:
-    #     """Web preview image."""
-    #     return self.cutout_url(ra, dec, size=size, format=format)
