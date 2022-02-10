@@ -111,6 +111,7 @@ temp/**
 Pipfile*
 *.config
 !catch.example.config
+!logrotate.config
 *.log
 catch/version.py
 css.db
