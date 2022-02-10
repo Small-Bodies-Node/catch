@@ -121,6 +121,18 @@ python3 add-ps1-dr2.py ps1warp.fit mjd-table.fits ps1grid.fits
 
 IIRC, these data take several hours to ingest (be sure to optimize the tables afterward).  The script has a few options that may be useful in case the process is interrupted and needs to be restarted.
 
+### Catalina Sky Survey
+
+The SBN is the main archive for the Catalina Sky Survey (CSS).  As of February 2022, the CSS data archive is continually update dated.  The harvesting script, `add-css.py`, will keep track of which PDS4 labels have been previously examined and only harvest new metadata.
+
+```bash
+python3 add-css.py
+```
+
+Within CATCH, the archive is split by observing site (not telescope), i.e., Mt. Bigelow, Mt. Lemmon, and Kitt Peak.  The script will direct each observation to the appropriate tables.
+
+The `scripts/daily-harvest` directory contains scripts that may be useful in daily checks for new data.  Copy them to a new location and setup the virtual environment: `bash _build_venv`.  Then, periodically check for new data with `bash daily-harvest.sh`.
+
 ## Modifying existing surveys
 
 After deleting any observations, the observation spatial index must be regenerated: `REINDEX ix_observation_spatial_terms`.
