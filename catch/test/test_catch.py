@@ -7,6 +7,7 @@ import pytest
 import numpy as np
 from astropy.tests.helper import remote_data
 import sqlalchemy as sa
+from catch.model.catalina import CatalinaBigelow, CatalinaLemmon
 import testing.postgresql
 
 from ..catch import Catch
@@ -73,6 +74,16 @@ def test_skymapper_url():
     assert url == (
         "https://api.skymapper.nci.org.au/public/siap/dr2/get_image?"
         f"IMAGE={obs.product_id}&SIZE=0.1&POS={found.ra},{found.dec}&FORMAT=fits"
+    )
+
+
+def test_css_url():
+    obs = CatalinaLemmon(
+        product_id="urn:nasa:pds:gbo.ast.catalina.survey:data_calibrated:g96_20220130_2b_n27011_01_0001.arch"
+    )
+    assert (
+        obs.archive_url
+        == "https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.catalina.survey/data_calibrated/G96/2022/22Jan30/G96_20220130_2B_N27011_01_0001.arch.fz"
     )
 
 

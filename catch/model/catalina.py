@@ -23,7 +23,7 @@ from sbsearch.model.core import Base, Observation
 
 
 _ARCHIVE_URL_PREFIX: str = (
-    "https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.catalina.survey/data_calibrated/"
+    "https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.catalina.survey/data_calibrated"
 )
 
 _month_to_Mon: Dict[str, str] = {
@@ -62,7 +62,10 @@ class CatalinaSkySurvey:
         year: str = date[:4]
         Mon: str = _month_to_Mon[date[4:6]]
         day: str = date[6:]
-        return f"{_ARCHIVE_URL_PREFIX}/{tel.upper()}/{year}/{year[-2:]}{Mon}{day}/{lid[5].upper()}.fz"
+        i: int = lid[5].find(".")
+        prefix: str = lid[5][:i].upper()
+        suffix: str = lid[5][i:].lower() + ".fz"
+        return f"{_ARCHIVE_URL_PREFIX}/{tel.upper()}/{year}/{year[-2:]}{Mon}{day}/{prefix}{suffix}"
 
     def cutout_url(
         self, ra: float, dec: float, size: float = 0.0833, format: str = "fits"
