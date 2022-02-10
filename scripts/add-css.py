@@ -90,8 +90,7 @@ def get_new_list():
 
     """
 
-    date = Time.now().isot.replace(":", "").replace("-", "")[:13]
-    local_filename = f"css-file-list-{date}.txt"
+    local_filename = f"css-file-list.txt"
     with requests.get(LATEST_FILES, stream=True) as r:
         r.raise_for_status()
         with open(local_filename, "wb") as f:
