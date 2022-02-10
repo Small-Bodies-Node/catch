@@ -1,8 +1,10 @@
-from contextlib import contextmanager
+import sys
 import re
 import argparse
 import logging
 import sqlite3
+from contextlib import contextmanager
+
 import requests
 from astropy.time import Time
 
@@ -10,6 +12,7 @@ from pds4_tools import pds4_read
 
 from catch import Catch, Config
 from catch.model.catalina import CatalinaBigelow, CatalinaKittPeak, CatalinaLemmon
+from sbsearch.logging import ProgressTriangle
 
 # URL for the latest list of all files.
 LATEST_FILES = (
@@ -39,7 +42,9 @@ def _parse_args() -> argparse.Namespace:
         description="Add CSS data to CATCH.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("--db", default="css.db", help="harvester tracking database")
+    parser.add_argument(
+        "--db", default="add-css.db", help="harvester tracking database"
+    )
     parser.add_argument(
         "--config",
         default="catch.config",
@@ -73,7 +78,7 @@ def harvester_db(filename):
         db.close()
 
 
-def get_new_list(date):
+def get_new_list():
     """Download a new file list.
 
     Downloaded files are renamed using the time of the download.
@@ -85,8 +90,7 @@ def get_new_list(date):
 
     """
 
-    date = Time.now().isot.replace(":", "").replace("-", "")[:13]
-    local_filename = f"css-file-list-{date}.txt"
+    local_filename = f"css-file-list.txt"
     with requests.get(LATEST_FILES, stream=True) as r:
         r.raise_for_status()
         with open(local_filename, "wb") as f:
@@ -131,7 +135,6 @@ def new_labels(db, listfile):
                 if processed is None:
                     processed_count += 1
                     yield path
-                    break
 
     logger = logging.getLogger("add-css")
     logger.info(
@@ -148,7 +151,7 @@ def process(path):
     url = "".join((ARCHIVE_PREFIX, path))
     label = pds4_read(url, lazy_load=True, quiet=True).label
     lid = label.find("Identification_Area/logical_identifier").text
-    tel = lid.split(":")[5][:3]
+    tel = lid.split(":")[5][:3].upper()
     if tel in CatalinaBigelow._telescopes:
         obs = CatalinaBigelow()
     elif tel in CatalinaLemmon._telescopes:
@@ -203,6 +206,7 @@ def main():
     for handler in logger.handlers:
         handler.setFormatter(formatter)
     logger.setLevel(logging.INFO)
+    logger.info("Logging setup.")
 
     if args.dry_run:
         logger.info("Dry run, databases will not be updated.")
@@ -220,6 +224,8 @@ def main():
         with Catch.with_config(args.config) as catch:
             observations = []
             failed = 0
+
+            tri = ProgressTriangle(1, logger=logger, base=2)
             for path in new_labels(db, listfile):
                 try:
                     observations.append(process(path))
@@ -231,8 +237,10 @@ def main():
                     logger.error(
                         "A fatal error occurred processing %s", path, exc_info=True
                     )
+                    raise
 
                 logger.debug("%s: %s", path, msg)
+                tri.update()
 
                 if args.dry_run:
                     continue
