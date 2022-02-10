@@ -22,7 +22,9 @@ from sqlalchemy import BigInteger, Column, String, ForeignKey
 from sbsearch.model.core import Base, Observation
 
 
-_ARCHIVE_URL_PREFIX: str = "https://sbnarchive.psi.edu/pds4/surveys/"
+_ARCHIVE_URL_PREFIX: str = (
+    "https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.catalina.survey/data_calibrated/"
+)
 
 _month_to_Mon: Dict[str, str] = {
     "01": "Jan",
