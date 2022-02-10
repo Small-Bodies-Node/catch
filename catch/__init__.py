@@ -71,7 +71,6 @@ def catch_cli(*args):
     rows = []
     config = Config.from_args(args)
     with Catch.with_config(config) as catch:
-        catch.debug = args.debug
         if args.command == "verify":
             pass
         elif args.command == "sources":
