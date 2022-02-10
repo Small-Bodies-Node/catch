@@ -45,7 +45,8 @@ class CatalinaSkySurvey:
 
     @property
     def telescope(self) -> str:
-        return self._telescopes.get(self.product_id.split(":")[5][:3])
+        tel: str = self.product_id.split(":")[5][:3].upper()
+        return self._telescopes.get(tel)
 
     @property
     def archive_url(self) -> str:
