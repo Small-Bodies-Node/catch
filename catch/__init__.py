@@ -65,7 +65,14 @@ def catch_cli(*args):
     if args.command == "verify":
         print("Verify databases and create as needed.\n")
 
-    SKIP_COLUMNS = ["spatial_terms", "metadata", "cutout_url", "preview_url", "set_fov"]
+    SKIP_COLUMNS = [
+        "spatial_terms",
+        "metadata",
+        "cutout_url",
+        "preview_url",
+        "set_fov",
+        "registry",
+    ]
 
     rows = []
     config = Config.from_args(args)
