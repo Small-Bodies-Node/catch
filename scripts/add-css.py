@@ -152,7 +152,7 @@ def process(path):
     url = "".join((ARCHIVE_PREFIX, path))
     label = pds4_read(url, lazy_load=True, quiet=True).label
     lid = label.find("Identification_Area/logical_identifier").text
-    tel = lid.split(":")[5][:3]
+    tel = lid.split(":")[5][:3].upper()
     if tel in CatalinaBigelow._telescopes:
         obs = CatalinaBigelow()
     elif tel in CatalinaLemmon._telescopes:
