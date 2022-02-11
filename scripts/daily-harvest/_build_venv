@@ -1,8 +1,8 @@
 #!/bin/bash -eu
 
 
-### create virtual environment for daily digestion of surveys for CATCH
-test ! -e .venv && python3 -m venv .venv --prompt='catch daily digestion'
+### create virtual environment for daily harvesting of surveys for CATCH
+test ! -e .venv && python3 -m venv .venv --prompt='catch daily harvest'
 source .venv/bin/activate
 python3 -m pip install -U pip setuptools wheel
 
