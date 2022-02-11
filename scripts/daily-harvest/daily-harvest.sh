@@ -1,9 +1,11 @@
 #!/bin/bash -eu
 
+LOGROTATE=/usr/sbin/logrotate
+
 source .venv/bin/activate
 
 # Rotate logs and CSS file list.
-logrotate logrotate.config -s logrotate.state
+$LOGROTATE logrotate.config -s logrotate.state
 
 if [[ ! -e catch.config ]]; then
     echo "catch.config missing"
