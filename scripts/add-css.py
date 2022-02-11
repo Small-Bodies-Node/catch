@@ -1,4 +1,4 @@
-import sys
+import os
 import re
 import argparse
 import logging
@@ -219,6 +219,11 @@ def main():
         logger.info("New CSS file list downloaded.")
     else:
         listfile = args.f
+        logger.info("Re-using previously downloaded CSS file list.")
+        
+    stat = os.stat(listfile)
+    logger.info(f"  Size: {stat.st_size / 1048576} MiB")
+    logger.info(f"  Last modified: {Time(stat.st_mtime, format='unix').iso}")
 
     with harvester_db(args.db) as db:
         with Catch.with_config(args.config) as catch:
