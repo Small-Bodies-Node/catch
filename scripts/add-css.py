@@ -6,17 +6,20 @@ import sqlite3
 from contextlib import contextmanager
 
 import requests
-import astropy
 from astropy.time import Time
-import sbpy
-import pds4_tools
 from pds4_tools import pds4_read
 
-import catch
 from catch import Catch, Config
 from catch.model.catalina import CatalinaBigelow, CatalinaKittPeak, CatalinaLemmon
-import sbsearch
 from sbsearch.logging import ProgressTriangle
+
+# version info
+from astropy import __version__ as astropy_version
+from catch import __version__ as catch_version
+from pds4_tools import __version__ as pds4_tools_version
+from requests import __version__ as requests_version
+from sbpy import __version__ as sbpy_version
+from sbsearch import __version__ as sbsearch_version
 
 # URL for the latest list of all files.
 LATEST_FILES = (
@@ -211,12 +214,12 @@ def main():
         handler.setFormatter(formatter)
     logger.setLevel(logging.INFO)
     logger.info("Initialized.")
-    logger.info(f"astropy {astropy.__version__}")
-    logger.info(f"catch {catch.__version__}")
-    logger.info(f"pds4_tools {pds4_tools.__version__}")
-    logger.info(f"requests {requests.__version__}")
-    logger.info(f"sbpy {sbpy.__version__}")
-    logger.info(f"sbsearch {sbsearch.__version__}")
+    logger.info(f"astropy {astropy_version}")
+    logger.info(f"catch {catch_version}")
+    logger.info(f"pds4_tools {pds4_tools_version}")
+    logger.info(f"requests {requests_version}")
+    logger.info(f"sbpy {sbpy_version}")
+    logger.info(f"sbsearch {sbsearch_version}")
 
     if args.dry_run:
         logger.info("Dry run, databases will not be updated.")
