@@ -235,7 +235,7 @@ def main():
         logger.info("Re-using previously downloaded CSS file list.")
 
     stat = os.stat(listfile)
-    logger.info(f"  Size: {stat.st_size / 1048576} MiB")
+    logger.info(f"  Size: {stat.st_size / 1048576:.2f} MiB")
     logger.info(f"  Last modified: {Time(stat.st_mtime, format='unix').iso}")
 
     with harvester_db(args.db) as db:
