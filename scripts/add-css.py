@@ -6,12 +6,16 @@ import sqlite3
 from contextlib import contextmanager
 
 import requests
+import astropy
 from astropy.time import Time
-
+import sbpy
+import pds4_tools
 from pds4_tools import pds4_read
 
+import catch
 from catch import Catch, Config
 from catch.model.catalina import CatalinaBigelow, CatalinaKittPeak, CatalinaLemmon
+import sbsearch
 from sbsearch.logging import ProgressTriangle
 
 # URL for the latest list of all files.
@@ -206,7 +210,13 @@ def main():
     for handler in logger.handlers:
         handler.setFormatter(formatter)
     logger.setLevel(logging.INFO)
-    logger.info("Logging setup.")
+    logger.info("Initialized.")
+    logger.info(f"astropy {astropy.__version__}")
+    logger.info(f"catch {catch.__version__}")
+    logger.info(f"pds4_tools {pds4_tools.__version__}")
+    logger.info(f"requests {requests.__version__}")
+    logger.info(f"sbpy {sbpy.__version__}")
+    logger.info(f"sbsearch {sbsearch.__version__}")
 
     if args.dry_run:
         logger.info("Dry run, databases will not be updated.")
@@ -220,7 +230,7 @@ def main():
     else:
         listfile = args.f
         logger.info("Re-using previously downloaded CSS file list.")
-        
+
     stat = os.stat(listfile)
     logger.info(f"  Size: {stat.st_size / 1048576} MiB")
     logger.info(f"  Last modified: {Time(stat.st_mtime, format='unix').iso}")
