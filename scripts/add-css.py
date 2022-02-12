@@ -125,9 +125,15 @@ def sync_list():
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
             logger.info('Downloaded file list.')
+
             stat = os.stat(local_filename)
+            file_date = Time(stat.st_mtime, format='unix')
             logger.info(f"  Size: {stat.st_size / 1048576:.2f} MiB")
-            logger.info(f"  Last modified: {Time(stat.st_mtime, format='unix').iso}")
+            logger.info(f"  Last modified: {file_date.iso}")
+
+            backup_file = local_filename.replace(
+                '.txt', file_date.isot[:16].replace('-', '').replace(':', ''))
+            os.system(f'cp {local_filename} {backup_file}')
 
     return local_filename
 
