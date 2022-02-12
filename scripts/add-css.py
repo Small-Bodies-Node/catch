@@ -1,8 +1,10 @@
 import os
 import re
+import email
 import argparse
 import logging
 import sqlite3
+from datetime import datetime
 from contextlib import contextmanager
 
 import requests
@@ -85,10 +87,9 @@ def harvester_db(filename):
         db.close()
 
 
-def get_new_list():
-    """Download a new file list.
+def sync_list():
+    """Check for a new file list and synchronize as needed.
 
-    Downloaded files are renamed using the time of the download.
 
     Returns
     -------
@@ -97,17 +98,42 @@ def get_new_list():
 
     """
 
-    local_filename = f"css-file-list.txt"
-    with requests.get(LATEST_FILES, stream=True) as r:
-        r.raise_for_status()
-        with open(local_filename, "wb") as f:
-            for chunk in r.iter_content(chunk_size=8192):
-                f.write(chunk)
+    logger = logging.getLogger('add-css')
+    local_filename = "css-file-list.txt"
+    sync = False
+
+    if os.path.exists(local_filename):
+        # file exists, check for an update
+        last_sync = datetime.fromtimestamp(os.stat(local_filename).st_mtime)
+        response = requests.head(LATEST_FILES)
+        try:
+            file_date = response.headers['Last-Modified']
+            file_date = datetime(*email.utils.parsedate(file_date))
+            if last_sync < file_date:
+                sync = True
+                logger.info('New file list available.')
+        except KeyError:
+            pass
+    else:
+        # file does not exist, download new file
+        sync = True
+
+    if sync:
+        with requests.get(LATEST_FILES, stream=True) as r:
+            r.raise_for_status()
+            with open(local_filename, "wb") as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            logger.info('Downloaded file list.')
+            stat = os.stat(local_filename)
+            logger.info(f"  Size: {stat.st_size / 1048576:.2f} MiB")
+            logger.info(f"  Last modified: {Time(stat.st_mtime, format='unix').iso}")
+
     return local_filename
 
 
 def new_labels(db, listfile):
-    """Check for new labels to add.
+    """Iterator for new labels.
 
 
     Parameters
@@ -228,15 +254,10 @@ def main():
         logger.setLevel(logging.DEBUG)
 
     if args.f is None:
-        listfile = get_new_list()
-        logger.info("New CSS file list downloaded.")
+        listfile = sync_list()
     else:
         listfile = args.f
-        logger.info("Re-using previously downloaded CSS file list.")
-
-    stat = os.stat(listfile)
-    logger.info(f"  Size: {stat.st_size / 1048576:.2f} MiB")
-    logger.info(f"  Last modified: {Time(stat.st_mtime, format='unix').iso}")
+        logger.info("Checking user-specified file list.")
 
     with harvester_db(args.db) as db:
         with Catch.with_config(args.config) as catch:
