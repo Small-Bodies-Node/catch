@@ -214,12 +214,12 @@ def main():
         handler.setFormatter(formatter)
     logger.setLevel(logging.INFO)
     logger.info("Initialized.")
-    logger.info(f"astropy {astropy_version}")
-    logger.info(f"catch {catch_version}")
-    logger.info(f"pds4_tools {pds4_tools_version}")
-    logger.info(f"requests {requests_version}")
-    logger.info(f"sbpy {sbpy_version}")
-    logger.info(f"sbsearch {sbsearch_version}")
+    logger.debug(f"astropy {astropy_version}")
+    logger.debug(f"catch {catch_version}")
+    logger.debug(f"pds4_tools {pds4_tools_version}")
+    logger.debug(f"requests {requests_version}")
+    logger.debug(f"sbpy {sbpy_version}")
+    logger.debug(f"sbsearch {sbsearch_version}")
 
     if args.dry_run:
         logger.info("Dry run, databases will not be updated.")
