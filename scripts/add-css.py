@@ -132,7 +132,9 @@ def sync_list():
             logger.info(f"  Last modified: {file_date.iso}")
 
             backup_file = local_filename.replace(
-                '.txt', file_date.isot[:16].replace('-', '').replace(':', ''))
+                '.txt',
+                file_date.isot[:16].replace('-', '').replace(':', '')
+                + '.txt')
             os.system(f'cp {local_filename} {backup_file}')
 
     return local_filename
