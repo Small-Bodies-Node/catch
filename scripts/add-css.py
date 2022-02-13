@@ -108,7 +108,7 @@ def sync_list():
         response = requests.head(LATEST_FILES)
         try:
             file_date = response.headers['Last-Modified']
-            file_date = datetime(*email.utils.parsedate(file_date))
+            file_date = datetime(*email.utils.parsedate(file_date)[:6])
             if last_sync < file_date:
                 sync = True
                 logger.info('New file list available.')
