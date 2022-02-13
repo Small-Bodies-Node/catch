@@ -133,7 +133,7 @@ def sync_list():
 
             backup_file = local_filename.replace(
                 '.txt',
-                file_date.isot[:16].replace('-', '').replace(':', '')
+                '-' + file_date.isot[:16].replace('-', '').replace(':', '')
                 + '.txt')
             os.system(f'cp {local_filename} {backup_file}')
 
