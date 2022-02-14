@@ -106,9 +106,13 @@ def sync_list():
         # file exists, check for an update
         last_sync = datetime.fromtimestamp(os.stat(local_filename).st_mtime)
         response = requests.head(LATEST_FILES)
+        logger.info('Previous file list downloaded %s',
+                    last_sync.strftime('%Y-%m-%d %H:%M'))
         try:
             file_date = response.headers['Last-Modified']
             file_date = datetime(*email.utils.parsedate(file_date)[:6])
+            logger.info('Online file list dated %s',
+                        file_date.strftime('%Y-%m-%d %H:%M'))
             if last_sync < file_date:
                 sync = True
                 logger.info('New file list available.')
@@ -178,14 +182,10 @@ def new_labels(db, listfile):
                     yield path
 
     logger = logging.getLogger("add-css")
-    logger.info(
-        f"""
-Processed:
-  {line_count} lines
-  {calibrated_count} calibrated data labels
-  {processed_count} new files
-"""
-    )
+    logger.info("Processed:")
+    logger.info("  %d lines", line_count)
+    logger.info("  %d calibrated data labels", calibrated_count)
+    logger.info("  %d new files", processed_count)
 
 
 def process(path):
