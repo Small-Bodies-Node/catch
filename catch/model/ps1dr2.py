@@ -1,63 +1,48 @@
 # Licensed with the 3-clause BSD license.  See LICENSE for details.
 """ps1dr2
 
-To create a new survey, use this file or `sbsearch/model/example_survey.py` from
-the sbsearch source code as examples.  The latter has detailed comments on what
-to edit.  Then, add the survey to the top of `__init__.py` so that it is
-imported and included in `__all__`.
-
-The catch survey data model requires one property and two methods for each
-survey object:
-
-* property: archive_url - returns the URL for the full-sized archive image, or
-  else `None`.
-
-* method: cutout_url - returns a URL to retrieve a FITS formatted cutout around
-  the requested sky coordinates, or else `None`.
-
-* method: preview_url - same as `cutout_url` except that the URL is for an image
-  formatted for a web browser (e.g., JPEG or PNG).
+PanSTARRS 1 Data Release 2
 
 """
 
-__all__ = [
-    'PS1DR2'
-]
+__all__ = ["PS1DR2"]
 
 from sqlalchemy import BigInteger, Column, Integer, SmallInteger, String, ForeignKey
 from sbsearch.model.core import Base, Observation
 
 
 class PS1DR2(Observation):
-    __tablename__ = 'ps1dr2'
-    __data_source_name__ = 'PanSTARRS 1 DR2'
-    __obscode__ = 'F51'  # MPC observatory code
+    __tablename__ = "ps1dr2"
+    __data_source_name__ = "PanSTARRS 1 DR2"
+    __obscode__ = "F51"  # MPC observatory code
+    __field_prefix__ = "ps1"
 
     source_id = Column(BigInteger, primary_key=True)
-    observation_id = Column(BigInteger,
-                            ForeignKey('observation.observation_id',
-                                       onupdate='CASCADE',
-                                       ondelete='CASCADE'),
-                            nullable=False,
-                            index=True)
-    product_id = Column(String(64), doc='Archive product id',
-                        unique=True, index=True, nullable=False)
-    telescope_id = Column(SmallInteger, doc='PS1 telescope ID', nullable=False)
-    frame_id = Column(Integer, doc='PS1 frame ID', nullable=False)
-    projection_id = Column(
-        SmallInteger, doc='PS1 projection cell ID', nullable=False)
-    skycell_id = Column(SmallInteger, doc='PS1 sky cell ID', nullable=False)
-    filter_id = Column(
-        SmallInteger, doc='PS1 filter ID: grizy = 1-5', nullable=False)
+    observation_id = Column(
+        BigInteger,
+        ForeignKey(
+            "observation.observation_id", onupdate="CASCADE", ondelete="CASCADE"
+        ),
+        nullable=False,
+        index=True,
+    )
+    product_id = Column(
+        String(64), doc="Archive product id", unique=True, index=True, nullable=False
+    )
+    telescope_id = Column(SmallInteger, doc="PS1 telescope ID", nullable=False)
+    frame_id = Column(Integer, doc="PS1 frame ID", nullable=False)
+    projection_id = Column(SmallInteger, doc="PS1 projection cell ID", nullable=False)
+    skycell_id = Column(SmallInteger, doc="PS1 sky cell ID", nullable=False)
+    filter_id = Column(SmallInteger, doc="PS1 filter ID: grizy = 1-5", nullable=False)
 
-    __mapper_args__ = {
-        'polymorphic_identity': 'ps1dr2'
-    }
+    __mapper_args__ = {"polymorphic_identity": "ps1dr2"}
 
     @property
     def _warp_path(self) -> str:
-        url: str = (f'/rings.v3.skycell/{self.projection_id:04d}/'
-                    f'{self.skycell_id:03d}/{self.product_id}')
+        url: str = (
+            f"/rings.v3.skycell/{self.projection_id:04d}/"
+            f"{self.skycell_id:03d}/{self.product_id}"
+        )
         return url
 
     @property
@@ -72,11 +57,12 @@ class PS1DR2(Observation):
         filter from filterid: 1-5 for grizy (Flewelling et al. 2019)
 
         """
-        url: str = f'https://ps1images.stsci.edu{self._warp_path}'
+        url: str = f"https://ps1images.stsci.edu{self._warp_path}"
         return url
 
-    def cutout_url(self, ra: float, dec: float, size: float = 0.05,
-                   format: str = 'fits') -> str:
+    def cutout_url(
+        self, ra: float, dec: float, size: float = 0.05, format: str = "fits"
+    ) -> str:
         """URL to cutout ``size`` around ``ra``, ``dec`` in deg.
 
         For example:
@@ -86,12 +72,15 @@ class PS1DR2(Observation):
 
         """
         pixels: int = int(size * 3600 / 0.25)  # 0.25"/pixel
-        url: str = ('https://ps1images.stsci.edu/cgi-bin/fitscut.cgi?'
-                    f'red={self._warp_path}&ra={ra}&dec={dec}'
-                    f'&size={pixels}&format={format}')
+        url: str = (
+            "https://ps1images.stsci.edu/cgi-bin/fitscut.cgi?"
+            f"red={self._warp_path}&ra={ra}&dec={dec}"
+            f"&size={pixels}&format={format}"
+        )
         return url
 
-    def preview_url(self, ra: float, dec: float, size: float = 0.0833,
-                    format: str = 'jpeg') -> str:
+    def preview_url(
+        self, ra: float, dec: float, size: float = 0.0833, format: str = "jpeg"
+    ) -> str:
         """Web preview image.  format = jpeg, png"""
         return self.cutout_url(ra, dec, size=size, format=format)

@@ -1,17 +1,7 @@
 # Licensed with the 3-clause BSD license.  See LICENSE for details.
 """catalina
 
-The catch survey data model requires one property and two methods for each
-survey object:
-
-* property: archive_url - returns the URL for the full-sized archive image, or
-  else `None`.
-
-* method: cutout_url - returns a URL to retrieve a FITS formatted cutout around
-  the requested sky coordinates, or else `None`.
-
-* method: preview_url - same as `cutout_url` except that the URL is for an image
-  formatted for a web browser (e.g., JPEG or PNG).
+Catalina Sky Survey archive at PDS
 
 """
 
@@ -44,6 +34,8 @@ _month_to_Mon: Dict[str, str] = {
 
 class CatalinaSkySurvey:
     """CSS specific functions / properties."""
+
+    __field_prefix__: str = "css"
 
     @property
     def telescope(self) -> str:
@@ -97,8 +89,8 @@ class CatalinaBigelow(Observation, CatalinaSkySurvey):
     # telescopes included at this site
     # MPC code : name
     _telescopes = {
-        "703": "Catalina Sky Survey, 0.7-m Schmidt",
-        "V06": "61-inch Kuiper telescope",
+        "703": "Catalina Sky Survey, 0.7-m Schmidt (703)",
+        "V06": "61-inch Kuiper telescope (V06)",
     }
 
     source_id = Column(BigInteger, primary_key=True)
@@ -124,8 +116,8 @@ class CatalinaLemmon(Observation, CatalinaSkySurvey):
     # telescopes included at this site
     # MPC code : name
     _telescopes = {
-        "G96": "Mount Lemmon Survey, 60-inch telescope",
-        "I52": "Mount Lemmon 40-inch follow-up telescope",
+        "G96": "Mount Lemmon Survey, 60-inch telescope (G96)",
+        "I52": "Mount Lemmon 40-inch follow-up telescope (I52)",
     }
 
     source_id = Column(BigInteger, primary_key=True)
@@ -150,7 +142,7 @@ class CatalinaKittPeak(Observation, CatalinaSkySurvey):
 
     # telescopes included at this site
     # MPC code : name
-    _telescopes = {"V00": "Steward Observatory 90-inch Bok telescope"}
+    _telescopes = {"V00": "Steward Observatory 90-inch Bok telescope (V00)"}
 
     source_id = Column(BigInteger, primary_key=True)
     observation_id = Column(

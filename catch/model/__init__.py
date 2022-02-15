@@ -1,4 +1,9 @@
 # Licensed with the 3-clause BSD license.  See LICENSE for details.
+"""model
+
+To add surveys, see neat_palomar_tricam.py for instructions.
+
+"""
 
 __all__ = [
     "CatchQuery",
