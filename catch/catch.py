@@ -6,7 +6,6 @@ import uuid
 import logging
 from typing import Dict, List, Optional, Tuple, Union
 
-from sqlalchemy.engine.row import Row
 from sqlalchemy.orm import Session, Query
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy import func
@@ -308,7 +307,7 @@ class Catch(SBSearch):
             )
             if _source != Observation:
                 q = q.filter(Observation.source == _source.__tablename__)
-            dates: Row = q.one()
+            dates: Any = q.one()
 
             if _source == Observation:
                 table_name = None
