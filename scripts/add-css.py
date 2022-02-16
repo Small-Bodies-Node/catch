@@ -98,7 +98,7 @@ def sync_list():
 
     """
 
-    logger = logging.getLogger('add-css')
+    logger = logging.getLogger("add-css")
     local_filename = "css-file-list.txt"
     sync = False
 
@@ -106,16 +106,18 @@ def sync_list():
         # file exists, check for an update
         last_sync = datetime.fromtimestamp(os.stat(local_filename).st_mtime)
         response = requests.head(LATEST_FILES)
-        logger.info('Previous file list downloaded %s',
-                    last_sync.strftime('%Y-%m-%d %H:%M'))
+        logger.info(
+            "Previous file list downloaded %s", last_sync.strftime("%Y-%m-%d %H:%M")
+        )
         try:
-            file_date = response.headers['Last-Modified']
+            file_date = response.headers["Last-Modified"]
             file_date = datetime(*email.utils.parsedate(file_date)[:6])
-            logger.info('Online file list dated %s',
-                        file_date.strftime('%Y-%m-%d %H:%M'))
+            logger.info(
+                "Online file list dated %s", file_date.strftime("%Y-%m-%d %H:%M")
+            )
             if last_sync < file_date:
                 sync = True
-                logger.info('New file list available.')
+                logger.info("New file list available.")
         except KeyError:
             pass
     else:
@@ -128,18 +130,18 @@ def sync_list():
             with open(local_filename, "wb") as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
-            logger.info('Downloaded file list.')
+            logger.info("Downloaded file list.")
 
             stat = os.stat(local_filename)
-            file_date = Time(stat.st_mtime, format='unix')
+            file_date = Time(stat.st_mtime, format="unix")
             logger.info(f"  Size: {stat.st_size / 1048576:.2f} MiB")
             logger.info(f"  Last modified: {file_date.iso}")
 
             backup_file = local_filename.replace(
-                '.txt',
-                '-' + file_date.isot[:16].replace('-', '').replace(':', '')
-                + '.txt')
-            os.system(f'cp {local_filename} {backup_file}')
+                ".txt",
+                "-" + file_date.isot[:16].replace("-", "").replace(":", "") + ".txt",
+            )
+            os.system(f"cp {local_filename} {backup_file}")
 
     return local_filename
 
@@ -308,6 +310,10 @@ def main():
 
             if failed > 0:
                 logger.warning("Failed processing %d files", failed)
+
+            logger.info("Updating survey statistics.")
+            for source in ("catalina_bigelow", "catalina_lemmon", "catalina_kittpeak"):
+                catch.update_statistics(source=source)
 
 
 if __name__ == "__main__":

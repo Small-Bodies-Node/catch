@@ -85,3 +85,5 @@ with Catch.with_config(Config.from_file(args.config)) as catch:
 
         if not args.r:
             break
+
+    catch.update_statistics(source="neat_maui_geodss")

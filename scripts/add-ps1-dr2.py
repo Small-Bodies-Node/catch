@@ -13,28 +13,35 @@ from catch import Catch, Config
 from catch.model import PS1DR2
 
 parser = argparse.ArgumentParser(
-    'add-ps1', description='Add PS1 DR2 metadata to CATCH.')
-parser.add_argument('warp_meta', help='warp (single-epochal image) metadata')
-parser.add_argument('warp_files', help='warp file name table')
-parser.add_argument('ps1_grid', help='grid specifications')
+    "add-ps1", description="Add PS1 DR2 metadata to CATCH."
+)
+parser.add_argument("warp_meta", help="warp (single-epochal image) metadata")
+parser.add_argument("warp_files", help="warp file name table")
+parser.add_argument("ps1_grid", help="grid specifications")
 parser.add_argument(
-    '--db-only', action='store_true',
-    help='only build temporary database (overwriting current file)')
-parser.add_argument(
-    '--add-only', action='store_true', help='only add new rows (useful after partial update)'
+    "--db-only",
+    action="store_true",
+    help="only build temporary database (overwriting current file)",
 )
 parser.add_argument(
-    '--update', action='store_true', help='update existing rows (edit script for data to update), and add missing rows'
+    "--add-only",
+    action="store_true",
+    help="only add new rows (useful after partial update)",
 )
 parser.add_argument(
-    '--start-offset', type=int, default=0,
-    help='start inserting after skipping this many rows (an alterative to --add-only)'
+    "--update",
+    action="store_true",
+    help="update existing rows (edit script for data to update), and add missing rows",
 )
-parser.add_argument('-n', type=int, help='only add n observations to catch')
 parser.add_argument(
-    '--config', help='CATCH configuration file')
-parser.add_argument(
-    '--debug', action='store_true', help='debug mode')
+    "--start-offset",
+    type=int,
+    default=0,
+    help="start inserting after skipping this many rows (an alterative to --add-only)",
+)
+parser.add_argument("-n", type=int, help="only add n observations to catch")
+parser.add_argument("--config", help="CATCH configuration file")
+parser.add_argument("--debug", action="store_true", help="debug mode")
 
 args = parser.parse_args()
 
@@ -45,13 +52,7 @@ sqlite3.register_adapter(np.int16, int)
 sqlite3.register_adapter(np.uint8, int)
 sqlite3.register_adapter(np.float64, float)
 
-filters = {
-    1: 'gp1',
-    2: 'rp1',
-    3: 'ip1',
-    4: 'zp1',
-    5: 'yp1'
-}
+filters = {1: "gp1", 2: "rp1", 3: "ip1", 4: "zp1", 5: "yp1"}
 
 # https://outerspace.stsci.edu/display/PANSTARRS/PS1+Sky+tessellation+patterns
 image_sizes = {}
@@ -68,7 +69,7 @@ with fits.open(args.ps1_grid) as hdu:
     # These columns are used to select a declination zone in the region where adjacent zones overlap.
     # (The actual algorithm used is a bit more complicated near the north pole, where a simple declination threshold is not sufficient to identify the best projection cell.)
     for row in hdu[1].data:
-        image_sizes[row['PROJCELL']] = (row['YCELL'], row['XCELL'])
+        image_sizes[row["PROJCELL"]] = (row["YCELL"], row["XCELL"])
 projcell_bins = np.sort(list(image_sizes.keys()))
 
 
@@ -76,7 +77,8 @@ def build_db(warp_meta, warp_files):
     """Create a temporary sqlite3 database with the two source tables."""
 
     db = sqlite3.connect("ps1dr2.db")
-    db.execute('''
+    db.execute(
+        """
     CREATE TABLE warp_meta (
         forcedWarpID INTEGER PRIMARY KEY,
         projectionID INTEGER NOT NULL,
@@ -92,8 +94,10 @@ def build_db(warp_meta, warp_files):
         crpix1 FLOAT NOT NULL,
         crpix2 FLOAT NOT NULL
     );
-    ''')
-    db.execute('''
+    """
+    )
+    db.execute(
+        """
     CREATE TABLE warp_files (
         filename TEXT,
         mjdobs FLOAT NOT NULL,
@@ -101,13 +105,15 @@ def build_db(warp_meta, warp_files):
         skycell INTEGER NOT NULL,
         filterid INTEGER NOT NULL
     );
-    ''')
+    """
+    )
 
     meta = fits.open(warp_meta, memmap=True)
     n = 0
-    db.execute('BEGIN TRANSACTION;')
+    db.execute("BEGIN TRANSACTION;")
     for row in meta[1].data:
-        db.execute('''
+        db.execute(
+            """
         INSERT INTO warp_meta VALUES (
             :forcedWarpID,
             :projectionID,
@@ -123,21 +129,26 @@ def build_db(warp_meta, warp_files):
             :crpix1,
             :crpix2
         );
-        ''', row)
-    db.execute('END TRANSACTION;')
+        """,
+            row,
+        )
+    db.execute("END TRANSACTION;")
 
-    db.execute('''
+    db.execute(
+        """
     CREATE INDEX warp_meta_index ON warp_meta (
         projectionID, skyCellID, filterID, expStart
     );
-    ''')
+    """
+    )
     meta.close()
     del meta
 
     files = fits.open(warp_files, memmap=True)
-    db.execute('BEGIN TRANSACTION;')
+    db.execute("BEGIN TRANSACTION;")
     for row in files[1].data:
-        db.execute('''
+        db.execute(
+            """
         INSERT INTO warp_files VALUES (
             :filename,
             :mjdobs,
@@ -145,16 +156,20 @@ def build_db(warp_meta, warp_files):
             :skycell,
             :filterid
         );
-        ''', row)
-    db.execute('END TRANSACTION;')
+        """,
+            row,
+        )
+    db.execute("END TRANSACTION;")
     files.close()
     del files
 
-    db.execute('''
+    db.execute(
+        """
     CREATE INDEX warp_files_index ON warp_files (
         projcell, skycell, filterid, mjdobs
     );
-    ''')
+    """
+    )
 
     db.close()
 
@@ -166,7 +181,8 @@ def get_rows(start_offset):
     offset = start_offset
     while True:
         # inner join with group by to avoid duplicates in warp_meta
-        rows = db.execute('''
+        rows = db.execute(
+            """
         SELECT forcedWarpID,projectionID,skyCellID,m.filterID,
           frameID,telescopeID,expStart,expTime,airmass,
           crval1,crval2,crpix1,crpix2,filename
@@ -179,7 +195,9 @@ def get_rows(start_offset):
         )
         GROUP BY filename
         LIMIT ? OFFSET ?
-        ''', (limit, offset)).fetchall()
+        """,
+            (limit, offset),
+        ).fetchall()
 
         if len(rows) == 0:
             break
@@ -192,10 +210,10 @@ def get_rows(start_offset):
     db.close()
 
 
-if not os.path.exists('ps1dr2.db') or args.db_only:
-    print('building temporary database')
+if not os.path.exists("ps1dr2.db") or args.db_only:
+    print("building temporary database")
     build_db(args.warp_meta, args.warp_files)
-    print('completed')
+    print("completed")
 
 if args.db_only:
     sys.exit(0)
@@ -207,7 +225,7 @@ config = Config.from_args(args)
 with Catch.with_config(config) as catch:
     # setup WCS object to calculate image corners
     w = WCS(naxis=2)
-    w.wcs.ctype = 'RA---TAN', 'DEC--TAN'
+    w.wcs.ctype = "RA---TAN", "DEC--TAN"
     w.wcs.cdelt = -6.94444461e-05, 6.94444461e-05
 
     catch.db.drop_spatial_index()
@@ -231,9 +249,11 @@ with Catch.with_config(config) as catch:
 
             # can't use forcedWarpID due to the ~650 double matches between
             # warp_meta and warp_files.
-            obs = catch.db.session.query(PS1DR2).filter(
-                PS1DR2.product_id == row['filename']
-            ).first()
+            obs = (
+                catch.db.session.query(PS1DR2)
+                .filter(PS1DR2.product_id == row["filename"])
+                .first()
+            )
             if obs is None:
                 # create a new row
                 obs = PS1DR2()
@@ -245,39 +265,35 @@ with Catch.with_config(config) as catch:
 
         if args.update and obs.source_id is not None:
             # just updating a few things, edit as needed
-            raise ValueError('add_your_tasks_here')
+            raise ValueError("add_your_tasks_here")
         else:
             # forcedWarpID,projectionID,skyCellID,m.filterID as filterID,
             # frameID,telescopeID,expStart,expTime,airmass,
             # crval1,crval2,crpix1,crpix2,filename
-            w.wcs.crval = row['crval1'], row['crval2']
-            w.wcs.crpix = row['crpix1'], row['crpix2']
+            w.wcs.crval = row["crval1"], row["crval2"]
+            w.wcs.crpix = row["crpix1"], row["crpix2"]
 
-            i = np.searchsorted(
-                projcell_bins, row['projectionID'], side='right')
+            i = np.searchsorted(projcell_bins, row["projectionID"], side="right")
             shape = image_sizes[projcell_bins[i - 1]]
 
-            ra, dec = w.all_pix2world([
-                [0, 0],
-                [0, shape[1]],
-                [shape[0], shape[1]],
-                [shape[0], 0]
-            ], 0).T
+            ra, dec = w.all_pix2world(
+                [[0, 0], [0, shape[1]], [shape[0], shape[1]], [shape[0], 0]], 0
+            ).T
 
             if obs.source_id is None:
-                obs.source_id = row['forcedWarpID']
+                obs.source_id = row["forcedWarpID"]
 
-            obs.mjd_start = row['expStart']
-            obs.mjd_stop = row['expStart'] + row['expTime'] / 86400
-            obs.filter = filters[row['filterID']]
-            obs.exposure = row['expTime']
-            obs.airmass = row['airmass']
-            obs.product_id = row['filename']
-            obs.telescope_id = row['telescopeID']
-            obs.frame_id = row['frameID']
-            obs.projection_id = row['projectionID']
-            obs.skycell_id = row['skyCellID']
-            obs.filter_id = row['filterID']
+            obs.mjd_start = row["expStart"]
+            obs.mjd_stop = row["expStart"] + row["expTime"] / 86400
+            obs.filter = filters[row["filterID"]]
+            obs.exposure = row["expTime"]
+            obs.airmass = row["airmass"]
+            obs.product_id = row["filename"]
+            obs.telescope_id = row["telescopeID"]
+            obs.frame_id = row["frameID"]
+            obs.projection_id = row["projectionID"]
+            obs.skycell_id = row["skyCellID"]
+            obs.filter_id = row["filterID"]
 
             obs.set_fov(ra, dec)
 
@@ -295,3 +311,4 @@ with Catch.with_config(config) as catch:
     # add any remaining files
     catch.add_observations(observations)
     catch.db.create_spatial_index()
+    catch.update_statistics(source="ps1dr2")
