@@ -282,11 +282,13 @@ class Catch(SBSearch):
         """Update source survey statistics table."""
 
         for source in list(self.sources.values()) + [Observation]:
+            self.logger.info(f"Examining {source.__tablename__}")
             q: Query = self.db.session.query(
                 func.count(source.observation_id),
                 func.min(source.mjd_start),
                 func.max(source.mjd_stop),
             ).one()
+            self.logger.info("Done")
 
             if source == Observation:
                 table_name = None
