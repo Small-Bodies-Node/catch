@@ -4,6 +4,7 @@ import email
 import argparse
 import logging
 import sqlite3
+import gzip
 from datetime import datetime
 from contextlib import contextmanager
 
@@ -25,7 +26,7 @@ from sbsearch import __version__ as sbsearch_version
 
 # URL for the latest list of all files.
 LATEST_FILES = (
-    "https://sbnarchive.psi.edu/pds4/surveys/catalina_extras/file_list.latest.txt"
+    "https://sbnarchive.psi.edu/pds4/surveys/catalina_extras/file_list.latest.txt.gz"
 )
 
 # URL prefix for the CSS archive at PSI
@@ -98,24 +99,26 @@ def sync_list():
 
     """
 
-    logger = logging.getLogger('add-css')
-    local_filename = "css-file-list.txt"
+    logger = logging.getLogger("add-css")
+    local_filename = "css-file-list.txt.gz"
     sync = False
 
     if os.path.exists(local_filename):
         # file exists, check for an update
         last_sync = datetime.fromtimestamp(os.stat(local_filename).st_mtime)
         response = requests.head(LATEST_FILES)
-        logger.info('Previous file list downloaded %s',
-                    last_sync.strftime('%Y-%m-%d %H:%M'))
+        logger.info(
+            "Previous file list downloaded %s", last_sync.strftime("%Y-%m-%d %H:%M")
+        )
         try:
-            file_date = response.headers['Last-Modified']
+            file_date = response.headers["Last-Modified"]
             file_date = datetime(*email.utils.parsedate(file_date)[:6])
-            logger.info('Online file list dated %s',
-                        file_date.strftime('%Y-%m-%d %H:%M'))
+            logger.info(
+                "Online file list dated %s", file_date.strftime("%Y-%m-%d %H:%M")
+            )
             if last_sync < file_date:
                 sync = True
-                logger.info('New file list available.')
+                logger.info("New file list available.")
         except KeyError:
             pass
     else:
@@ -128,18 +131,18 @@ def sync_list():
             with open(local_filename, "wb") as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
-            logger.info('Downloaded file list.')
+            logger.info("Downloaded file list.")
 
             stat = os.stat(local_filename)
-            file_date = Time(stat.st_mtime, format='unix')
+            file_date = Time(stat.st_mtime, format="unix")
             logger.info(f"  Size: {stat.st_size / 1048576:.2f} MiB")
             logger.info(f"  Last modified: {file_date.iso}")
 
             backup_file = local_filename.replace(
-                '.txt',
-                '-' + file_date.isot[:16].replace('-', '').replace(':', '')
-                + '.txt')
-            os.system(f'cp {local_filename} {backup_file}')
+                ".txt.gz",
+                "-" + file_date.isot[:16].replace("-", "").replace(":", "") + ".txt.gz",
+            )
+            os.system(f"cp {local_filename} {backup_file}")
 
     return local_filename
 
@@ -165,7 +168,7 @@ def new_labels(db, listfile):
     line_count: int = 0
     calibrated_count: int = 0
     processed_count: int = 0
-    with open(listfile, "r") as inf:
+    with gzip.open(listfile, "rt") as inf:
         for line in inf:
             line_count += 1
             if re.match(".*data_calibrated/.*\.xml\n$", line):
