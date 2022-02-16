@@ -6,6 +6,7 @@ import uuid
 import logging
 from typing import Dict, List, Optional, Tuple, Union
 
+from sqlalchemy.engine.row import Row
 from sqlalchemy.orm import Session, Query
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy import func
@@ -278,22 +279,44 @@ class Catch(SBSearch):
 
         return cached
 
-    def update_statistics(self):
-        """Update source survey statistics table."""
+    def update_statistics(self, source=None):
+        """Update source survey statistics table.
+        
+        
+        Parameters
+        ----------
+        source : string or Observation object
+            Limit update to this survey source name.
+        
+        """
 
-        for source in list(self.sources.values()) + [Observation]:
+        sources: List[Observation]
+        if source is None:
+            # update everything
+            sources = list(self.sources.values()) + [Observation]
+        else:
+            # just the requested table
+            sources = [self.source.get(source, source)]
+
+        for _source in sources:
+            count: int = self.db.session.query(
+                func.count(_source.observation_id)
+            ).scalar()
+
             q: Query = self.db.session.query(
-                func.count(source.observation_id),
-                func.min(source.mjd_start),
-                func.max(source.mjd_stop),
-            ).one()
+                func.min(Observation.mjd_start),
+                func.max(Observation.mjd_stop)
+            )
+            if _source != Observation:
+                q = q.filter(Observation.source == _source.__tablename__)
+            dates: Row = q.one()
 
-            if source == Observation:
+            if _source == Observation:
                 table_name = None
                 source_name = "All"
             else:
-                table_name = source.__tablename__
-                source_name = source.__data_source_name__
+                table_name = _source.__tablename__
+                source_name = _source.__data_source_name__
 
             stats: SurveyStats
             try:
@@ -308,9 +331,10 @@ class Catch(SBSearch):
                     name=source_name,
                 )
 
-            stats.count = q[0]
-            stats.start_date = Time(q[1], format="mjd").iso
-            stats.stop_date = Time(q[2], format="mjd").iso
+            stats.count = count
+            if count > 0:
+                stats.start_date = Time(dates[0], format="mjd").iso
+                stats.stop_date = Time(dates[1], format="mjd").iso
             stats.updated = Time.now().iso
 
             self.db.session.merge(stats)
