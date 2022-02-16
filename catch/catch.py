@@ -283,7 +283,9 @@ class Catch(SBSearch):
 
         for source in list(self.sources.values()) + [Observation]:
             q: Query = self.db.session.query(
-                source.count(), func.min(source.mjd_start), func.max(source.mjd_stop)
+                func.count(source.observation_id),
+                func.min(source.mjd_start),
+                func.max(source.mjd_stop),
             ).one()
 
             if source == Observation:
