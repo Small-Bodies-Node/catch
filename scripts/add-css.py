@@ -100,7 +100,11 @@ def sync_list():
     """
 
     logger = logging.getLogger("add-css")
+<<<<<<< HEAD
     local_filename = "css-file-list.txt.gz"
+=======
+    local_filename = "css-file-list.txt"
+>>>>>>> survey-stats
     sync = False
 
     if os.path.exists(local_filename):
@@ -139,8 +143,13 @@ def sync_list():
             logger.info(f"  Last modified: {file_date.iso}")
 
             backup_file = local_filename.replace(
+<<<<<<< HEAD
                 ".txt.gz",
                 "-" + file_date.isot[:16].replace("-", "").replace(":", "") + ".txt.gz",
+=======
+                ".txt",
+                "-" + file_date.isot[:16].replace("-", "").replace(":", "") + ".txt",
+>>>>>>> survey-stats
             )
             os.system(f"cp {local_filename} {backup_file}")
 
@@ -311,6 +320,10 @@ def main():
 
             if failed > 0:
                 logger.warning("Failed processing %d files", failed)
+
+            logger.info("Updating survey statistics.")
+            for source in ("catalina_bigelow", "catalina_lemmon", "catalina_kittpeak"):
+                catch.update_statistics(source=source)
 
 
 if __name__ == "__main__":

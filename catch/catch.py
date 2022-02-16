@@ -6,13 +6,15 @@ import uuid
 import logging
 from typing import Dict, List, Optional, Tuple, Union
 
+from sqlalchemy.engine.row import Row
 from sqlalchemy.orm import Session, Query
+from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy import func
 from astropy.time import Time
 from sbsearch import SBSearch
 from sbsearch.target import MovingTarget
 
-from .model import CatchQuery, Observation, Found, Ephemeris, ExampleSurvey
+from .model import CatchQuery, Observation, Found, Ephemeris, ExampleSurvey, SurveyStats
 from .exceptions import (
     CatchException,
     DataSourceWarning,
@@ -276,6 +278,67 @@ class Catch(SBSearch):
             cached = self._find_catch_query(target) is not None
 
         return cached
+
+    def update_statistics(self, source=None):
+        """Update source survey statistics table.
+
+
+        Parameters
+        ----------
+        source : string or Observation object
+            Limit update to this survey source name.
+
+        """
+
+        sources: List[Observation]
+        if source is None:
+            # update everything
+            sources = list(self.sources.values()) + [Observation]
+        else:
+            # just the requested table
+            sources = [self.sources.get(source, source)]
+
+        for _source in sources:
+            count: int = self.db.session.query(
+                func.count(_source.observation_id)
+            ).scalar()
+
+            q: Query = self.db.session.query(
+                func.min(Observation.mjd_start), func.max(Observation.mjd_stop)
+            )
+            if _source != Observation:
+                q = q.filter(Observation.source == _source.__tablename__)
+            dates: Row = q.one()
+
+            if _source == Observation:
+                table_name = None
+                source_name = "All"
+            else:
+                table_name = _source.__tablename__
+                source_name = _source.__data_source_name__
+
+            stats: SurveyStats
+            try:
+                stats = (
+                    self.db.session.query(SurveyStats)
+                    .filter(SurveyStats.source == table_name)
+                    .one()
+                )
+            except NoResultFound:
+                stats = SurveyStats(
+                    source=table_name,
+                    name=source_name,
+                )
+
+            stats.count = count
+            if count > 0:
+                stats.start_date = Time(dates[0], format="mjd").iso
+                stats.stop_date = Time(dates[1], format="mjd").iso
+            stats.updated = Time.now().iso
+
+            self.db.session.merge(stats)
+
+        self.db.session.commit()
 
     def _find_catch_query(self, target: str) -> Union[CatchQuery, None]:
         """Find query ID for this target and source.

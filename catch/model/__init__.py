@@ -7,7 +7,7 @@ To add surveys, see neat_palomar_tricam.py for instructions.
 
 __all__ = [
     "CatchQuery",
-    "Caught",
+    "SurveyStats",
     "Observation",
     "Ephemeris",
     "Found",
@@ -18,9 +18,10 @@ __all__ = [
     "PS1DR2",
     "CatalinaBigelow",
     "CatalinaLemmon",
+    "CatalinaKittPeak",
 ]
 
-from sqlalchemy import Column, Integer, Float, String, ForeignKey
+from sqlalchemy import Column, Integer, Float, String, ForeignKey, Text
 from sbsearch.model.core import Base, Observation, Found, Ephemeris, Obj
 from sbsearch.model.example_survey import ExampleSurvey
 from sqlalchemy.sql.sqltypes import Boolean
@@ -28,7 +29,7 @@ from .neat_palomar_tricam import NEATPalomarTricam
 from .neat_maui_geodss import NEATMauiGEODSS
 from .skymapper import SkyMapper
 from .ps1dr2 import PS1DR2
-from .catalina import CatalinaBigelow, CatalinaLemmon
+from .catalina import CatalinaBigelow, CatalinaLemmon, CatalinaKittPeak
 
 
 class CatchQuery(Base):
@@ -41,6 +42,17 @@ class CatchQuery(Base):
     padding = Column(Float(16), doc="Query padding parameter")
     date = Column(String(64), doc="Date query was executed")
     status = Column(String(64), doc="Query status")
+
+
+class SurveyStats(Base):
+    __tablename__ = "survey_statistics"
+    stats_id = Column(Integer, primary_key=True)
+    source = Column(Text, doc="Source survey ID")
+    name = Column(Text, doc="Survey name")
+    count = Column(Integer, doc="Number of data products")
+    start_date = Column(Text, doc="First data product start date, UTC")
+    stop_date = Column(Text, doc="Last data prodcut stop date, UTC")
+    updated = Column(Text, doc="Date these statistics were updated")
 
 
 # Add CATCH specific columns
