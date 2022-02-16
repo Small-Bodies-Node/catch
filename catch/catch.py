@@ -311,7 +311,7 @@ class Catch(SBSearch):
             stats.count = q[0]
             stats.start_date = Time(q[1], format="mjd").iso
             stats.stop_date = Time(q[2], format="mjd").iso
-            stats.updated = Time.now().isclose
+            stats.updated = Time.now().iso
 
             self.db.session.merge(stats)
 
