@@ -46,6 +46,7 @@ class CatchQuery(Base):
 
 class SurveyStats(Base):
     __tablename__ = "survey_statistics"
+    stats_id = Column(Integer, primary_key=True)
     source = Column(Text, doc="Source survey ID")
     name = Column(Text, doc="Survey name")
     count = Column(Integer, doc="Number of data products")
