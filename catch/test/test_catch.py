@@ -12,8 +12,15 @@ import testing.postgresql
 
 from ..catch import Catch
 from ..config import Config
-from ..model import (NEATMauiGEODSS, NEATPalomarTricam, Found, SkyMapper,
-                     CatalinaBigelow, CatalinaLemmon, SurveyStats)
+from ..model import (
+    NEATMauiGEODSS,
+    NEATPalomarTricam,
+    Found,
+    SkyMapper,
+    CatalinaBigelow,
+    CatalinaLemmon,
+    SurveyStats,
+)
 
 
 # dummy_surveys survey parameters
@@ -166,33 +173,38 @@ def test_query_all(catch, caplog, monkeypatch):
             "Critical error: could not search database for this target.",
         ) in caplog.record_tuples
 
+
 def test_update_statistics(catch):
     catch.update_statistics()
-    stats = (catch.db.session.query(SurveyStats)
-             .filter(SurveyStats.source == 'neat_maui_geodss')
-             .one())
+    stats = (
+        catch.db.session.query(SurveyStats)
+        .filter(SurveyStats.source == "neat_maui_geodss")
+        .one()
+    )
     assert stats.count == 900
 
     start = Time(GEODSS_START, format="mjd")
     stop = Time(GEODSS_START + EXPTIME * 900 + SLEWTIME * 899, format="mjd")
-    assert np.isclose(stats.start_date, start.iso)
-    assert np.isclose(stats.stop_date, stop.iso)
+    assert stats.start_date == start.iso
+    assert stats.stop_date == stop.iso
 
     fov = np.array(((-0.5, 0.5, 0.5, -0.5), (-0.5, -0.5, 0.5, 0.5))) * 5
     obs = NEATMauiGEODSS(
         mjd_start=stop.mjd,
         mjd_stop=stop.mjd + EXPTIME + SLEWTIME,
-        product_id='asdf',
+        product_id="asdf",
     )
     obs.set_fov(*fov)
-    catch.add_observation(obs)
+    catch.add_observations([obs])
     catch.update_statistics()
-    stats = (catch.db.session.query(SurveyStats)
-             .filter(SurveyStats.source == 'neat_maui_geodss')
-             .one())
+    stats = (
+        catch.db.session.query(SurveyStats)
+        .filter(SurveyStats.source == "neat_maui_geodss")
+        .one()
+    )
     assert stats.count == 901
 
     start = Time(GEODSS_START, format="mjd")
     stop = Time(GEODSS_START + EXPTIME * 901 + SLEWTIME * 900, format="mjd")
-    assert np.isclose(stats.start_date, start.iso)
-    assert np.isclose(stats.end_date, stop.iso)
+    assert stats.start_date == start.iso
+    assert stats.stop_date == stop.iso
