@@ -7,12 +7,13 @@ import logging
 from typing import Dict, List, Optional, Tuple, Union
 
 from sqlalchemy.orm import Session, Query
+from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy import func
 from astropy.time import Time
 from sbsearch import SBSearch
 from sbsearch.target import MovingTarget
 
-from .model import CatchQuery, Observation, Found, Ephemeris, ExampleSurvey
+from .model import CatchQuery, Observation, Found, Ephemeris, ExampleSurvey, SurveyStats
 from .exceptions import (
     CatchException,
     DataSourceWarning,
@@ -276,6 +277,43 @@ class Catch(SBSearch):
             cached = self._find_catch_query(target) is not None
 
         return cached
+
+    def update_statistics(self):
+        """Update source survey statistics table."""
+
+        for source in list(self.sources.values()) + [Observation]:
+            q: Query = self.db.session.query(
+                source.count(), func.min(source.mjd_start), func.max(source.mjd_stop)
+            ).one()
+
+            if source == Observation:
+                table_name = None
+                source_name = "All"
+            else:
+                table_name = source.__tablename__
+                source_name = source.__data_source_name__
+
+            stats: SurveyStats
+            try:
+                stats = (
+                    self.db.session.query(SurveyStats)
+                    .filter(SurveyStats.source == table_name)
+                    .one()
+                )
+            except NoResultFound:
+                stats = SurveyStats(
+                    source=table_name,
+                    name=source_name,
+                )
+
+            stats.count = q[0]
+            stats.start_date = Time(q[1], format="mjd").iso
+            stats.stop_date = Time(q[2], format="mjd").iso
+            stats.updated = Time.now().isclose
+
+            self.db.session.merge(stats)
+
+        self.db.session.commit()
 
     def _find_catch_query(self, target: str) -> Union[CatchQuery, None]:
         """Find query ID for this target and source.
