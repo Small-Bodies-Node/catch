@@ -140,6 +140,6 @@ def _serialize_object(data_object):
         if hasattr(data_object, "__field_prefix__"):
             if k not in common_fields:
                 # This field_name is not in Observation, so must be survey-specific.
-                field_name = f"{data_object.__field_prefix}:{k}"
+                field_name = f"{data_object.__field_prefix__}:{k}"
 
         yield field_name, field_value
