@@ -195,15 +195,26 @@ def test_update_statistics(catch):
         product_id="asdf",
     )
     obs.set_fov(*fov)
+
+    # add the new observation, update the other survey, and verify that the
+    # GEODSS stats have not changed
     catch.add_observations([obs])
-    catch.update_statistics()
+    catch.update_statistics(source="neat_palomar_tricam")
+    stats = (
+        catch.db.session.query(SurveyStats)
+        .filter(SurveyStats.source == "neat_maui_geodss")
+        .one()
+    )
+    assert stats.count == 900
+
+    # now update and check stats
+    catch.update_statistics(source="neat_maui_geodss")
     stats = (
         catch.db.session.query(SurveyStats)
         .filter(SurveyStats.source == "neat_maui_geodss")
         .one()
     )
     assert stats.count == 901
-
     start = Time(GEODSS_START, format="mjd")
     stop = Time(GEODSS_START + EXPTIME * 901 + SLEWTIME * 900, format="mjd")
     assert stats.start_date == start.iso

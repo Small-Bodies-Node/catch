@@ -281,13 +281,13 @@ class Catch(SBSearch):
 
     def update_statistics(self, source=None):
         """Update source survey statistics table.
-        
-        
+
+
         Parameters
         ----------
         source : string or Observation object
             Limit update to this survey source name.
-        
+
         """
 
         sources: List[Observation]
@@ -296,7 +296,7 @@ class Catch(SBSearch):
             sources = list(self.sources.values()) + [Observation]
         else:
             # just the requested table
-            sources = [self.source.get(source, source)]
+            sources = [self.sources.get(source, source)]
 
         for _source in sources:
             count: int = self.db.session.query(
@@ -304,8 +304,7 @@ class Catch(SBSearch):
             ).scalar()
 
             q: Query = self.db.session.query(
-                func.min(Observation.mjd_start),
-                func.max(Observation.mjd_stop)
+                func.min(Observation.mjd_start), func.max(Observation.mjd_stop)
             )
             if _source != Observation:
                 q = q.filter(Observation.source == _source.__tablename__)
