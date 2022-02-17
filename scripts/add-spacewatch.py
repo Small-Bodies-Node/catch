@@ -14,13 +14,8 @@ https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.spacewatch.survey/data/collectio
 """
 
 import os
-import re
-import email
 import argparse
 import logging
-import sqlite3
-import gzip
-from datetime import datetime
 
 import requests
 from astropy.time import Time
@@ -96,9 +91,16 @@ def inventory():
         for line in inf:
             if not line.startswith('P,urn:nasa:pds:spacewatch_mosaic_survey:data:sw_'):
                 continue
+            if '.fits' not in line:
+                continue
 
-            lid = line[2:-5]
+            lid = line[2:-6].strip()
             basename = lid.split(':')[-1][:-5]
+
+            # upper case for all but the sw prefix
+            basename = basename.upper()
+            basename = 'sw' + basename[2:]
+
             parts = basename.split('_')
             year = parts[3]
             month = parts[4]
@@ -119,7 +121,7 @@ def process(url):
             label.find("Observation_Area/Time_Coordinates/stop_date_time").text
         ).mjd,
         exposure = float(label.find(".//img:Exposure/img:exposure_duration").text),
-        filter = label.find(".//img:Optical_Filter/filter_name").text,
+        filter = label.find(".//img:Optical_Filter/img:filter_name").text,
     )
 
     survey = label.find(".//survey:Survey")
@@ -175,8 +177,6 @@ with Catch.with_config(args.config) as catch:
 
     tri = ProgressTriangle(1, logger=logger, base=2)
     for url in inventory():
-        if args.dry_run:
-            continue
         try:
             observations.append(process(url))
             msg = "added"
@@ -192,6 +192,8 @@ with Catch.with_config(args.config) as catch:
         logger.debug("%s: %s", url, msg)
         tri.update()
 
+        if args.dry_run:
+            continue
 
         if len(observations) >= 10000:
             catch.add_observations(observations)
