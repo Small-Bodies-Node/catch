@@ -137,7 +137,9 @@ The `scripts/daily-harvest` directory contains scripts that may be useful in dai
 
 The SBN is the main archive for the Spacewatch survey and the 0.9m Mosaic Camera Survey ([Brucker et al. 2022](https://sbn.psi.edu/pds/resource/sw.html)) from 2003 to 2016 has been archived.
 
-The script `scripts/add-spacewatch.py` will download and harvest metadata from calibrated data labels.
+The script `scripts/add-spacewatch.py` will harvest metadata from calibrated data labels.  It requires a local copy of the labels.  They may be downloaded with:
+
+  `wget -r -R *.fits --no-parent https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.spacewatch.survey/data/`
 
 ## Modifying existing surveys
 
