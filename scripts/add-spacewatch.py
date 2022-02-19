@@ -1,15 +1,19 @@
 """Harvest Spacewatch metadata from PSI.
 
 Label file names, two formats:
-https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.spacewatch.survey/data/2003/03/23/sw_0993_09.01_2003_03_23_09_18_47.001.xml
-https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.spacewatch.survey/data/2008/10/31/sw_1062_K03W25B_2008_10_31_12_00_52.005.xml
+gbo.ast.spacewatch.survey/data/2003/03/23/sw_0993_09.01_2003_03_23_09_18_47.001.xml
+gbo.ast.spacewatch.survey/data/2008/10/31/sw_1062_K03W25B_2008_10_31_12_00_52.005.xml
 
 Can be derived from the LIDs:
 urn:nasa:pds:gbo.ast.spacewatch.survey:data:sw_0993_09.01_2003_03_23_09_18_47.001.fits
 urn:nasa:pds:gbo.ast.spacewatch.survey:data:sw_1062_k03w25b_2008_10_31_12_00_52.005.fits
 
 And the LIDs may be found in the collection inventory:
-https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.spacewatch.survey/data/collection_gbo.ast.spacewatch.survey_data_inventory.csv
+gbo.ast.spacewatch.survey/data/collection_gbo.ast.spacewatch.survey_data_inventory.csv
+
+Download all data labels to a local directory:
+
+wget -r -R *.fits --no-parent https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.spacewatch.survey/data/
 
 """
 
@@ -17,7 +21,6 @@ import os
 import argparse
 import logging
 
-import requests
 from astropy.time import Time
 from pds4_tools import pds4_read
 
@@ -29,18 +32,9 @@ from sbsearch.logging import ProgressTriangle
 from astropy import __version__ as astropy_version
 from catch import __version__ as catch_version
 from pds4_tools import __version__ as pds4_tools_version
-from requests import __version__ as requests_version
 from sbpy import __version__ as sbpy_version
 from sbsearch import __version__ as sbsearch_version
 
-
-# URL for the latest list of all files.
-INVENTORY = (
-    "https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.spacewatch.survey/data/collection_gbo.ast.spacewatch.survey_data_inventory.csv"
-)
-
-# URL prefix for the archive at PSI
-ARCHIVE_PREFIX = "https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.spacewatch.survey/data"
 
 def setup_logger(log_filename):
     logger = logging.getLogger("add-spacewatch")
@@ -57,13 +51,12 @@ def setup_logger(log_filename):
     logger.debug(f"astropy {astropy_version}")
     logger.debug(f"catch {catch_version}")
     logger.debug(f"pds4_tools {pds4_tools_version}")
-    logger.debug(f"requests {requests_version}")
     logger.debug(f"sbpy {sbpy_version}")
     logger.debug(f"sbsearch {sbsearch_version}")
     return logger
 
-def inventory():
-    """Download inventory as needed, iterate over all files of interest.
+def inventory(base_path):
+    """Iterate over all files of interest.
 
     Returns
     -------
@@ -73,21 +66,12 @@ def inventory():
     """
 
     logger = logging.getLogger("add-spacewatch")
-    local_filename = "collection_gbo.ast.spacewatch.survey_data_inventory.csv"
+    fn = f"{base_path}/gbo.ast.spacewatch.survey/data/collection_gbo.ast.spacewatch.survey_data_inventory.csv"
 
-    if os.path.exists(local_filename):
-        logger.info(
-            "Using previously downloaded inventory list %s.", local_filename
-        )
-    else:
-        with requests.get(INVENTORY, stream=True) as r:
-            r.raise_for_status()
-            with open(local_filename, "wb") as f:
-                for chunk in r.iter_content(chunk_size=8192):
-                    f.write(chunk)
-            logger.info("Downloaded inventory list.")
+    if not os.path.exists(base_path):
+        raise Exception('Missing inventory list %s', fn)
 
-    with open(local_filename, 'r') as inf:
+    with open(fn, 'r') as inf:
         for line in inf:
             if not line.startswith('P,urn:nasa:pds:spacewatch_mosaic_survey:data:sw_'):
                 continue
@@ -106,8 +90,7 @@ def inventory():
             month = parts[4]
             day = parts[5]
             
-            url = f"{ARCHIVE_PREFIX}/{year}/{month}/{day}/{basename}.xml"
-            yield url
+            yield f"{base_path}/gbo.ast.spacewatch.survey/data/{year}/{month}/{day}/{basename}.xml"
 
 def process(url):
     label = pds4_read(url, lazy_load=True, quiet=True).label
@@ -147,6 +130,7 @@ parser = argparse.ArgumentParser(
     description="Add Spacewatch data to CATCH.",
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
 )
+parser.add_argument('base_path', help="path to data collection root directory")
 parser.add_argument(
     "--config",
     default="catch.config",
@@ -165,6 +149,9 @@ args = parser.parse_args()
 
 logger = setup_logger(args.log)
 
+if not os.path.exists(f"{args.base_path}/gbo.ast.spacewatch.survey"):
+    raise ValueError(f"gbo.ast.spacewatch.survey not found in {args.base_path}")
+
 if args.dry_run:
     logger.info("Dry run, databases will not be updated.")
 
@@ -176,26 +163,26 @@ with Catch.with_config(args.config) as catch:
     failed = 0
 
     tri = ProgressTriangle(1, logger=logger, base=2)
-    for url in inventory():
+    for fn in inventory(args.base_path):
         try:
-            observations.append(process(url))
+            observations.append(process(fn))
             msg = "added"
         except ValueError as e:
             failed += 1
             msg = str(e)
         except:
             logger.error(
-                "A fatal error occurred processing %s", url, exc_info=True
+                "A fatal error occurred processing %s", fn, exc_info=True
             )
             raise
 
-        logger.debug("%s: %s", url, msg)
+        logger.debug("%s: %s", fn, msg)
         tri.update()
 
         if args.dry_run:
             continue
 
-        if len(observations) >= 10000:
+        if len(observations) >= 8192:
             catch.add_observations(observations)
             observations = []
 
@@ -209,4 +196,4 @@ with Catch.with_config(args.config) as catch:
     logger.info("Updating survey statistics.")
     catch.update_statistics(source="spacewatch")
 
-print('Consider database vacuum.')
+logger.info('Consider database vacuum.')
