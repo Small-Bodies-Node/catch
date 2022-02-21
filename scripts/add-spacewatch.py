@@ -11,7 +11,7 @@ urn:nasa:pds:gbo.ast.spacewatch.survey:data:sw_1062_k03w25b_2008_10_31_12_00_52.
 And the LIDs may be found in the collection inventory:
 gbo.ast.spacewatch.survey/data/collection_gbo.ast.spacewatch.survey_data_inventory.csv
 
-Download all data labels to a local directory:
+Download all data labels and the collection inventory to a local directory:
 
 wget -r -R *.fits --no-parent https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.spacewatch.survey/data/
 
@@ -20,6 +20,7 @@ wget -r -R *.fits --no-parent https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.sp
 import os
 import argparse
 import logging
+from glob import iglob
 
 from astropy.time import Time
 from pds4_tools import pds4_read
@@ -43,7 +44,8 @@ def setup_logger(log_filename):
         logger.removeHandler(handler)
     logger.addHandler(logging.StreamHandler())
     logger.addHandler(logging.FileHandler(log_filename))
-    formatter = logging.Formatter("%(levelname)s %(asctime)s (%(name)s): %(message)s")
+    formatter = logging.Formatter(
+        "%(levelname)s %(asctime)s (%(name)s): %(message)s")
     for handler in logger.handlers:
         handler.setFormatter(formatter)
     logger.setLevel(logging.INFO)
@@ -55,56 +57,61 @@ def setup_logger(log_filename):
     logger.debug(f"sbsearch {sbsearch_version}")
     return logger
 
+
 def inventory(base_path):
     """Iterate over all files of interest.
 
     Returns
     -------
-    labels : iterator
-        Label URLs.
+    labels : iterator of tuples
+        Path and pds4_tools label object.
 
     """
 
     logger = logging.getLogger("add-spacewatch")
-    fn = f"{base_path}/gbo.ast.spacewatch.survey/data/collection_gbo.ast.spacewatch.survey_data_inventory.csv"
+    inventory_fn = f"{base_path}/gbo.ast.spacewatch.survey/data/collection_gbo.ast.spacewatch.survey_data_inventory.csv"
 
     if not os.path.exists(base_path):
         raise Exception('Missing inventory list %s', fn)
 
-    with open(fn, 'r') as inf:
+    # Read in all relevant LIDs from the inventory.
+    lids = set()
+    with open(inventory_fn, 'r') as inf:
         for line in inf:
-            if not line.startswith('P,urn:nasa:pds:spacewatch_mosaic_survey:data:sw_'):
+            if not line.startswith('P,urn:nasa:pds:gbo.ast.spacewatch.survey:data:sw_'):
                 continue
             if '.fits' not in line:
                 continue
 
-            lid = line[2:-6].strip()
-            basename = lid.split(':')[-1][:-5]
+            lid = line[2:-6]
+            lids.add(lid)
 
-            # upper case for all but the sw prefix
-            basename = basename.upper()
-            basename = 'sw' + basename[2:]
+    # search directory-by-directory for labels with those LIDs
+    for fn in iglob(f"{base_path}/gbo.ast.spacewatch.survey/data/20*/*/*/*.xml"):
+        label = pds4_read(fn, lazy_load=True, quiet=True).label
+        lid = label.find("Identification_Area/logical_identifier").text
+        if lid in lids:
+            lids.remove(lid)
+            yield fn, label
 
-            parts = basename.split('_')
-            year = parts[3]
-            month = parts[4]
-            day = parts[5]
-            
-            yield f"{base_path}/gbo.ast.spacewatch.survey/data/{year}/{month}/{day}/{basename}.xml"
+    # did we find all the labels?
+    if len(lids) > 0:
+        logger.error(f'{len(lids)} LIDs were not found.')
 
-def process(url):
-    label = pds4_read(url, lazy_load=True, quiet=True).label
+
+def process(label):
     lid = label.find("Identification_Area/logical_identifier").text
     obs = Spacewatch(
-        product_id = lid,
-        mjd_start = Time(
+        product_id=lid,
+        mjd_start=Time(
             label.find("Observation_Area/Time_Coordinates/start_date_time").text
         ).mjd,
-        mjd_stop = Time(
+        mjd_stop=Time(
             label.find("Observation_Area/Time_Coordinates/stop_date_time").text
         ).mjd,
-        exposure = float(label.find(".//img:Exposure/img:exposure_duration").text),
-        filter = label.find(".//img:Optical_Filter/img:filter_name").text,
+        exposure=float(label.find(
+            ".//img:Exposure/img:exposure_duration").text),
+        filter=label.find(".//img:Optical_Filter/img:filter_name").text,
     )
 
     survey = label.find(".//survey:Survey")
@@ -145,14 +152,24 @@ parser.add_argument(
     action="store_true",
     help="process labels, but do not add to the database",
 )
+parser.add_argument(
+    "-t",
+    action="store_true",
+    help="just test for the existence of the files (implies -n)"
+)
+
 args = parser.parse_args()
 
 logger = setup_logger(args.log)
 
 if not os.path.exists(f"{args.base_path}/gbo.ast.spacewatch.survey"):
-    raise ValueError(f"gbo.ast.spacewatch.survey not found in {args.base_path}")
+    raise ValueError(
+        f"gbo.ast.spacewatch.survey not found in {args.base_path}")
 
-if args.dry_run:
+if args.t:
+    logger.info("Testing for existence of all files.")
+
+if args.dry_run or args.t:
     logger.info("Dry run, databases will not be updated.")
 
 if args.v:
@@ -163,9 +180,16 @@ with Catch.with_config(args.config) as catch:
     failed = 0
 
     tri = ProgressTriangle(1, logger=logger, base=2)
-    for fn in inventory(args.base_path):
+    for fn, label in inventory(args.base_path):
+        tri.update()
+
+        if args.t:
+            if not os.path.exists(fn):
+                logger.error("Missing %s", fn)
+            continue
+
         try:
-            observations.append(process(fn))
+            observations.append(process(label))
             msg = "added"
         except ValueError as e:
             failed += 1
@@ -177,23 +201,34 @@ with Catch.with_config(args.config) as catch:
             raise
 
         logger.debug("%s: %s", fn, msg)
-        tri.update()
 
-        if args.dry_run:
+        if args.dry_run or args.t:
             continue
 
         if len(observations) >= 8192:
-            catch.add_observations(observations)
+            try:
+                catch.add_observations(observations)
+            except:
+                logger.error("A fatal error occurred saving data to the database.",
+                             exc_info=True)
+                raise
             observations = []
 
     # add any remaining files
-    if not args.dry_run and (len(observations) > 0):
-        catch.add_observations(observations)
+    if not (args.dry_run or args.t) and (len(observations) > 0):
+        try:
+            catch.add_observations(observations)
+        except:
+            logger.error("A fatal error occurred saving data to the database.",
+                         exc_info=True)
+            raise
+
+    logger.info('%d files processed.', tri.i)
 
     if failed > 0:
         logger.warning("Failed processing %d files", failed)
 
-    logger.info("Updating survey statistics.")
-    catch.update_statistics(source="spacewatch")
-
-logger.info('Consider database vacuum.')
+    if not (args.dry_run or args.t):
+        logger.info("Updating survey statistics.")
+        catch.update_statistics(source="spacewatch")
+        logger.info('Consider database vacuum.')
