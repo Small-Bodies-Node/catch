@@ -22,6 +22,11 @@ from sqlalchemy import BigInteger, Column, String, ForeignKey
 from sbsearch.model.core import Base, Observation
 
 
+_ARCHIVE_URL_PREFIX: str = (
+    "https://sbnarchive.psi.edu/pds4/surveys"
+)
+
+
 class Spacewatch(Observation):
     __tablename__: str = "spacewatch"
     __data_source_name__: str = "Spacewatch"
@@ -40,12 +45,15 @@ class Spacewatch(Observation):
     product_id = Column(
         String(128), doc="Archive product id", unique=True, index=True, nullable=False
     )
+    label = Column(
+        String(128), doc="PDS4 label file name and path.",
+    )
 
     __mapper_args__ = {"polymorphic_identity": "spacewatch"}
 
     @property
     def archive_url(self):
-        return None
+        return "/".join((_ARCHIVE_URL_PREFIX, self.label.replace('.xml', '.fits')))
 
     def cutout_url(self, ra, dec, size=0.0833, format="fits"):
         """URL to cutout ``size`` around ``ra``, ``dec`` in deg.

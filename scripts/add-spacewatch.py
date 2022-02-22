@@ -99,7 +99,7 @@ def inventory(base_path):
         logger.error(f'{len(lids)} LIDs were not found.')
 
 
-def process(label):
+def process(fn, label):
     lid = label.find("Identification_Area/logical_identifier").text
     obs = Spacewatch(
         product_id=lid,
@@ -112,6 +112,7 @@ def process(label):
         exposure=float(label.find(
             ".//img:Exposure/img:exposure_duration").text),
         filter=label.find(".//img:Optical_Filter/img:filter_name").text,
+        label=fn[fn.index('gbo.ast.spacewatch.survey'):]
     )
 
     survey = label.find(".//survey:Survey")
@@ -189,7 +190,7 @@ with Catch.with_config(args.config) as catch:
             continue
 
         try:
-            observations.append(process(label))
+            observations.append(process(fn, label))
             msg = "added"
         except ValueError as e:
             failed += 1
