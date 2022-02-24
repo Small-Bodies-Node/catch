@@ -2,9 +2,10 @@
 
 __all__ = ["Catch"]
 
+import time
 import uuid
 import logging
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from sqlalchemy.orm import Session, Query
 from sqlalchemy.orm.exc import NoResultFound
@@ -186,6 +187,9 @@ class Catch(SBSearch):
 
         count = 0
         for source in sources:
+            # track query execution time
+            execution_time: float = time.monotonic()
+
             self.source = source
             source_name = self.source.__data_source_name__
             self.logger.debug("Query {}".format(source_name))
@@ -232,6 +236,7 @@ class Catch(SBSearch):
                     )
                     q.status = "finished"
                 finally:
+                    q.execution_time = time.monotoic() - execution_time
                     self.db.session.commit()
 
         return count
@@ -448,7 +453,8 @@ class Catch(SBSearch):
 
         # Query the database for observations of the target ephemeris
         try:
-            observations: List[self.source] = self.find_observations_by_ephemeris(eph)
+            observations: List[self.source] = self.find_observations_by_ephemeris(
+                eph)
         except Exception as e:
             raise FindObjectError(
                 "Critical error: could not search database for this target."
