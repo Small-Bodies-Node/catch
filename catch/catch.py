@@ -14,7 +14,14 @@ from astropy.time import Time
 from sbsearch import SBSearch
 from sbsearch.target import MovingTarget
 
-from .model import CatchQuery, Observation, Found, Ephemeris, ExampleSurvey, SurveyStats
+from .model import (
+    CatchQuery,
+    Observation,
+    Found,
+    Ephemeris,
+    ExampleSurvey,
+    SurveyStats,
+)
 from .exceptions import (
     CatchException,
     DataSourceWarning,
@@ -93,7 +100,9 @@ class Catch(SBSearch):
             if source not in [ExampleSurvey]
         }
 
-    def caught(self, job_id: Union[uuid.UUID, str]) -> List[Tuple[Found, Observation]]:
+    def caught(
+        self, job_id: Union[uuid.UUID, str]
+    ) -> List[Tuple[Found, Observation]]:
         """Return all results from catch query.
 
 
@@ -110,24 +119,51 @@ class Catch(SBSearch):
 
         """
 
-        job_id: uuid.UUID = uuid.UUID(str(job_id), version=4)
-
-        # find job_id in CatchQuery table
-        query_ids: List[int] = (
-            self.db.session.query(CatchQuery.query_id)
-            .filter(CatchQuery.job_id == job_id.hex)
-            .as_scalar()
-        )
+        # get query identifiers for this job_id
+        query_ids: List[int] = [
+            q.query_id for q in self.queries_from_job_id(job_id)
+        ]
 
         # get results from Found
         rows: List[Tuple[Found, Observation]] = (
             self.db.session.query(Found, Observation)
-            .join(Observation, Found.observation_id == Observation.observation_id)
+            .join(
+                Observation, Found.observation_id == Observation.observation_id
+            )
             .filter(Found.query_id.in_(query_ids))
             .all()
         )
 
         return rows
+
+    def queries_from_job_id(
+        self, job_id: Union[uuid.UUID, str]
+    ) -> List[CatchQuery]:
+        """Return list of `CatchQuery`s for the given `job_id`.
+
+
+        Parameters
+        ----------
+        job_id : uuid.UUID or string
+            Unique job ID for the query.  UUID version 4.
+
+
+        Returns
+        -------
+        queries : list of CatchQuery objects
+
+        """
+
+        job_id: uuid.UUID = uuid.UUID(str(job_id), version=4)
+
+        # find job_id in CatchQuery table
+        queries: List[CatchQuery] = (
+            self.db.session.query(CatchQuery)
+            .filter(CatchQuery.job_id == job_id.hex)
+            .all()
+        )
+
+        return queries
 
     def query(
         self,
@@ -236,12 +272,14 @@ class Catch(SBSearch):
                     )
                     q.status = "finished"
                 finally:
-                    q.execution_time = time.monotoic() - execution_time
+                    q.execution_time = time.monotonic() - execution_time
                     self.db.session.commit()
 
         return count
 
-    def is_query_cached(self, target: str, sources: Optional[str] = None) -> str:
+    def is_query_cached(
+        self, target: str, sources: Optional[str] = None
+    ) -> str:
         """Determine if this query has already been cached.
 
 
@@ -366,7 +404,9 @@ class Catch(SBSearch):
 
         return q
 
-    def _copy_cached_results(self, query: CatchQuery, cached_query: CatchQuery) -> int:
+    def _copy_cached_results(
+        self, query: CatchQuery, cached_query: CatchQuery
+    ) -> int:
         """Copy previously cached results to a new query.
 
         Returns
@@ -453,8 +493,9 @@ class Catch(SBSearch):
 
         # Query the database for observations of the target ephemeris
         try:
-            observations: List[self.source] = self.find_observations_by_ephemeris(
-                eph)
+            observations: List[
+                self.source
+            ] = self.find_observations_by_ephemeris(eph)
         except Exception as e:
             raise FindObjectError(
                 "Critical error: could not search database for this target."
