@@ -101,7 +101,8 @@ def failed_search(self, *args):
 
 def test_source_time_limits(catch):
     mjd_start, mjd_stop = catch.db.session.query(
-        sa.func.min(NEATMauiGEODSS.mjd_start), sa.func.max(NEATMauiGEODSS.mjd_stop)
+        sa.func.min(NEATMauiGEODSS.mjd_start),
+        sa.func.max(NEATMauiGEODSS.mjd_stop),
     ).one()
     assert mjd_start == GEODSS_START
     assert np.isclose(mjd_stop, 50814.0 + 900 * (EXPTIME + SLEWTIME))
@@ -111,7 +112,9 @@ def test_source_time_limits(catch):
         sa.func.max(NEATPalomarTricam.mjd_stop),
     ).one()
     assert mjd_start == GEODSS_START + TRICAM_OFFSET
-    assert np.isclose(mjd_stop, 50814.0 + 900 * (EXPTIME + SLEWTIME) + TRICAM_OFFSET)
+    assert np.isclose(
+        mjd_stop, 50814.0 + 900 * (EXPTIME + SLEWTIME) + TRICAM_OFFSET
+    )
 
 
 @remote_data
@@ -133,6 +136,10 @@ def test_query_all(catch, caplog, monkeypatch):
     caught = catch.caught(job_id)
     assert len(caught) == 2
 
+    # check query execution time
+    queries = catch.queries_from_job_id(job_id)
+    assert all([q.execution_time > 0 for q in queries])
+
     for source in (NEATMauiGEODSS, NEATPalomarTricam):
         assert sum([isinstance(c[1], source) for c in caught]) == 1
 
@@ -151,6 +158,10 @@ def test_query_all(catch, caplog, monkeypatch):
     assert len(caught) == 1  # one for each survey
     assert isinstance(caught[0][1], NEATPalomarTricam)
 
+    # cached results do not store an execution time
+    queries = catch.queries_from_job_id(job_id)
+    assert all([q.execution_time is None for q in queries])
+
     # trigger ephemeris error
     job_id = uuid.uuid4()
     n = catch.query("2000P", job_id, sources=["neat_palomar_tricam"])
@@ -165,7 +176,9 @@ def test_query_all(catch, caplog, monkeypatch):
     job_id = uuid.uuid4()
     with monkeypatch.context() as m:
         m.setattr(catch, "find_observations_by_ephemeris", failed_search)
-        n = catch.query("2P", job_id, sources=["neat_palomar_tricam"], cached=False)
+        n = catch.query(
+            "2P", job_id, sources=["neat_palomar_tricam"], cached=False
+        )
         assert n == 0
         assert (
             f"CATCH-APIs {job_id.hex}",
