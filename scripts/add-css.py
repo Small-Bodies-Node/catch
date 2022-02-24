@@ -1,3 +1,11 @@
+"""Harvest Catalina Sky Survey metadata from PSI.
+
+As of Feb 2022, CSS data are continuously archived.  This script examines a file
+list generated at PSI and downloads new calibrated data labels for metadata
+harvesting.
+
+"""
+
 import os
 import re
 import email

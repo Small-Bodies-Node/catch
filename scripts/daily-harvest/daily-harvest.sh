@@ -1,4 +1,7 @@
 #!/bin/bash -eu
+#
+# example crontab entry, check at minute 13 past every 7th hour
+# 13 */7 * * * cd /path/to/daily-harvest && /bin/bash daily-harvest.sh
 
 LOGROTATE=/usr/sbin/logrotate
 

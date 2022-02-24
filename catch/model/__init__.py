@@ -19,6 +19,7 @@ __all__ = [
     "CatalinaBigelow",
     "CatalinaLemmon",
     "CatalinaKittPeak",
+    "Spacewatch"
 ]
 
 from sqlalchemy import Column, Integer, Float, String, ForeignKey, Text
@@ -30,6 +31,7 @@ from .neat_maui_geodss import NEATMauiGEODSS
 from .skymapper import SkyMapper
 from .ps1dr2 import PS1DR2
 from .catalina import CatalinaBigelow, CatalinaLemmon, CatalinaKittPeak
+from .spacewatch import Spacewatch
 
 
 class CatchQuery(Base):
