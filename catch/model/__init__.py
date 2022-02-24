@@ -46,8 +46,8 @@ class CatchQuery(Base):
     padding = Column(Float(16), doc="Query padding parameter")
     date = Column(String(64), doc="Date query was executed")
     execution_time = Column(Float(16), nullable=True,
-                            doc=("Query execution time (wall clock), or null "
-                                 "for cached results"))
+                            doc=("Query execution time (wall clock, seconds), "
+                                 "or null for cached results"))
     status = Column(String(64), doc="Query status")
 
 
