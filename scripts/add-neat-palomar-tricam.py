@@ -7,22 +7,31 @@ from astropy.wcs import WCS
 import pds3
 
 from catch import Catch
-from catch.model import NEATMauiGEODSS
+from catch.model import NEATPalomarTricam
 from catch.config import Config
 
-parser = argparse.ArgumentParser("add-neat-maui-geodss")
-parser.add_argument("path")
+parser = argparse.ArgumentParser("add-neat-palomar")
+parser.add_argument("path", help="directory")
 parser.add_argument("-r", action="store_true", help="recursive search")
 parser.add_argument("--config", help="CATCH configuration file")
-# parser.add_argument('-u', action='store_true', help='update')
 
 args = parser.parse_args()
+
+# Files to skip, based on file name and PRODUCT_CREATION_TIME.  See catch README for notes.
+skip = {
+    "20020814063615d.lbl": "2014-12-03T19:42:48.000",
+    "20020814063615e.lbl": "2014-12-03T19:42:48.000",
+    "20020814063615f.lbl": "2014-12-03T19:42:48.000",
+    "20020626063738d.lbl": "2014-12-03T19:42:07.000",
+    "20020626063738e.lbl": "2014-12-03T19:42:07.000",
+    "20020626063738f.lbl": "2014-12-03T19:42:07.000",
+}
 
 
 def product_id_to_int_id(pid):
     s = pid.split("_")[-1]
     s = s[:-1] + str(ord(s[-1]) - 65)
-    return int(s)
+    return int(s[2:])
 
 
 with Catch.with_config(Config.from_file(args.config)) as catch:
@@ -37,15 +46,22 @@ with Catch.with_config(Config.from_file(args.config)) as catch:
                 catch.logger.error("unable to read " + labelfn)
                 continue
 
-            if label["PRODUCT_NAME"] != "NEAT GEODSS IMAGE":
-                catch.logger.warning("not a GEODSS image label: " + labelfn)
+            if os.path.basename(labelfn) in skip:
+                if label["PRODUCT_CREATION_TIME"] == skip[os.path.basename(labelfn)]:
+                    continue
+
+            if label["PRODUCT_NAME"] != "NEAT TRI-CAM IMAGE":
+                catch.logger.warning("not a TRI-CAM image label: " + labelfn)
                 continue
 
             # local archive has compressed data:
             datafn = os.path.join(path, label["^IMAGE"][0]) + ".fz"
             h = fits.getheader(datafn, ext=1)
 
-            shape = np.array((label["IMAGE"]["LINES"], label["IMAGE"]["LINE_SAMPLES"]))
+            # hardcoded because Palomar Tricam part 1 labels are wrong
+            # shape = np.array((label['IMAGE']['LINES'],
+            #                   label['IMAGE']['SAMPLES']))
+            shape = np.array((4080, 4080))
 
             wcs = WCS(naxis=2)
             try:
@@ -60,24 +76,15 @@ with Catch.with_config(Config.from_file(args.config)) as catch:
                 [[0, 0], [0, shape[1]], [shape[0], shape[1]], [shape[0], 0]], 0
             ).T
 
-            obs = NEATMauiGEODSS(
+            obs = NEATPalomarTricam(
                 source_id=product_id_to_int_id(label["PRODUCT_ID"]),
                 product_id=label["PRODUCT_ID"],
                 mjd_start=label["START_TIME"].mjd,
                 mjd_stop=label["STOP_TIME"].mjd,
                 filter=label["FILTER_NAME"],
                 exposure=label["EXPOSURE_DURATION"].to_value("s"),
-                airmass=label["AIRMASS"] if label["AIRMASS"] != "UNK" else None,
+                airmass=label["AIRMASS"],
             )
-
-            if label["START_TIME"].mjd == label["STOP_TIME"].mjd:
-                # As of 2022 Feb 07, there are four known files with this error
-                catch.logger.warning(
-                    f'START_TIME == STOP_TIME for {label["PRODUCT_ID"]}.  '
-                    "Setting STOP_TIME = START_TIME + EXPOSURE_DURATION."
-                )
-                obs.mjd_stop = obs.mjd_start + obs.exposure / 86400
-
             obs.set_fov(ra, dec)
             observations.append(obs)
 

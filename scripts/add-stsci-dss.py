@@ -50,3 +50,5 @@ with Catch(Config.from_file(), save_log=True) as catch:
         ))
 
     catch.add_observations(obs, update=False)
+
+    catch.update_statistics(source="stsci_dss")

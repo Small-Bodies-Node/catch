@@ -1,33 +1,34 @@
 # Licensed with the 3-clause BSD license.  See LICENSE for details.
 
-__all__ = ['Catch']
+__all__ = ["Catch"]
 
-import sys
+import time
 import uuid
 import logging
+from typing import Any, Dict, List, Optional, Tuple, Union
 
+from sqlalchemy.orm import Session, Query
+from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy import func
 from astropy.time import Time
 from sbsearch import SBSearch
-from sqlalchemy.orm import with_polymorphic
+from sbsearch.target import MovingTarget
 
-from . import schema
-from .schema import CatchQueries, Caught, Obs, Found, Obj
-
-
-class CatchException(Exception):
-    pass
-
-
-class InvalidSessionID(CatchException):
-    pass
-
-
-class InvalidSourceName(CatchException):
-    pass
-
-
-class FindObjectFailure(CatchException):
-    pass
+from .model import (
+    CatchQuery,
+    Observation,
+    Found,
+    Ephemeris,
+    ExampleSurvey,
+    SurveyStats,
+)
+from .exceptions import (
+    CatchException,
+    DataSourceWarning,
+    FindObjectError,
+    EphemerisError,
+)
+from .logging import TaskMessenger
 
 
 class Catch(SBSearch):
@@ -36,27 +37,73 @@ class Catch(SBSearch):
 
     Parameters
     ----------
-    **kwargs
-        `~sbsearch.SBSearch` keyword arguments.
+    database : str or Session
+        Database URL or initialized sqlalchemy Session.
+
+    uncertainty_ellipse : bool, optional
+        Search considering the uncertainty ellipse.
+
+    padding : float, optional
+        Additional padding to the search area, arcmin.
+
+    debug : bool, optional
+        Enable debugging messages.
+
+    arc_limit : float, optional
+        Maximal ephemeris arc length with which to search the database,
+        radians.
+
+    time_limit : float, optional
+        Maximal ephemeris time length with which to search the database, days.
 
     """
 
-    SOURCES = {
-        'neat palomar': schema.NEATPalomar,
-        'neat geodss': schema.NEATMauiGEODSS,
-        'skymapper': schema.SkyMapper,
-    }
+    def __init__(
+        self,
+        database: Union[str, Session],
+        *args,
+        uncertainty_ellipse: bool = False,
+        padding: float = 0,
+        **kwargs,
+    ) -> None:
+        super().__init__(
+            database,
+            *args,
+            min_edge_length=1e-3,
+            max_edge_length=0.017,
+            uncertainty_ellipse=uncertainty_ellipse,
+            padding=padding,
+            logger_name="Catch",
+            **kwargs,
+        )
 
-    VMAX = 27
+        # override sbsearch default logging behavior, which is a mix of DEBUG
+        # and INFO.
+        self.logger.setLevel(logging.DEBUG if self.debug else logging.INFO)
 
-    def __init__(self, config=None, save_log=False, disable_log=False,
-                 **kwargs):
-        super().__init__(config=config, save_log=save_log,
-                         disable_log=disable_log, **kwargs)
-        self.logger.debug('Initialized Catch')
+        self._found_attributes = [
+            attr
+            for attr in dir(Found)
+            if attr[0] != "_" and attr not in ["found_id", "query_id"]
+        ]
 
-    def caught(self, job_id, vmax=None):
-        """Return results from catch query.
+    @property
+    def sources(self) -> Dict[str, Observation]:
+        """Dictionary of observation data sources in the information model.
+
+        The dictionary is keyed by database table name.
+
+        """
+        return {
+            source.__tablename__: source
+            for source in Observation.__subclasses__()
+            if source not in [ExampleSurvey]
+        }
+
+    def caught(
+        self, job_id: Union[uuid.UUID, str]
+    ) -> List[Tuple[Found, Observation]]:
+        """Return all results from catch query.
 
 
         Parameters
@@ -64,56 +111,67 @@ class Catch(SBSearch):
         job_id : uuid.UUID or string
             Unique job ID for original query.  UUID version 4.
 
-        vmax : float, optional
-            Maximum magnitude for returned results.
-
 
         Returns
         -------
-        rows : sqlalchemy Query
-            Results as sqlalchemy objects: ``[Found, Obs, Obj]``.
+        rows : list of tuples
+            Results as sqlalchemy objects: ``(Found, Observation)``.
 
         """
 
-        job_id = uuid.UUID(str(job_id), version=4)
+        # get query identifiers for this job_id
+        query_ids: List[int] = [
+            q.query_id for q in self.queries_from_job_id(job_id)
+        ]
 
-        rows = (self.db.session.query(Found, Obs, Obj)
-                .join(Caught, Found.foundid == Caught.foundid)
-                .join(CatchQueries, CatchQueries.queryid == Caught.queryid)
-                .join(Obs, Found.obsid == Obs.obsid)
-                .join(Obj, Found.objid == Obj.objid)
-                .filter(CatchQueries.jobid == job_id.hex))
-
-        if vmax is not None:
-            rows = rows.filter(Found.vmag <= vmax)
+        # get results from Found
+        rows: List[Tuple[Found, Observation]] = (
+            self.db.session.query(Found, Observation)
+            .join(
+                Observation, Found.observation_id == Observation.observation_id
+            )
+            .filter(Found.query_id.in_(query_ids))
+            .all()
+        )
 
         return rows
 
-    def drop(self, queryid):
-        """Drop a caught query.
+    def queries_from_job_id(
+        self, job_id: Union[uuid.UUID, str]
+    ) -> List[CatchQuery]:
+        """Return list of `CatchQuery`s for the given `job_id`.
 
 
         Parameters
         ----------
-        queryid : int
-            Query ID.
+        job_id : uuid.UUID or string
+            Unique job ID for the query.  UUID version 4.
 
 
         Returns
         -------
-        None
+        queries : list of CatchQuery objects
 
         """
 
-        query = (self.db.session.query(CatchQueries)
-                 .filter(CatchQueries.queryid == queryid)
-                 .all())
+        job_id: uuid.UUID = uuid.UUID(str(job_id), version=4)
 
-        # cascades should delete caught rows and found objects
-        self.db.session.delete(query)
-        self.db.session.commit()
+        # find job_id in CatchQuery table
+        queries: List[CatchQuery] = (
+            self.db.session.query(CatchQuery)
+            .filter(CatchQuery.job_id == job_id.hex)
+            .all()
+        )
 
-    def query(self, target, job_id, sources=None, cached=True, **kwargs):
+        return queries
+
+    def query(
+        self,
+        target: str,
+        job_id: Union[uuid.UUID, str],
+        sources: Optional[str] = None,
+        cached: bool = True,
+    ) -> int:
         """Try to catch an object in survey data.
 
         Publishes messages to the Python logging system under the name
@@ -129,15 +187,11 @@ class Catch(SBSearch):
             Unique ID for this query.  UUID version 4.
 
         sources : list of strings, optional
-            Limit search to these sources.  See ``Catch.SOURCES.keys()``
+            Limit search to these sources.  See ``Catch.sources.keys()``
             for possible values.
 
         cached : bool, optional
             Use cached results, if possible.
-
-        **kwargs
-            Any `~sbsearch.sbsearch.find_object` keyword except
-            ``save``, ``update``, or ``location``.
 
 
         Returns
@@ -147,182 +201,317 @@ class Catch(SBSearch):
 
         """
 
-        _sources = self._validate_sources(sources)
+        # validate sources
+        if sources is None:
+            sources = self.sources.keys()
+        else:
+            for source in sources:
+                try:
+                    self.sources[source]
+                except KeyError:
+                    raise ValueError("Unknown source: {}")
+
         job_id = uuid.UUID(str(job_id), version=4)
 
-        # logger for CATCH-APIs messages
-        task_messenger = logging.getLogger(
-            'CATCH-APIs {}'.format(job_id.hex))
-        task_messenger.setLevel(logging.INFO)
-        if len(task_messenger.handlers) == 0:
-            # always log to the console
-            formatter = logging.Formatter(
-                '%(levelname)s ({}): %(message)s'.format(job_id.hex))
-            console = logging.StreamHandler(sys.stdout)
-            console.setFormatter(formatter)
-            task_messenger.addHandler(console)
+        task_messenger: TaskMessenger = TaskMessenger(job_id, debug=self.debug)
+        task_messenger.debug(
+            "Searching for %s in %d survey%s.",
+            target,
+            len(sources),
+            "" if len(sources) == 1 else "s",
+        )
 
         count = 0
-        for source in _sources:
-            self.logger.debug('Query {}'.format(source))
-            source_name = self.SOURCES[source].__data_source_name__
+        for source in sources:
+            # track query execution time
+            execution_time: float = time.monotonic()
 
-            cached_query = self._find_catch_query(target, source)
+            self.source = source
+            source_name = self.source.__data_source_name__
+            self.logger.debug("Query {}".format(source_name))
 
-            q = CatchQueries(query=str(target),
-                             jobid=job_id.hex,
-                             source=source,
-                             date=Time.now().iso,
-                             status='in progress')
+            cached_query = self._find_catch_query(target)
+
+            q = CatchQuery(
+                query=str(target),
+                job_id=job_id.hex,
+                source=self.source.__tablename__,
+                date=Time.now().iso,
+                status="in progress",
+                uncertainty_ellipse=self.uncertainty_ellipse,
+                padding=self.padding,
+            )
             self.db.session.add(q)
             self.db.session.commit()
+
             if cached and cached_query is not None:
-                n = self._add_cached_results(q, cached_query)
+                n = self._copy_cached_results(q, cached_query)
                 count += n
-                task_messenger.info('Added {} cached results from {}.'
-                                    .format(n, source_name))
-                q.status = 'finished'
+                task_messenger.send(
+                    "Added %d cached result%s from %s.",
+                    n,
+                    "" if n == 1 else "s",
+                    source_name,
+                )
+                q.status = "finished"
                 self.db.session.commit()
             else:
                 try:
-                    n = self._query(q, target, source, **kwargs)
-                except FindObjectFailure as e:
-                    q.status = 'errored'
+                    n = self._query(q, target, task_messenger)
+                except DataSourceWarning as e:
+                    task_messenger.send(str(e))
+                    q.status = "finished"
+                except CatchException as e:
+                    q.status = "errored"
                     task_messenger.error(str(e))
-                    self.logger.error(e)
-                    raise
+                    self.logger.error(e, exc_info=self.debug)
                 else:
                     count += n
-                    task_messenger.info('Caught {} observations in {}.'
-                                        .format(n, source_name))
-                    q.status = 'finished'
+                    task_messenger.send(
+                        "Caught %d observation%s.", n, "" if n == 1 else "s"
+                    )
+                    q.status = "finished"
                 finally:
+                    q.execution_time = time.monotonic() - execution_time
                     self.db.session.commit()
 
         return count
 
-    def check_cache(self, target, source='any'):
-        """Has this query been cached?
+    def is_query_cached(
+        self, target: str, sources: Optional[str] = None
+    ) -> str:
+        """Determine if this query has already been cached.
+
+
+        ``uncertainty_ellipse`` and ``padding`` parameters are also checked.
 
 
         Parameters
         ----------
         target : string
-            Object to find.
+            Target for which to search.
 
-        source : string, optional
-            Survey source table name.  See ``Catch.SOURCES.keys()``
-            for possible values, or use `'any'` to search each survey.
+        sources : list of strings, optional
+            Limit search to these sources.  See ``Catch.sources.keys()``
+            for possible values.
 
 
         Returns
         -------
         cached : bool
-            ``True`` if the search is cached.  For ``'any'`` source,
-            if any one survey search is missing, then the result is
-            ``False``.
+            ``False`` if any source specified by ``sources`` is not yet
+            cached for this ``target``.
 
         """
 
-        sources = self._validate_sources(                                    
-            None if source == 'any' else [source]                            
-        )                                                                    
+        # validate sources
+        if sources is None:
+            sources = self.sources.keys()
+        else:
+            for source in sources:
+                try:
+                    self.sources[source]
+                except KeyError:
+                    raise ValueError("Unknown source: {}")
 
-        cached = True
+        cached: bool = True  # assume cached until proven otherwise
         for source in sources:
-            q = self._find_catch_query(target, source)
-            cached *= q is not None
+            self.source = source
+            cached = self._find_catch_query(target) is not None
 
         return cached
 
-    @staticmethod
-    def skymapper_cutout_url(found, obs, size=0.0833, format='fits'):
-        """Return SkyMapper cutout URL.
+    def update_statistics(self, source=None):
+        """Update source survey statistics table.
 
-        https://skymapper.anu.edu.au/how-to-access/#public_siap
 
-        For example:
-            https://api.skymapper.nci.org.au/public/siap/dr2/get_image?IMAGE=20140425124821-10&SIZE=0.0833&POS=189.99763,-11.62305&FORMAT=fits
-
-        size in deg
-
-        format = fits, png, or mask
+        Parameters
+        ----------
+        source : string or Observation object
+            Limit update to this survey source name.
 
         """
 
-        return (
-            'https://api.skymapper.nci.org.au/public/siap/dr2/get_image?'
-            f'IMAGE={obs.productid}&SIZE={size}&POS={found.ra},{found.dec}&FORMAT={format}'
-        )
+        sources: List[Observation]
+        if source is None:
+            # update everything
+            sources = list(self.sources.values()) + [Observation]
+        else:
+            # just the requested table
+            sources = [self.sources.get(source, source)]
 
-    def _find_catch_query(self, target, source):
-        """Find query ID for this target and source.
+        for _source in sources:
+            count: int = self.db.session.query(
+                func.count(_source.observation_id)
+            ).scalar()
 
-        Assumes the last search with status=='finished' is the most relevant.
-
-        """
-        q = (self.db.session.query(CatchQueries)
-             .filter(CatchQueries.query == target)
-             .filter(CatchQueries.source == source)
-             .filter(CatchQueries.status == 'finished')
-             .order_by(CatchQueries.queryid.desc())
-             .first())
-        return q
-
-    def _add_cached_results(self, query, cached_query):
-        founds = (self.db.session.query(Found)
-                  .join(Caught, Caught.foundid == Found.foundid)
-                  .filter(Caught.queryid == cached_query.queryid)
-                  .all())
-        for found in founds:
-            caught = Caught(
-                queryid=query.queryid,
-                foundid=found.foundid
+            q: Query = self.db.session.query(
+                func.min(Observation.mjd_start), func.max(Observation.mjd_stop)
             )
-            self.db.session.add(caught)
-        return len(founds)
+            if _source != Observation:
+                q = q.filter(Observation.source == _source.__tablename__)
+            dates: Any = q.one()
 
-    def _query(self, query, target, source, **kwargs):
-        kwargs['save'] = True
-        kwargs['update'] = True
-        kwargs['source'] = self.SOURCES[source]
-        kwargs['vmax'] = kwargs.get('vmax', self.VMAX)
-
-        try:
-            obsids, foundids, newids = self.find_object(
-                str(target), **kwargs)
-        except Exception as e:
-            if self.debug:
-                # raise original exception
-                raise
+            if _source == Observation:
+                table_name = None
+                source_name = "All"
             else:
-                raise FindObjectFailure(str(e))
+                table_name = _source.__tablename__
+                source_name = _source.__data_source_name__
 
-        for foundid in foundids:
-            caught = Caught(
-                queryid=query.queryid,
-                foundid=foundid
-            )
-            self.db.session.add(caught)
+            stats: SurveyStats
+            try:
+                stats = (
+                    self.db.session.query(SurveyStats)
+                    .filter(SurveyStats.source == table_name)
+                    .one()
+                )
+            except NoResultFound:
+                stats = SurveyStats(
+                    source=table_name,
+                    name=source_name,
+                )
+
+            stats.count = count
+            if count > 0:
+                stats.start_date = Time(dates[0], format="mjd").iso
+                stats.stop_date = Time(dates[1], format="mjd").iso
+            stats.updated = Time.now().iso
+
+            self.db.session.merge(stats)
 
         self.db.session.commit()
-        self.logger.debug('query Added caught objects')
-        return len(foundids)
 
-    def _validate_sources(self, sources):
-        if sources is None:
-            return self.SOURCES.keys()
+    def _find_catch_query(self, target: str) -> Union[CatchQuery, None]:
+        """Find query ID for this target and source.
 
-        invalid_sources = set(sources) - set(self.SOURCES.keys())
-        if len(invalid_sources) > 0:
-            raise InvalidSourceName(invalid_sources)
+        ``uncertainty_ellipse`` and ``padding`` parameters are also checked.
 
-        return sources
+        Returns the last search with status=='finished', ``None`` otherwise.
 
-    def verify_database(self):
-        super().verify_database([
-            'catch_queries', 'caught',
-            'neat_palomar',
-            'neat_maui_geodss',
-            'skymapper'
-        ])
+        """
+
+        q: int = (
+            self.db.session.query(CatchQuery)
+            .filter(CatchQuery.query == target)
+            .filter(CatchQuery.source == self.source.__tablename__)
+            .filter(CatchQuery.status == "finished")
+            .filter(CatchQuery.uncertainty_ellipse == self.uncertainty_ellipse)
+            .filter(CatchQuery.padding == self.padding)
+            .order_by(CatchQuery.query_id.desc())
+            .first()
+        )
+
+        return q
+
+    def _copy_cached_results(
+        self, query: CatchQuery, cached_query: CatchQuery
+    ) -> int:
+        """Copy previously cached results to a new query.
+
+        Returns
+        -------
+        n : int
+            Number of copied rows.
+
+        """
+
+        founds: List[Found] = (
+            self.db.session.query(Found)
+            .filter(Found.query_id == cached_query.query_id)
+            .all()
+        )
+
+        found: Found
+        for i in range(len(founds)):
+            found = Found(query_id=query.query_id)
+            for k in self._found_attributes:
+                setattr(found, k, getattr(founds[i], k))
+            self.db.session.add(found)
+
+        return len(founds)
+
+    def _query(
+        self, query: CatchQuery, target_name: str, task_messenger: TaskMessenger
+    ):
+        """Run the actual query.
+
+        1. Find the date range of the current survey.  If ``None`` then the
+           survey has no observations: silently return no results.
+
+        2. Notify the user of the survey and date range being searched.
+
+        3. Get the target's ephemeris over the survey date range.
+
+        4. If the ephemeris query succeeded, then this is a good target.  Save
+           it to the target database.
+
+        5. Query the database for observations of the target ephemeris.
+
+        6. Observations found?  Then add them to the found table.
+
+        """
+        # date range for this survey
+        q: Query = self.db.session.query(
+            func.min(Observation.mjd_start), func.max(Observation.mjd_stop)
+        )
+        if self.source.__tablename__ != "observation":
+            q = q.filter(Observation.source == self.source.__tablename__)
+
+        mjd_start: float
+        mjd_stop: float
+        mjd_start, mjd_stop = q.one()
+
+        if None in [mjd_start, mjd_stop]:
+            raise DataSourceWarning(
+                f"No observations to search in database for {self.source.__data_source_name__}."
+            )
+
+        # notify the user of survey and date range being searched
+        task_messenger.send(
+            "Query %s from %s to %s.",
+            self.source.__data_source_name__,
+            Time(mjd_start, format="mjd").iso[:10],
+            Time(mjd_stop, format="mjd").iso[:10],
+        )
+
+        # get target ephemeris
+        target: MovingTarget = MovingTarget(target_name, db=self.db)
+        try:
+            eph: List[Ephemeris] = target.ephemeris(
+                self.source.__obscode__,
+                start=Time(mjd_start - 1, format="mjd"),
+                stop=Time(mjd_stop + 1, format="mjd"),
+            )
+        except Exception as e:
+            raise EphemerisError("Could not get an ephemeris.") from e
+        self.logger.info("Obtained ephemeris from JPL Horizons.")
+        task_messenger.send("Obtained ephemeris from JPL Horizons.")
+
+        # ephemeris was successful, add target to database, if needed
+        target = self.get_designation(target_name, add=True)
+
+        # Query the database for observations of the target ephemeris
+        try:
+            observations: List[
+                self.source
+            ] = self.find_observations_by_ephemeris(eph)
+        except Exception as e:
+            raise FindObjectError(
+                "Critical error: could not search database for this target."
+            ) from e
+
+        if len(observations) > 0:
+            # Observations found?  Then add them to the found table.
+            founds: List[Found] = self.add_found(target, observations)
+
+            # include query_id
+            found: Found
+            for found in founds:
+                found.query_id = query.query_id
+
+            self.db.session.commit()
+
+            return len(founds)
+        else:
+            return 0

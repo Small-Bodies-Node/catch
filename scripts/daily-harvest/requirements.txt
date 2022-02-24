@@ -1,0 +1,4 @@
+-e git+https://git@github.com/NASA-Planetary-Science/sbpy.git#egg=sbpy
+-e git+https://git@github.com/Small-Bodies-Node/sbsearch.git@v2#egg=sbsearch
+-e git+https://git@github.com/Small-Bodies-Node/catch.git@v1#egg=catch
+psycopg2-binary

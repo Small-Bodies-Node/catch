@@ -3,13 +3,16 @@
 __all__ = ['Config']
 
 import os
-import uuid
+from typing import Dict, List, Union
 import sbsearch.config
 
 _config_example = '''
 {
   "database": "postgresql://user:password@host/database",
-  "log": "/path/to/catch.log"
+  "log": "/path/to/catch.log",
+  "arc_limit": 0.17,
+  "time_limit": 365,
+  "debug": false
 }
 '''
 
@@ -26,8 +29,16 @@ class Config(sbsearch.config.Config):
 
     """
 
-    DEFAULT_FILES = ['catch.config', '.catch.config',
-                     os.path.expanduser('~/.config/catch.config')]
+    DEFAULT_FILES: List[str] = [
+        'catch.config',
+        '.catch.config',
+        os.path.expanduser('~/.config/catch.config')
+    ]
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    DEFAULT_PARAMETERS: Dict[str, Union[str, float, int, bool]] = {
+        "database": "postgresql://user@host/database",
+        "log": "/dev/null",
+        "arc_limit": 0.17,
+        "time_limit": 365,
+        "debug": False
+    }

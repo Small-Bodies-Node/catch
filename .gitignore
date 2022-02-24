@@ -107,3 +107,21 @@ venv.bak/
 *~
 
 .vscode
+temp/**
+Pipfile*
+*.config
+!catch.example.config
+!logrotate.config
+*.log
+catch/version.py
+css.db
+
+# figures, only keep specific files
+figures/*png
+figures/*fits
+!figures/query-cells-65p-20170715-20170815.png
+!figures/query-cells-dec-time-65p-20170715-20170815.png
+!figures/query-cells-ra-dec-65p-20170715-20170815.png
+!figures/query-cells-ra-time-65p-20170715-20170815.png
+!figures/query-cells-ra-dec-time-65p-20170715-20170815.png
+
