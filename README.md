@@ -1,4 +1,4 @@
-# catch v1.2.7
+# catch v1.3
 
 Planetary Data System Small Bodies Node (PDS-SBN) astronomical survey data search tool.
 
@@ -146,6 +146,12 @@ The SBN is the main archive for the Spacewatch survey and the 0.9m Mosaic Camera
 The script `scripts/add-spacewatch.py` will harvest metadata from calibrated data labels.  It requires a local copy of the labels.  They may be downloaded with:
 
   `wget -r -R *.fits --no-parent https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.spacewatch.survey/data/`
+
+### ATLAS
+
+The SBN is also the main archive for the ATLAS survey.  This archive is in review and will be available at a future date.
+
+The script `scripts/add-atlas.py` will harvest metadata from calibrated data labels.  It requires a local copy of the labels and files.
 
 ## Modifying existing surveys
 

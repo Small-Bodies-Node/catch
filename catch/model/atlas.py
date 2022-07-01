@@ -16,7 +16,8 @@ The catch survey data model additionally requires:
 """
 
 
-__all__ = ["ATLASMaunaLoa", "ATLASHaleakela", "ATLASRioHurtado", "ATLASSutherland"]
+__all__ = ["ATLASMaunaLoa", "ATLASHaleakela",
+           "ATLASRioHurtado", "ATLASSutherland"]
 
 from sqlalchemy import BigInteger, Column, String, ForeignKey
 from sbsearch.model.core import Base, Observation
@@ -26,10 +27,14 @@ _ARCHIVE_URL_PREFIX: str = (
     "https://sbnsurveys.astro.umd.edu/images/"
 )
 
+
 class ATLAS:
     """ATLAS specific functions / properties."""
 
     __field_prefix__: str = "atlas"
+
+    field_id: Column(String(16), doc="Survey field ID",
+                     index=True, nullable=False)
 
     @property
     def archive_url(self) -> str:
@@ -76,7 +81,7 @@ class ATLAS:
 
 class ATLASMaunaLoa(Observation, ATLAS):
     """ATLAS Mauna Loa
-    
+
     Note that there are two sites on Mauna Loa:
 
     T07 204.423870.943290+0.332467ATLAS-MLO Auxiliary Camera, Mauna Loa
