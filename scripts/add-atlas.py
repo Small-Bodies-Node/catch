@@ -47,7 +47,7 @@ def setup_logger(log_filename):
 
 def inventory(base_path):
     """Find ATLAS labels within this path.
-    
+
     This function was designed for the ATLAS review, July/August 2022.  Please
     update for production, when ready.
 
@@ -70,21 +70,29 @@ def inventory(base_path):
                     yield fn, label
 
 
+def get_obs_model(lid):
+    # example LID: urn:nasa:pds:gbo.ast.atlas.survey:59613:01a59613o0586o_fits
+    tel = lid.split(':')[-1][:2]
+    return {'01': ATLASMaunaLoa,
+            '02': ATLASHaleakela,
+            '03': ATLASSutherland,
+            '04': ATLASRioHurtado}[tel]
+
+
 def process(fn, label):
     lid = label.find("Identification_Area/logical_identifier").text
-    obs = Spacewatch(
-        product_id=lid,
-        mjd_start=Time(
-            label.find("Observation_Area/Time_Coordinates/start_date_time").text
-        ).mjd,
-        mjd_stop=Time(
-            label.find("Observation_Area/Time_Coordinates/stop_date_time").text
-        ).mjd,
-        exposure=float(label.find(
-            ".//img:Exposure/img:exposure_duration").text),
-        filter=label.find(".//img:Optical_Filter/img:filter_name").text,
-        label=fn[fn.index('gbo.ast.spacewatch.survey'):]
-    )
+    obs = get_obs_model(lid)()
+
+    obs.product_id = lid
+    obs.mjd_start = Time(
+        label.find("Observation_Area/Time_Coordinates/start_date_time").text
+    ).mjd
+    obs.mjd_stop = Time(
+        label.find("Observation_Area/Time_Coordinates/stop_date_time").text
+    ).mjd
+    obs.exposure = float(label.find(
+        ".//img:Exposure/img:exposure_duration").text),
+    obs.filter = label.find(".//img:Optical_Filter/img:filter_name").text
 
     survey = label.find(".//survey:Survey")
     ra, dec = [], []
@@ -98,7 +106,7 @@ def process(fn, label):
         dec.append(float(coordinate.find("survey:declination").text))
     obs.set_fov(ra, dec)
 
-    maglimit = survey.find(".//survey:Rollover/survey:rollover_magnitude")
+    maglimit = survey.find(".//survey:N_Sigma_Limit/survey:limiting_magnitude")
     if maglimit is not None:
         obs.maglimit = float(maglimit.text)
 
@@ -106,7 +114,7 @@ def process(fn, label):
 
 
 parser = argparse.ArgumentParser(
-    description="Add Spacewatch data to CATCH.",
+    description="Add ATLAS data to CATCH.",
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
 )
 parser.add_argument('base_path', help="path to data collection root directory")
