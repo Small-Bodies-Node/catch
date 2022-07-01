@@ -110,6 +110,10 @@ def process(fn, label):
     if maglimit is not None:
         obs.maglimit = float(maglimit.text)
 
+    obs.field_id = survey.find("survey:field_id").text
+
+    obs.diff = os.path.exists(fn.replace('.fits', '.diff'))
+
     return obs
 
 
