@@ -19,7 +19,7 @@ The catch survey data model additionally requires:
 __all__ = ["ATLASMaunaLoa", "ATLASHaleakela",
            "ATLASRioHurtado", "ATLASSutherland"]
 
-from sqlalchemy import BigInteger, Column, String, ForeignKey
+from sqlalchemy import BigInteger, Column, String, Boolean, ForeignKey
 from sbsearch.model.core import Base, Observation
 
 
@@ -32,9 +32,6 @@ class ATLAS:
     """ATLAS specific functions / properties."""
 
     __field_prefix__: str = "atlas"
-
-    field_id: Column(String(16), doc="Survey field ID",
-                     index=True, nullable=False)
 
     @property
     def archive_url(self) -> str:
@@ -108,6 +105,10 @@ class ATLASMaunaLoa(Observation, ATLAS):
     product_id = Column(
         String(128), doc="Archive product id", unique=True, index=True, nullable=False
     )
+    field_id = Column(String(16), doc="Survey field ID",
+                      index=True, nullable=False)
+    diff = Column(Boolean, doc="True if a difference image exists",
+                  nullable=False)
 
 
 class ATLASHaleakela(Observation, ATLAS):
@@ -130,6 +131,10 @@ class ATLASHaleakela(Observation, ATLAS):
     product_id = Column(
         String(128), doc="Archive product id", unique=True, index=True, nullable=False
     )
+    field_id = Column(String(16), doc="Survey field ID",
+                      index=True, nullable=False)
+    diff = Column(Boolean, doc="True if a difference image exists",
+                  nullable=False)
 
 
 class ATLASRioHurtado(Observation, ATLAS):
@@ -152,6 +157,10 @@ class ATLASRioHurtado(Observation, ATLAS):
     product_id = Column(
         String(128), doc="Archive product id", unique=True, index=True, nullable=False
     )
+    field_id = Column(String(16), doc="Survey field ID",
+                      index=True, nullable=False)
+    diff = Column(Boolean, doc="True if a difference image exists",
+                  nullable=False)
 
 
 class ATLASSutherland(Observation, ATLAS):
@@ -174,3 +183,7 @@ class ATLASSutherland(Observation, ATLAS):
     product_id = Column(
         String(128), doc="Archive product id", unique=True, index=True, nullable=False
     )
+    field_id = Column(String(16), doc="Survey field ID",
+                      index=True, nullable=False)
+    diff = Column(Boolean, doc="True if a difference image exists",
+                  nullable=False)
