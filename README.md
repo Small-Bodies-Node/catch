@@ -174,7 +174,7 @@ Detailed instructions are TBW.
 
 ## Database tasks
 
-The database shouldn't need any periodic maintenance. However, the following tasks may be of use.
+The database shouldn't need any periodic maintenance, as long as autovacuum is enabled on Postgres.  However, the following tasks may be of use.
 
 ### Optimize observation tables
 
