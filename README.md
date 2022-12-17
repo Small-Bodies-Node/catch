@@ -202,7 +202,7 @@ Note, the `found` table cannot be reset independently from the `catch_query` tab
 
 ### Backup
 
-Save the database to a file with `pg_dump`.  For a CATCH database named "surveys":
+Save the database to a file with `pg_dump`.  For a CATCH database named "catch":
 
 ```bash
 pg_dump --format=custom --no-owner -f "catch.backup" catch
