@@ -335,52 +335,82 @@ class Catch(SBSearch):
         sources: List[Observation]
         if source is None:
             # update everything
-            sources = list(self.sources.values()) + [Observation]
+            sources = list(self.sources.values())
         else:
             # just the requested table
             sources = [self.sources.get(source, source)]
 
         for _source in sources:
-            count: int = self.db.session.query(
-                func.count(_source.observation_id)
-            ).scalar()
+            self._update_statistics(_source)
 
-            q: Query = self.db.session.query(
-                func.min(Observation.mjd_start), func.max(Observation.mjd_stop)
-            )
-            if _source != Observation:
-                q = q.filter(Observation.source == _source.__tablename__)
-            dates: Any = q.one()
-
-            if _source == Observation:
-                table_name = None
-                source_name = "All"
-            else:
-                table_name = _source.__tablename__
-                source_name = _source.__data_source_name__
-
-            stats: SurveyStats
-            try:
-                stats = (
-                    self.db.session.query(SurveyStats)
-                    .filter(SurveyStats.source == table_name)
-                    .one()
-                )
-            except NoResultFound:
-                stats = SurveyStats(
-                    source=table_name,
-                    name=source_name,
-                )
-
-            stats.count = count
-            if count > 0:
-                stats.start_date = Time(dates[0], format="mjd").iso
-                stats.stop_date = Time(dates[1], format="mjd").iso
-            stats.updated = Time.now().iso
-
-            self.db.session.merge(stats)
+        self._update_statistics_all()
 
         self.db.session.commit()
+
+    def _update_statistics(self, source):
+        count: int = self.db.session.query(
+            func.count(source.observation_id)
+        ).scalar()
+
+        q: Query = self.db.session.query(
+            func.min(Observation.mjd_start), func.max(Observation.mjd_stop)
+        ).filter(
+            Observation.source == source.__tablename__
+        )
+        dates: Any = q.one()
+
+        table_name = source.__tablename__
+        source_name = source.__data_source_name__
+
+        stats: SurveyStats
+        try:
+            stats = (
+                self.db.session.query(SurveyStats)
+                .filter(SurveyStats.source == table_name)
+                .one()
+            )
+        except NoResultFound:
+            stats = SurveyStats(
+                source=table_name,
+                name=source_name,
+            )
+
+        stats.count = count
+        if count > 0:
+            stats.start_date = Time(dates[0], format="mjd").iso
+            stats.stop_date = Time(dates[1], format="mjd").iso
+        stats.updated = Time.now().iso
+
+        self.db.session.merge(stats)
+
+    def _update_statistics_all(self):
+        # update the 'All' entry in survey_statistics
+        q: Query = self.db.session.query(
+            func.sum(SurveyStats.count), func.min(SurveyStats.start_date),
+            func.max(SurveyStats.stop_date), func.max(SurveyStats.updated)
+        ).filter(
+            SurveyStats.name != 'All'
+        )
+        updated_stats: Any = q.one()
+
+        stats: SurveyStats
+        try:
+            stats = (
+                self.db.session.query(SurveyStats)
+                .filter(SurveyStats.name == 'All')
+                .one()
+            )
+        except NoResultFound:
+            stats = SurveyStats(
+                source="",
+                name="All",
+            )
+
+        stats.count = updated_stats[0]
+        stats.start_date = updated_stats[1]
+        stats.stop_date = updated_stats[2]
+        stats.updated = updated_stats[3]
+        self.db.session.merge(stats)
 
     def _find_catch_query(self, target: str) -> Union[CatchQuery, None]:
         """Find query ID for this target and source.

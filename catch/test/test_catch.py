@@ -6,7 +6,6 @@ import pytest
 
 import numpy as np
 from astropy.time import Time
-from astropy.tests.helper import remote_data
 import sqlalchemy as sa
 import testing.postgresql
 
@@ -60,6 +59,7 @@ def dummy_surveys(postgresql):
     config = Config(database=postgresql.url(), log="/dev/null", debug=True)
     with Catch.with_config(config) as catch:
         catch.add_observations(observations)
+        catch.update_statistics()
 
 
 Postgresql = testing.postgresql.PostgresqlFactory(
@@ -117,7 +117,7 @@ def test_source_time_limits(catch):
     )
 
 
-@remote_data
+@pytest.mark.remote_data
 def test_query_all(catch, caplog, monkeypatch):
     # test data only exists for:
     sources = None  # ['neat_palomar_tricam', 'neat_maui_geodss']
@@ -196,6 +196,13 @@ def test_update_statistics(catch):
     )
     assert stats.count == 900
 
+    all_stats: SurveyStats = (
+        catch.db.session.query(SurveyStats)
+        .filter(SurveyStats.name == "All")
+        .one()
+    )
+    assert all_stats.count == 1800
+
     start = Time(GEODSS_START, format="mjd")
     stop = Time(GEODSS_START + EXPTIME * 900 + SLEWTIME * 899, format="mjd")
     assert stats.start_date == start.iso
@@ -220,7 +227,14 @@ def test_update_statistics(catch):
     )
     assert stats.count == 900
 
-    # now update and check stats
+    all_stats: SurveyStats = (
+        catch.db.session.query(SurveyStats)
+        .filter(SurveyStats.name == "All")
+        .one()
+    )
+    assert all_stats.count == 1800
+
+    # now update GEODSS and check stats
     catch.update_statistics(source="neat_maui_geodss")
     stats = (
         catch.db.session.query(SurveyStats)
@@ -232,3 +246,15 @@ def test_update_statistics(catch):
     stop = Time(GEODSS_START + EXPTIME * 901 + SLEWTIME * 900, format="mjd")
     assert stats.start_date == start.iso
     assert stats.stop_date == stop.iso
+
+    all_stats = (
+        catch.db.session.query(SurveyStats)
+        .filter(SurveyStats.name == "All")
+        .one()
+    )
+    assert all_stats.count == 1801
+    assert all_stats.start_date == start.iso
+    stop = Time(GEODSS_START + TRICAM_OFFSET + EXPTIME *
+                900 + SLEWTIME * 899, format="mjd")
+    assert all_stats.stop_date == stop.iso
+    assert all_stats.updated == stats.updated
