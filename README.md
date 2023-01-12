@@ -1,4 +1,4 @@
-# catch v1.2.1
+# catch v1.2.2
 
 Planetary Data System Small Bodies Node (PDS-SBN) astronomical survey data search tool.
 
@@ -123,7 +123,7 @@ IIRC, these data take several hours to ingest (be sure to optimize the tables af
 
 ### Catalina Sky Survey
 
-The SBN is the main archive for the Catalina Sky Survey (CSS).  As of February 2022, the CSS data archive is continually updated with observations from five telescopes ([Seaman et al. 2022](https://sbn.psi.edu/pds/resource/css.html)).  The harvesting script, `add-css.py`, will keep track of which PDS4 labels have been previously examined and only harvest new metadata.
+The SBN is the main archive for the Catalina Sky Survey (CSS).  As of February 2022, the CSS data archive is continually updated with observations from five telescopes ([Seaman et al. 2022](https://sbn.psi.edu/pds/resource/css.html)), including the Bok NEO Survey at Kitt Peak.  The harvesting script, `add-css.py`, will keep track of which PDS4 labels have been previously examined and only harvest new metadata.
 
 ```bash
 python3 add-css.py

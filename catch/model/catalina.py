@@ -136,7 +136,10 @@ class CatalinaLemmon(Observation, CatalinaSkySurvey):
 
 class CatalinaKittPeak(Observation, CatalinaSkySurvey):
     __tablename__ = "catalina_kittpeak"
-    __data_source_name__ = "Catalina Sky Survey, Kitt Peak"
+    # currently, this is the only data set planned to be part of the CSS
+    # archive, but the name may need to be changed if other survey data from
+    # KPNO is added to the CSS archive:
+    __data_source_name__ = "Catalina Sky Survey Archive, Bok NEO Survey"
     __obscode__ = "V00"  # MPC observatory code
     __mapper_args__ = {"polymorphic_identity": "catalina_kittpeak"}
 
