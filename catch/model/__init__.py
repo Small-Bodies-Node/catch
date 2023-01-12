@@ -18,7 +18,7 @@ __all__ = [
     "PS1DR2",
     "CatalinaBigelow",
     "CatalinaLemmon",
-    "CatalinaKittPeak",
+    "CatalinaBokNEOSurvey",
     "Spacewatch"
 ]
 
@@ -30,7 +30,7 @@ from .neat_palomar_tricam import NEATPalomarTricam
 from .neat_maui_geodss import NEATMauiGEODSS
 from .skymapper import SkyMapper
 from .ps1dr2 import PS1DR2
-from .catalina import CatalinaBigelow, CatalinaLemmon, CatalinaKittPeak
+from .catalina import CatalinaBigelow, CatalinaLemmon, CatalinaBokNEOSurvey
 from .spacewatch import Spacewatch
 
 

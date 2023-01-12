@@ -21,7 +21,7 @@ from astropy.time import Time
 from pds4_tools import pds4_read
 
 from catch import Catch, Config
-from catch.model.catalina import CatalinaBigelow, CatalinaKittPeak, CatalinaLemmon
+from catch.model.catalina import CatalinaBigelow, CatalinaBokNEOSurvey, CatalinaLemmon
 from sbsearch.logging import ProgressTriangle
 
 # version info
@@ -208,8 +208,8 @@ def process(path):
         obs = CatalinaBigelow()
     elif tel in CatalinaLemmon._telescopes:
         obs = CatalinaLemmon()
-    elif tel in CatalinaKittPeak._telescopes:
-        obs = CatalinaKittPeak()
+    elif tel in CatalinaBokNEOSurvey._telescopes:
+        obs = CatalinaBokNEOSurvey()
     else:
         raise ValueError(f"Unknown telescope {tel}")
 
@@ -321,7 +321,7 @@ def main():
                 logger.warning("Failed processing %d files", failed)
 
             logger.info("Updating survey statistics.")
-            for source in ("catalina_bigelow", "catalina_lemmon", "catalina_kittpeak"):
+            for source in ("catalina_bigelow", "catalina_lemmon", "catalina_bokneosurvey"):
                 catch.update_statistics(source=source)
 
 
