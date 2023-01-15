@@ -13,6 +13,7 @@ import argparse
 import logging
 import sqlite3
 import gzip
+from time import sleep
 from datetime import datetime
 from contextlib import contextmanager
 
@@ -116,13 +117,15 @@ def sync_list():
         last_sync = datetime.fromtimestamp(os.stat(local_filename).st_mtime)
         response = requests.head(LATEST_FILES)
         logger.info(
-            "Previous file list downloaded %s", last_sync.strftime("%Y-%m-%d %H:%M")
+            "Previous file list downloaded %s", last_sync.strftime(
+                "%Y-%m-%d %H:%M")
         )
         try:
             file_date = response.headers["Last-Modified"]
             file_date = datetime(*email.utils.parsedate(file_date)[:6])
             logger.info(
-                "Online file list dated %s", file_date.strftime("%Y-%m-%d %H:%M")
+                "Online file list dated %s", file_date.strftime(
+                    "%Y-%m-%d %H:%M")
             )
             if last_sync < file_date:
                 sync = True
@@ -148,7 +151,9 @@ def sync_list():
 
             backup_file = local_filename.replace(
                 ".txt.gz",
-                "-" + file_date.isot[:16].replace("-", "").replace(":", "") + ".txt.gz",
+                "-" +
+                file_date.isot[:16].replace(
+                    "-", "").replace(":", "") + ".txt.gz",
             )
             os.system(f"cp {local_filename} {backup_file}")
 
@@ -184,7 +189,7 @@ def new_labels(db, listfile):
                     continue
                 calibrated_count += 1
                 path = line.strip()
-                path = path[line.find("gbo.ast.catalina.survey") :]
+                path = path[line.find("gbo.ast.catalina.survey"):]
                 processed = db.execute(
                     "SELECT TRUE FROM labels WHERE path = ?", (path,)
                 ).fetchone()
@@ -254,7 +259,8 @@ def main():
         logger.removeHandler(handler)
     logger.addHandler(logging.StreamHandler())
     logger.addHandler(logging.FileHandler(args.log))
-    formatter = logging.Formatter("%(levelname)s %(asctime)s (%(name)s): %(message)s")
+    formatter = logging.Formatter(
+        "%(levelname)s %(asctime)s (%(name)s): %(message)s")
     for handler in logger.handlers:
         handler.setFormatter(formatter)
     logger.setLevel(logging.INFO)
@@ -285,6 +291,7 @@ def main():
 
             tri = ProgressTriangle(1, logger=logger, base=2)
             for path in new_labels(db, listfile):
+                sleep(0.1)  # try to avoid "handshake operation timeout"
                 try:
                     observations.append(process(path))
                     msg = "added"
@@ -304,7 +311,8 @@ def main():
                     continue
 
                 db.execute(
-                    "INSERT INTO labels VALUES (?,?,?)", (path, Time.now().iso, msg)
+                    "INSERT INTO labels VALUES (?,?,?)", (path,
+                                                          Time.now().iso, msg)
                 )
 
                 if len(observations) >= 10000:
