@@ -19,7 +19,8 @@ __all__ = [
     "CatalinaBigelow",
     "CatalinaLemmon",
     "CatalinaBokNEOSurvey",
-    "Spacewatch"
+    "Spacewatch",
+    "LONEOS",
 ]
 
 from sqlalchemy import Column, Integer, Float, String, ForeignKey, Text
@@ -32,6 +33,7 @@ from .skymapper import SkyMapper
 from .ps1dr2 import PS1DR2
 from .catalina import CatalinaBigelow, CatalinaLemmon, CatalinaBokNEOSurvey
 from .spacewatch import Spacewatch
+from .loneos import LONEOS
 
 
 class CatchQuery(Base):

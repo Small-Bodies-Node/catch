@@ -13,7 +13,6 @@ import argparse
 import logging
 import sqlite3
 import gzip
-from time import sleep
 from datetime import datetime
 from contextlib import contextmanager
 
@@ -291,7 +290,6 @@ def main():
 
             tri = ProgressTriangle(1, logger=logger, base=2)
             for path in new_labels(db, listfile):
-                sleep(0.1)  # try to avoid "handshake operation timeout"
                 try:
                     observations.append(process(path))
                     msg = "added"
