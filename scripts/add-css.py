@@ -8,7 +8,9 @@ harvesting.
 
 import os
 import re
+from time import sleep
 import email
+import urllib
 import argparse
 import logging
 import sqlite3
@@ -203,9 +205,22 @@ def new_labels(db, listfile):
     logger.info("  %d new files", processed_count)
 
 
-def process(path):
+def process(path, logger):
     url = "".join((ARCHIVE_PREFIX, path))
-    label = pds4_read(url, lazy_load=True, quiet=True).label
+
+    attempts = 0
+    # address timeout error by retrying with a delay
+    while attempts < 4:
+        try:
+            label = pds4_read(url, lazy_load=True, quiet=True).label
+            break
+        except urllib.error.URLError as e:
+            logger.error(str(e))
+            attempts += 1
+            sleep(1)  # retry, but not too soon
+    else:
+        raise e
+
     lid = label.find("Identification_Area/logical_identifier").text
     tel = lid.split(":")[5][:3].upper()
     if tel in CatalinaBigelow._telescopes:
@@ -291,7 +306,7 @@ def main():
             tri = ProgressTriangle(1, logger=logger, base=2)
             for path in new_labels(db, listfile):
                 try:
-                    observations.append(process(path))
+                    observations.append(process(path, logger))
                     msg = "added"
                 except ValueError as e:
                     failed += 1
