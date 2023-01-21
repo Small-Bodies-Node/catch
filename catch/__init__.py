@@ -37,7 +37,8 @@ def catch_cli(*args):
     )
     verify.set_defaults(command="verify")
 
-    list_sources = subparsers.add_parser("sources", help="show available data sources")
+    list_sources = subparsers.add_parser(
+        "sources", help="show available data sources")
     list_sources.set_defaults(command="sources")
 
     search = subparsers.add_parser("search", help="search for an object")
@@ -71,10 +72,12 @@ def catch_cli(*args):
         if args.command == "verify":
             pass
         elif args.command == "sources":
-            print("Available sources:\n  *", "\n  * ".join(catch.sources.keys()))
+            print("Available sources:\n  *",
+                  "\n  * ".join(catch.sources.keys()))
         elif args.command == "search":
             job_id = uuid.uuid4()
-            catch.query(args.desg, job_id, sources=args.sources, cached=args.cached)
+            catch.query(args.desg, job_id, sources=args.sources,
+                        cached=args.cached)
             columns = set()
             # catch.caught returns a list of rows.
             for row in catch.caught(job_id):
@@ -106,8 +109,21 @@ def catch_cli(*args):
                 for col in columns:
                     rows[i][col] = rows[i].get(col)
             tab = Table(rows=rows)
+
+            # add a column for the target
+            tab['designation'] = args.desg
+
+            # re-order columns
+            all_colnames = tab.colnames
+            base_colnames = ['designation', 'source', 'date', 'mjd', 'ra', 'dec', 'dra', 'ddec', 'vmag', 'rh', 'drh', 'delta', 'phase', 'elong', 'sangle', 'vangle', 'true_anomaly', 'unc_a', 'unc_b', 'unc_theta',
+                             'retrieved', 'filter', 'exposure', 'mjd_start', 'mjd_stop', 'fov', 'airmass', 'seeing', 'maglimit', 'found_id', 'object_id', 'observation_id', 'orbit_id', 'query_id', 'archive_url', 'cutout_url']
+            colnames = (base_colnames +
+                        list(set(all_colnames) - set(base_colnames)))
+            tab = tab[colnames]
+
             if args.o:
-                tab.write(args.o, format="ascii.fixed_width_two_line", overwrite=True)
+                tab.write(args.o, format="ascii.fixed_width_two_line",
+                          overwrite=True)
             else:
                 tab.pprint(-1, -1)
 
