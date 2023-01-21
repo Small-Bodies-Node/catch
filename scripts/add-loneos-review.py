@@ -2,12 +2,20 @@
 
 There are two sets of review data, e.g.,
 
-lois_1_1/000204/000204_022.xml with LID urn:nasa:pds:gbo.ast.loneos.survey:data_processed:000204
-lois_4_2_0/051113/051113_113.xml with LID urn:nasa:pds:gbo.ast.loneos.survey:data_processed:051113lois_4_2_0/051113/051113_113.xml
+lois_1_1/000204/000204_022.xml with LID
+urn:nasa:pds:gbo.ast.loneos.survey:data_processed:000204
 
-The documentation implies to me that there will be directories with other LOIS versions.
+lois_4_2_0/051113/051113_113.xml with LID
+urn:nasa:pds:gbo.ast.loneos.survey:data_processed:051113
 
-Documentation says images are 2.88 deg x 2.88 deg, WCS is good to 20".
+The documentation suggests there will be directories with other LOIS
+versions.  The path cannot be reconstructed from the LID.
+
+Documentation says source images are 2.88 deg x 1.44 deg, combined to 2.88 x
+2.88 deg when both halves of the FOV are available.
+
+Some WCS in sample data for the review have a bug and are ~0.8 deg off.  Other
+WCS are good to a few arcmin.
 
 """
 
