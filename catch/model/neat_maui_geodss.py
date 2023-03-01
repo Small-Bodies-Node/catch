@@ -58,7 +58,7 @@ class NEATMauiGEODSS(Observation):
         query_string = urlencode(
             {
                 "format": str(format),
-                "size": "{}arcmin".format(float(size) * 60),
+                "size": "{:.2f}arcmin".format(float(size) * 60),
                 "ra": float(ra),
                 "dec": float(dec),
             }
