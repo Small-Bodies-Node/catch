@@ -84,7 +84,7 @@ class NEATPalomarTricam(Observation):
         query_string = urlencode(
             {
                 "format": str(format),
-                "size": float(size),
+                "size": "{}arcmin".format(float(size) * 60),
                 "ra": float(ra),
                 "dec": float(dec),
             }
