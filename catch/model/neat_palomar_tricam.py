@@ -28,7 +28,7 @@ The catch survey data model additionally requires:
 
 __all__ = ["NEATPalomarTricam"]
 
-from urllib.parse import urlencode
+from urllib.parse import urlencode, quote
 from sqlalchemy import BigInteger, Column, String, ForeignKey
 from sbsearch.model.core import Base, Observation
 
@@ -65,7 +65,9 @@ class NEATPalomarTricam(Observation):
 
         """
 
-        url = f"https://sbnsurveys.astro.umd.edu/api/images/urn:nasa:pds:gbo.ast.neat.survey:data_tricam:{str(self.product_id).lower()}"
+        url = "https://sbnsurveys.astro.umd.edu/api/images/" + quote(
+            f"urn:nasa:pds:gbo.ast.neat.survey:data_tricam:{str(self.product_id).lower()}"
+        )
 
         return url
 

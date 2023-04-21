@@ -2,7 +2,7 @@
 
 __all__ = ["NEATMauiGEODSS"]
 
-from urllib.parse import urlencode
+from urllib.parse import urlencode, quote
 from sqlalchemy import BigInteger, Column, String, ForeignKey
 from sbsearch.model.core import Base, Observation
 
@@ -39,7 +39,9 @@ class NEATMauiGEODSS(Observation):
 
         """
 
-        url = f"https://sbnsurveys.astro.umd.edu/api/images/urn:nasa:pds:gbo.ast.neat.survey:data_geodss:{str(self.product_id).lower()}"
+        url = "https://sbnsurveys.astro.umd.edu/api/images/" + quote(
+            f"urn:nasa:pds:gbo.ast.neat.survey:data_geodss:{str(self.product_id).lower()}"
+        )
 
         return url
 
