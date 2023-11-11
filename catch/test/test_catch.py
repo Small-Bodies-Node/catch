@@ -9,6 +9,7 @@ from astropy.time import Time
 import sqlalchemy as sa
 import testing.postgresql
 
+from sbsearch.target import MovingTarget, FixedTarget
 from ..catch import Catch
 from ..config import Config
 from ..model import (
@@ -119,14 +120,11 @@ def test_source_time_limits(catch):
 
 @pytest.mark.remote_data
 def test_query_all(catch, caplog, monkeypatch):
-    # test data only exists for:
-    sources = None  # ['neat_palomar_tricam', 'neat_maui_geodss']
-
     cached = catch.is_query_cached("2P")
     assert not cached
 
     job_id = uuid.uuid4()
-    n = catch.query("2P", job_id, sources=sources)
+    n = catch.query("2P", job_id)
     assert n == 2
 
     cached = catch.is_query_cached("2P")
@@ -142,6 +140,12 @@ def test_query_all(catch, caplog, monkeypatch):
 
     for source in (NEATMauiGEODSS, NEATPalomarTricam):
         assert sum([isinstance(c[1], source) for c in caught]) == 1
+
+    # new query using a MovingTarget
+    job_id = uuid.uuid4()
+    target = MovingTarget("2P")
+    m = catch.query(target, job_id)
+    assert n == m
 
     # second query should be a cached result and just for Tricam
     job_id = uuid.uuid4()
@@ -189,14 +193,11 @@ def test_query_all(catch, caplog, monkeypatch):
 
 @pytest.mark.remote_data
 def test_cache(catch):
-    # test data only exists for:
-    sources = None  # ['neat_palomar_tricam', 'neat_maui_geodss']
-
     cached = catch.is_query_cached("2P")
     assert not cached
 
     job_id = uuid.uuid4()
-    n = catch.query("2P", job_id, sources=sources)
+    n = catch.query("2P", job_id)
     assert n == 2
 
     cached = catch.is_query_cached("2P")
@@ -208,7 +209,7 @@ def test_cache(catch):
     assert not cached
 
     # run the query with padding
-    n = catch.query("2P", job_id, sources=sources)
+    n = catch.query("2P", job_id)
     assert n == 2
 
     # was it cached?
@@ -289,3 +290,9 @@ def test_update_statistics(catch):
     )
     assert all_stats.stop_date == stop.iso
     assert all_stats.updated == stats.updated
+
+def test_fixed_target_search(catch):
+    target = FixedTarget.from_radec("00 05 00", "-30 15 00", unit=("hourangle", "deg"))
+    job_id = uuid.uuid4()
+    observations = catch.query(target, job_id)
+    assert len(observations) == 4
