@@ -184,7 +184,8 @@ class Catch(SBSearch):
             possible values.
 
         cached : bool, optional
-            Use cached results, if possible.
+            Use cached results, if possible.  Has no effect for fixed target
+            queries.
 
 
         Returns

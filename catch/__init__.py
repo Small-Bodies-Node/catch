@@ -129,9 +129,7 @@ def catch_cli(*args):
 
                 columns = columns.union(set(r.keys()))
 
-                r["cutout_url"] = obs.cutout_url(target.coordinates().ra.deg,
-                                                 target.coordinates().dec.deg)
-
+                r["cutout_url"] = obs.cutout_url(target.ra.deg, target.dec.deg)
                 r["date"] = Time((obs.mjd_start + obs.mjd_stop) / 2, format="mjd").iso
 
                 rows.append(r)
