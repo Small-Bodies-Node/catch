@@ -326,7 +326,7 @@ class Catch(SBSearch):
         self.logger.debug("Query {}".format(", ".join(sources)))
 
         q = CatchQuery(
-            query=str(target),
+            query="fixed({})".format(str(target)),
             job_id=job_id.hex,
             source=",".join(sources),
             date=Time.now().iso,
@@ -339,7 +339,7 @@ class Catch(SBSearch):
 
         observations: List[Observation] = []
         try:
-            observations = self._find_fixed_target(q, target, task_messenger, sources)
+            observations = self._find_fixed_target(target, task_messenger, sources)
         except DataSourceWarning as e:
             task_messenger.send(str(e))
             q.status = "finished"
@@ -626,7 +626,6 @@ class Catch(SBSearch):
 
     def _find_fixed_target(
         self,
-        query: CatchQuery,
         target: FixedTarget,
         task_messenger: TaskMessenger,
         sources: List[str],
@@ -651,7 +650,7 @@ class Catch(SBSearch):
             raise FindObjectError(
                 "Critical error: could not search database for this target."
             ) from e
-        
+
         # limit results to requested sources
         observations = [obs for obs in observations
                         if obs.source in sources]
