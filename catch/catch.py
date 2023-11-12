@@ -322,43 +322,39 @@ class Catch(SBSearch):
         # track query execution time
         execution_time: float = time.monotonic()
 
-        observations: List[Observation] = []
-        for source in sources:
-            self.source = source
-            source_name = self.source.__data_source_name__
-            self.logger.debug("Query {}".format(source_name))
+        self.source = Observation
+        self.logger.debug("Query {}".format(", ".join(sources)))
 
-            q = CatchQuery(
-                query=str(target),
-                job_id=job_id.hex,
-                source=self.source.__tablename__,
-                date=Time.now().iso,
-                status="in progress",
-                uncertainty_ellipse=0,
-                padding=0,
-            )
-            self.db.session.add(q)
+        q = CatchQuery(
+            query=str(target),
+            job_id=job_id.hex,
+            source=",".join(sources),
+            date=Time.now().iso,
+            status="in progress",
+            uncertainty_ellipse=0,
+            padding=0,
+        )
+        self.db.session.add(q)
+        self.db.session.commit()
+
+        observations: List[Observation] = []
+        try:
+            observations = self._find_fixed_target(q, target, task_messenger, sources)
+        except DataSourceWarning as e:
+            task_messenger.send(str(e))
+            q.status = "finished"
+        except CatchException as e:
+            q.status = "errored"
+            task_messenger.error(str(e))
+            self.logger.error(e, exc_info=self.debug)
+        else:
+            n = len(observations)
+            task_messenger.send("Caught %d observation%s.", n, "" if n == 1 else "s")
+            q.status = "finished"
+        finally:
+            q.execution_time = time.monotonic() - execution_time
             self.db.session.commit()
 
-            source_observations: List[Observation] = []
-            try:
-                source_observations = self._find_fixed_target(q, target, task_messenger)
-            except DataSourceWarning as e:
-                task_messenger.send(str(e))
-                q.status = "finished"
-            except CatchException as e:
-                q.status = "errored"
-                task_messenger.error(str(e))
-                self.logger.error(e, exc_info=self.debug)
-            else:
-                n = len(source_observations)
-                task_messenger.send("Caught %d observation%s.", n, "" if n == 1 else "s")
-                q.status = "finished"
-            finally:
-                observations.extend(source_observations)
-                q.execution_time = time.monotonic() - execution_time
-                self.db.session.commit()
-        
         return observations
 
     def is_query_cached(self, target: str, sources: Optional[str] = None) -> str:
@@ -490,7 +486,9 @@ class Catch(SBSearch):
         stats.updated = updated_stats[3]
         self.db.session.merge(stats)
 
-    def _find_catch_query(self, target: Union[str, MovingTarget]) -> Union[CatchQuery, None]:
+    def _find_catch_query(
+        self, target: Union[str, MovingTarget]
+    ) -> Union[CatchQuery, None]:
         """Find query ID for this target and source.
 
         ``uncertainty_ellipse`` and ``padding`` parameters are also checked.
@@ -540,7 +538,10 @@ class Catch(SBSearch):
         return len(founds)
 
     def _find_and_cache_moving_target(
-        self, query: CatchQuery, target: Union[str, MovingTarget], task_messenger: TaskMessenger
+        self,
+        query: CatchQuery,
+        target: Union[str, MovingTarget],
+        task_messenger: TaskMessenger,
     ):
         """Run the actual query.
 
@@ -624,8 +625,12 @@ class Catch(SBSearch):
             return 0
 
     def _find_fixed_target(
-        self, query: CatchQuery, target: FixedTarget, task_messenger: TaskMessenger
-    ):
+        self,
+        query: CatchQuery,
+        target: FixedTarget,
+        task_messenger: TaskMessenger,
+        sources: List[str],
+    ) -> List[Observation]:
         """Run the actual query.
 
         1. Notify the user of the survey and date range being searched.
@@ -635,14 +640,20 @@ class Catch(SBSearch):
         """
 
         # notify the user of survey and date range being searched
-        task_messenger.send("Query %s.", self.source.__data_source_name__)
+        task_messenger.send("Query %s.", ", ".join(sources))
 
         # Query the database for observations of the target ephemeris
         try:
-            observations: List[self.source] = self.find_observations_containing_point(target)
+            observations: List[self.source] = self.find_observations_containing_point(
+                target
+            )
         except Exception as e:
             raise FindObjectError(
                 "Critical error: could not search database for this target."
             ) from e
+        
+        # limit results to requested sources
+        observations = [obs for obs in observations
+                        if obs.source in sources]
 
         return observations

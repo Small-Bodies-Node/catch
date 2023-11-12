@@ -41,7 +41,7 @@ class CatchQuery(Base):
     query_id = Column(Integer, primary_key=True)
     job_id = Column(String(32), index=True, doc="Unique job ID, UUID version 4")
     query = Column(String(128), index=True, doc="User's query string")
-    source = Column(String(128), doc="Survey source table queried")
+    source = Column(String(512), doc="Survey source table queried")
     uncertainty_ellipse = Column(
         Boolean, doc="Query uncertainty_ellipse parameter"
     )
