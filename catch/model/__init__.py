@@ -36,24 +36,51 @@ from .spacewatch import Spacewatch
 from .loneos import LONEOS
 
 
+# database version
+version: str = "2.1"
+
+
 class CatchQuery(Base):
-    __tablename__ = "catch_query"
-    query_id = Column(Integer, primary_key=True)
-    job_id = Column(String(32), index=True, doc="Unique job ID, UUID version 4")
-    query = Column(String(128), index=True, doc="User's query string")
-    source = Column(String(512), doc="Survey source table queried")
-    uncertainty_ellipse = Column(
-        Boolean, doc="Query uncertainty_ellipse parameter"
+    __tablename__ = f"catch_query_{version.replace('.', '_')}"
+    query_id = Column(
+        Integer,
+        primary_key=True,
     )
-    padding = Column(Float(16), doc="Query padding parameter")
-    date = Column(String(64), doc="Date query was executed")
+    job_id = Column(
+        String(32),
+        index=True,
+        doc="Unique job ID, UUID version 4",
+    )
+    query = Column(
+        String(128),
+        index=True,
+        doc="User's query string",
+    )
+    source = Column(
+        String(512),
+        doc="Survey source table queried",
+    )
+    uncertainty_ellipse = Column(
+        Boolean,
+        doc="Query uncertainty_ellipse parameter",
+    )
+    padding = Column(
+        Float(16),
+        doc="Query padding parameter, arcmin",
+    )
+    intersection = Column(
+        String(32),
+        doc="Fixed target areal search intersection type",
+        nullable=True,
+    )
+    date = Column(
+        String(64),
+        doc="Date query was executed",
+    )
     execution_time = Column(
         Float(16),
         nullable=True,
-        doc=(
-            "Query execution time (wall clock, seconds), "
-            "or null for cached results"
-        ),
+        doc="Query execution time (wall clock, seconds), or null for cached results",
     )
     status = Column(String(64), doc="Query status")
 
@@ -66,6 +93,7 @@ class CatchQuery(Base):
             f" source={repr(self.source)}"
             f" uncertainty_ellipse={self.uncertainty_ellipse}"
             f" padding={self.padding}"
+            f" intersection='{self.intersection}'"
             f" date={self.date}"
             f" execution_time={self.execution_time}"
             f" status={self.status}>"
@@ -83,9 +111,14 @@ class SurveyStats(Base):
     updated = Column(Text, doc="Date these statistics were updated")
 
 
-# Add CATCH specific columns
+# Version found table and add CATCH specific columns
+Found.__tablename__ = f"found_{version.replace('.', '_')}"
 Found.query_id = Column(
     Integer,
-    ForeignKey("catch_query.query_id", onupdate="CASCADE", ondelete="CASCADE"),
+    ForeignKey(
+        f"{CatchQuery.__tablename__}.query_id",
+        onupdate="CASCADE",
+        ondelete="CASCADE",
+    ),
     index=True,
 )

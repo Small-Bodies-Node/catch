@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session, Query
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy import func
 from astropy.time import Time
-from sbsearch import SBSearch
+from sbsearch import SBSearch, IntersectionType
 from sbsearch.target import MovingTarget, FixedTarget
 
 from .model import (
@@ -64,6 +64,7 @@ class Catch(SBSearch):
         *args,
         uncertainty_ellipse: bool = False,
         padding: float = 0,
+        intersection: IntersectionType = IntersectionType.ImageIntersectsArea,
         **kwargs,
     ) -> None:
         super().__init__(
@@ -73,6 +74,7 @@ class Catch(SBSearch):
             max_edge_length=0.017,
             uncertainty_ellipse=uncertainty_ellipse,
             padding=padding,
+            intersection=intersection,
             logger_name="Catch",
             **kwargs,
         )
@@ -265,6 +267,7 @@ class Catch(SBSearch):
                 status="in progress",
                 uncertainty_ellipse=self.uncertainty_ellipse,
                 padding=self.padding,
+                intersection=None,  # not used for moving targets
             )
             self.db.session.add(q)
             self.db.session.commit()
@@ -282,7 +285,9 @@ class Catch(SBSearch):
                 self.db.session.commit()
             else:
                 try:
-                    n = self._find_and_cache_moving_target(q, target, task_messenger)
+                    n = self._find_and_cache_moving_target_observations(
+                        q, target, task_messenger
+                    )
                 except DataSourceWarning as e:
                     task_messenger.send(str(e))
                     q.status = "finished"
@@ -326,20 +331,23 @@ class Catch(SBSearch):
         self.logger.debug("Query {}".format(", ".join(sources)))
 
         q = CatchQuery(
-            query="fixed({})".format(str(target)),
+            query=str(target),
             job_id=job_id.hex,
             source=",".join(sources),
             date=Time.now().iso,
             status="in progress",
             uncertainty_ellipse=0,
-            padding=0,
+            padding=self.padding,
+            intersection=self.intersection.value,
         )
         self.db.session.add(q)
         self.db.session.commit()
 
         observations: List[Observation] = []
         try:
-            observations = self._find_fixed_target(target, task_messenger, sources)
+            observations = self._get_fixed_target_observations(
+                target, radius, intersection, task_messenger, sources
+            )
         except DataSourceWarning as e:
             task_messenger.send(str(e))
             q.status = "finished"
@@ -489,9 +497,9 @@ class Catch(SBSearch):
     def _find_catch_query(
         self, target: Union[str, MovingTarget]
     ) -> Union[CatchQuery, None]:
-        """Find query ID for this target and source.
+        """Find query ID for this moving target and source.
 
-        ``uncertainty_ellipse`` and ``padding`` parameters are also checked.
+        ``uncertainty_ellipse``, and ``padding`` parameters are also checked.
 
         Returns the last search with status=='finished', ``None`` otherwise.
 
@@ -537,7 +545,7 @@ class Catch(SBSearch):
 
         return len(founds)
 
-    def _find_and_cache_moving_target(
+    def _find_and_cache_moving_target_observations(
         self,
         query: CatchQuery,
         target: Union[str, MovingTarget],
@@ -624,7 +632,7 @@ class Catch(SBSearch):
         else:
             return 0
 
-    def _find_fixed_target(
+    def _get_fixed_target_observations(
         self,
         target: FixedTarget,
         task_messenger: TaskMessenger,
@@ -642,17 +650,18 @@ class Catch(SBSearch):
         task_messenger.send("Query %s.", ", ".join(sources))
 
         # Query the database for observations of the target ephemeris
+        observations: List[Observation]
         try:
-            observations: List[self.source] = self.find_observations_containing_point(
-                target
-            )
+            if self.padding > 0:
+                observations = self.find_observations_containing_point(target)
+            else:
+                observations = self.find_observations_intersecting_cap(target)
         except Exception as e:
             raise FindObjectError(
                 "Critical error: could not search database for this target."
             ) from e
 
         # limit results to requested sources
-        observations = [obs for obs in observations
-                        if obs.source in sources]
+        observations = [obs for obs in observations if obs.source in sources]
 
         return observations
