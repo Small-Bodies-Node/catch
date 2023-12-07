@@ -26,6 +26,10 @@ _ARCHIVE_URL_PREFIX: str = (
     "https://sbnarchive.psi.edu/pds4/surveys"
 )
 
+_CUTOUT_URL_PREFIX: str = (
+    "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images"
+)
+
 
 class Spacewatch(Observation):
     __tablename__: str = "spacewatch"
@@ -55,18 +59,27 @@ class Spacewatch(Observation):
     def archive_url(self):
         return "/".join((_ARCHIVE_URL_PREFIX, self.label.replace('.xml', '.fits')))
 
-    def cutout_url(self, ra, dec, size=0.0833, format="fits"):
+    def cutout_url(
+        self, ra: float, dec: float, size: float = 0.0833, format: str = "fits"
+    ) -> str:
         """URL to cutout ``size`` around ``ra``, ``dec`` in deg.
 
         For example:
-            https://sbnsurveys.astro.umd.edu/api/get/<product_id>
 
         format = fits, jpeg, png
 
         """
 
-        return None
+        size_arcmin: float = max(0.01, size * 60)
 
-    def preview_url(self, ra, dec, size=0.0833, format="jpeg"):
+        return (
+            f"{_CUTOUT_URL_PREFIX}/{self.product_id}"
+            f"?ra={ra}&dec={dec}&size={size_arcmin:.2f}arcmin"
+            f"&format={format}"
+        )
+
+    def preview_url(
+        self, ra: float, dec: float, size: float = 0.0833, format: str = "jpeg"
+    ) -> str:
         """Web preview image."""
         return self.cutout_url(ra, dec, size=size, format=format)

@@ -32,7 +32,7 @@ class NEATMauiGEODSS(Observation):
     def archive_url(self):
         """URL to original data product.
 
-        Currently using SBN Comet Sub-node local copy.
+        Currently via SBN Comet Sub-node.
 
         For example:
             https://sbnsurveys.astro.umd.edu/api/images/urn:nasa:pds:gbo.ast.neat.survey:data_geodss:g19960417_obsdata_960417070119d
@@ -48,7 +48,7 @@ class NEATMauiGEODSS(Observation):
     def cutout_url(self, ra, dec, size=0.0833, format="fits"):
         """URL to cutout ``size`` around ``ra``, ``dec`` in deg.
 
-        Currently using SBN Comet Sub-node local copy.
+        Currently via SBN Comet Sub-node.
 
         For example:
             https://sbnsurveys.astro.umd.edu/api/images/urn:nasa:pds:gbo.ast.neat.survey:data_geodss:g19960621_obsdata_960621121818a?format=jpeg&ra=286.8054&dec=-12.8289&size=5arcmin&download=false

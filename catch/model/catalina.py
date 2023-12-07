@@ -16,6 +16,10 @@ _ARCHIVE_URL_PREFIX: str = (
     "https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.catalina.survey/data_calibrated"
 )
 
+_CUTOUT_URL_PREFIX: str = (
+    "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images"
+)
+
 _month_to_Mon: Dict[str, str] = {
     "01": "Jan",
     "02": "Feb",
@@ -65,13 +69,18 @@ class CatalinaSkySurvey:
         """URL to cutout ``size`` around ``ra``, ``dec`` in deg.
 
         For example:
-            https://sbnsurveys.astro.umd.edu/api/get/<product_id>
 
         format = fits, jpeg, png
 
         """
 
-        return None
+        size_arcmin: float = max(0.01, size * 60)
+
+        return (
+            f"{_CUTOUT_URL_PREFIX}/{self.product_id}"
+            f"?ra={ra}&dec={dec}&size={size_arcmin:.2f}arcmin"
+            f"&format={format}"
+        )
 
     def preview_url(
         self, ra: float, dec: float, size: float = 0.0833, format: str = "jpeg"

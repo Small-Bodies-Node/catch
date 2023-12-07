@@ -96,6 +96,58 @@ def test_css_url():
     )
 
 
+def test_css_cutout_url():
+    obs = CatalinaLemmon(
+        product_id="urn:nasa:pds:gbo.ast.catalina.survey:data_calibrated:g96_20220130_2b_n27011_01_0001.arch"
+    )
+    found = Found(ra=12.3, dec=-4.56)
+
+    url = obs.cutout_url(found.ra, found.dec, size=0.1)
+    assert url == (
+        "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images/"
+        "urn:nasa:pds:gbo.ast.catalina.survey:data_calibrated:g96_20220130_2b_n27011_01_0001.arch"
+        "?ra=12.3&dec=-4.56&size=6arcmin&format=fits"
+    )
+
+    url = obs.preview_url(found.ra, found.dec, size=0.1)
+    assert url == (
+        "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images/"
+        "urn:nasa:pds:gbo.ast.catalina.survey:data_calibrated:g96_20220130_2b_n27011_01_0001.arch"
+        "?ra=12.3&dec=-4.56&size=6arcmin&format=jpeg"
+    )
+
+
+def test_sw_url():
+    obs = Spacewatch(
+        product_id="urn:nasa:pds:gbo.ast.spacewatch.survey:data:sw_1071_04.06_2009_07_29_03_59_40.003.fits"
+    )
+    assert (
+        obs.archive_url
+        == "https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.spacewatch.survey/data/2009/07/29/sw_1071_04.06_2009_07_29_03_59_40.003.fits"
+    )
+
+
+def test_sw_cutout_url():
+    obs = Spacewatch(
+        product_id="urn:nasa:pds:gbo.ast.spacewatch.survey:data:sw_1071_04.06_2009_07_29_03_59_40.003.fits"
+    )
+    found = Found(ra=12.3, dec=-4.56)
+
+    url = obs.cutout_url(found.ra, found.dec, size=0.1)
+    assert url == (
+        "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images/"
+        "urn:nasa:pds:gbo.ast.spacewatch.survey:data:sw_1071_04.06_2009_07_29_03_59_40.003.fits"
+        "?ra=12.3&dec=-4.56&size=6arcmin&format=fits"
+    )
+
+    url = obs.preview_url(found.ra, found.dec, size=0.1)
+    assert url == (
+        "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images/"
+        "urn:nasa:pds:gbo.ast.spacewatch.survey:data:sw_1071_04.06_2009_07_29_03_59_40.003.fits"
+        "?ra=12.3&dec=-4.56&size=6arcmin&format=jpeg"
+    )
+
+
 def failed_search(self, *args):
     raise Exception
 
