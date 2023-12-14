@@ -10,7 +10,6 @@ build-backend = "setuptools.build_meta"
 name = "catch"
 description = "Planetary Data System Small-Bodies Node astronomical survey search tool."
 keywords = ["astronomy", "astrophysics", "planetary", "asteroid", "comet", "space", "science"]
-package_name = "catch"
 readme = "README.md"
 authors = [
     { name = "Michael S. P. Kelley", email = "msk@astro.umd.edu" }
@@ -24,7 +23,6 @@ dependencies = [
     "pds4_tools>=1.3",
     "sbpy>0.3.0",
     "sbsearch>=2.1.0dev0",
-    "catch>=1.3.0dev0",
 ]
 dynamic = [ "version" ]
 
@@ -32,7 +30,7 @@ dynamic = [ "version" ]
 Homepage = "https://catch.astro.umd.edu"
 Repository = "https://github.com/Small-Bodies-Node/catch"
 
-[project.optional_dependencies]
+[project.optional-dependencies]
 test = [
     "pytest>=4.6",
     "pytest-astropy",
@@ -49,8 +47,7 @@ figures = [
 catch = "catch:catch_cli"
 
 [tool.setuptools]
-zip_save = False
-include_package_data = False
+zip-safe = false
 
 [tool.setuptools.packages.find]
 
@@ -60,7 +57,7 @@ write_to = "catch/version.py"
 [tool.pytest.ini_options]
 minversion = 4.6
 addopts = "--doctest-rst --cov=catch --cov-report=html"
-doctest_plus = enabled
+doctest_plus = "enabled"
 remote_data_strict = true
 doctest_norecursedirs = [ "*/setup_package.py" ]
 
@@ -72,17 +69,8 @@ omit = [
 ]
 
 [tools.coverage.report]
-exclude_lines =
-    # Have to re-enable the standard pragma
-    pragma: no cover
-    # Don't complain about packages we have installed
-    except ImportError
+exclude_lines = [
     # Don't complain if tests don't hit assertions
-    raise AssertionError
-    raise NotImplementedError
-    # Don't complain about script hooks
-    def main\(.*\):
-    # Ignore branches that don't pertain to this version of Python
-    pragma: py{ignore_python_version}
-    # Don't complain about IPython completion helper
-    def _ipython_key_completions_
+    "raise AssertionError",
+    "raise NotImplementedError",
+]
