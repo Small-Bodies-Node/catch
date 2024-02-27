@@ -59,7 +59,8 @@ def _parse_args() -> argparse.Namespace:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        'source', help='the root directory of the data, e.g., gbo.ast.loneos.survey_V1_0')
+        'source', help='path to data labels')
+#        'source', help='the root directory of the data, e.g., gbo.ast.loneos.survey_V1_0')
     parser.add_argument(
         "--config",
         default="catch.config",
@@ -82,7 +83,8 @@ def process(path):
     label = pds4_read(path, lazy_load=True, quiet=True).label
     lid = label.find("Identification_Area/logical_identifier").text
 
-    if lid.split(':')[:-1] != ["urn", "nasa", "pds", "gbo.ast.loneos.survey", "data_processed"]:
+#    if lid.split(':')[:-1] != ["urn", "nasa", "pds", "gbo.ast.loneos.survey", "data_processed"]:
+    if lid.split(':')[:-1] != ["urn", "nasa", "pds", "gbo.ast.loneos.survey", "data_augmented"]:
         raise NotLONEOSSkyData(path)
 
     target_name = label.find('.//Target_Identification/name').text
@@ -105,8 +107,9 @@ def process(path):
 
     survey = label.find(".//survey:Survey")
     ra, dec = [], []
-    # LONEOS test data does not use the correct order, until it is fixed...
-    for corner in ("Top Left", "Top Right", "Bottom Left", "Bottom Right"):
+    # first LONEOS test data does not use the correct order
+    # for corner in ("Top Left", "Top Right", "Bottom Left", "Bottom Right"):
+    for corner in ("Top Left", "Top Right", "Bottom Right", "Bottom Left"):
         coordinate = survey.find(
             "survey:Image_Corners"
             f"/survey:Corner_Position[survey:corner_identification='{corner}']"
@@ -156,7 +159,7 @@ def main():
         failed = 0
 
         tri = ProgressTriangle(1, logger=logger, base=2)
-        for (dirpath, dirnames, filenames) in os.walk(os.path.join(args.source, "data_processed")):
+        for (dirpath, dirnames, filenames) in os.walk(os.path.join(args.source)):
             for fn in [f for f in filenames if f.endswith('.xml')]:
                 path = os.path.join(dirpath, fn)
                 try:
@@ -166,7 +169,7 @@ def main():
                     failed += 1
                     continue
                 except CornerOrderTestFail as e:
-                    logger.error("Failed corder order test (%s)", str(e))
+                    logger.error("Failed corner order test (%s)", str(e))
                     failed += 1
                     continue
 
