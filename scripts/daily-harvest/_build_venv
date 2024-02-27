@@ -23,7 +23,7 @@ test ! -e CMakeLists.txt.orig && patch -i ../78.patch
 
 mkdir -p build
 cd build
-cmake -DCMAKE_INSTALL_PREFIX=$VIRTUAL_ENV ..
+cmake -DCMAKE_INSTALL_PREFIX=$VIRTUAL_ENV -DBUILD_EXAMPLES=OFF -Wno-dev ..
 make
 make install
 
