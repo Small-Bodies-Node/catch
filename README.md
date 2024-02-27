@@ -1,4 +1,4 @@
-# catch v1.2.3
+# catch v1.2.7
 
 Planetary Data System Small Bodies Node (PDS-SBN) astronomical survey data search tool.
 
@@ -38,7 +38,13 @@ Figure 1.  Ephemeris (dashed line) and S2 query cells (thin solid lines) for com
       ```
 
       For day-to-day operations, a more limited set of privileges may be used:
-      TBD
+
+      ```sql
+      GRANT SELECT ON all tables IN SCHEMA public TO user;
+      GRANT INSERT ON catch_query, found, obj, designation TO user;
+      GRANT UPDATE ON catch_query, found TO user;
+      GRANT USAGE ON SEQUENCE catch_query_query_id_seq, found_found_id_seq, obj_object_id_seq,designation_desg_id_seq TO user;
+      ```
 
    1. Edit log file location.
 1. Run the installed script `catch` to initialize the databases: `catch verify`.  See `catch` script below for more.

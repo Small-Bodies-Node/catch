@@ -39,18 +39,37 @@ from .loneos import LONEOS
 class CatchQuery(Base):
     __tablename__ = "catch_query"
     query_id = Column(Integer, primary_key=True)
-    job_id = Column(String(32), index=True,
-                    doc="Unique job ID, UUID version 4")
+    job_id = Column(String(32), index=True, doc="Unique job ID, UUID version 4")
     query = Column(String(128), index=True, doc="User's query string")
     source = Column(String(128), doc="Survey source table queried")
-    uncertainty_ellipse = Column(Boolean,
-                                 doc="Query uncertainty_ellipse parameter")
+    uncertainty_ellipse = Column(
+        Boolean, doc="Query uncertainty_ellipse parameter"
+    )
     padding = Column(Float(16), doc="Query padding parameter")
     date = Column(String(64), doc="Date query was executed")
-    execution_time = Column(Float(16), nullable=True,
-                            doc=("Query execution time (wall clock, seconds), "
-                                 "or null for cached results"))
+    execution_time = Column(
+        Float(16),
+        nullable=True,
+        doc=(
+            "Query execution time (wall clock, seconds), "
+            "or null for cached results"
+        ),
+    )
     status = Column(String(64), doc="Query status")
+
+    def __repr__(self) -> str:
+        return (
+            f"<{self.__class__.__name__}"
+            f" query_id={self.query_id},"
+            f" job_id={self.job_id},"
+            f" query={self.query}"
+            f" source={repr(self.source)}"
+            f" uncertainty_ellipse={self.uncertainty_ellipse}"
+            f" padding={self.padding}"
+            f" date={self.date}"
+            f" execution_time={self.execution_time}"
+            f" status={self.status}>"
+        )
 
 
 class SurveyStats(Base):

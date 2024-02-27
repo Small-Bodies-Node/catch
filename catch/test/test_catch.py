@@ -187,6 +187,35 @@ def test_query_all(catch, caplog, monkeypatch):
         ) in caplog.record_tuples
 
 
+@pytest.mark.remote_data
+def test_cache(catch):
+    # test data only exists for:
+    sources = None  # ['neat_palomar_tricam', 'neat_maui_geodss']
+
+    cached = catch.is_query_cached("2P")
+    assert not cached
+
+    job_id = uuid.uuid4()
+    n = catch.query("2P", job_id, sources=sources)
+    assert n == 2
+
+    cached = catch.is_query_cached("2P")
+    assert cached
+
+    # add padding, verify that the query has not been cached
+    catch.padding = 0.001
+    cached = catch.is_query_cached("2P")
+    assert not cached
+
+    # run the query with padding
+    n = catch.query("2P", job_id, sources=sources)
+    assert n == 2
+
+    # was it cached?
+    cached = catch.is_query_cached("2P")
+    assert cached
+
+
 def test_update_statistics(catch):
     catch.update_statistics()
     stats = (
@@ -254,7 +283,9 @@ def test_update_statistics(catch):
     )
     assert all_stats.count == 1801
     assert all_stats.start_date == start.iso
-    stop = Time(GEODSS_START + TRICAM_OFFSET + EXPTIME *
-                900 + SLEWTIME * 899, format="mjd")
+    stop = Time(
+        GEODSS_START + TRICAM_OFFSET + EXPTIME * 900 + SLEWTIME * 899,
+        format="mjd",
+    )
     assert all_stats.stop_date == stop.iso
     assert all_stats.updated == stats.updated

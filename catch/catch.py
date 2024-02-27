@@ -354,9 +354,7 @@ class Catch(SBSearch):
 
         q: Query = self.db.session.query(
             func.min(Observation.mjd_start), func.max(Observation.mjd_stop)
-        ).filter(
-            Observation.source == source.__tablename__
-        )
+        ).filter(Observation.source == source.__tablename__)
         dates: Any = q.one()
 
         table_name = source.__tablename__
@@ -386,18 +384,18 @@ class Catch(SBSearch):
     def _update_statistics_all(self):
         # update the 'All' entry in survey_statistics
         q: Query = self.db.session.query(
-            func.sum(SurveyStats.count), func.min(SurveyStats.start_date),
-            func.max(SurveyStats.stop_date), func.max(SurveyStats.updated)
-        ).filter(
-            SurveyStats.name != 'All'
-        )
+            func.sum(SurveyStats.count),
+            func.min(SurveyStats.start_date),
+            func.max(SurveyStats.stop_date),
+            func.max(SurveyStats.updated),
+        ).filter(SurveyStats.name != "All")
         updated_stats: Any = q.one()
 
         stats: SurveyStats
         try:
             stats = (
                 self.db.session.query(SurveyStats)
-                .filter(SurveyStats.name == 'All')
+                .filter(SurveyStats.name == "All")
                 .one()
             )
         except NoResultFound:
@@ -427,7 +425,11 @@ class Catch(SBSearch):
             .filter(CatchQuery.source == self.source.__tablename__)
             .filter(CatchQuery.status == "finished")
             .filter(CatchQuery.uncertainty_ellipse == self.uncertainty_ellipse)
-            .filter(CatchQuery.padding == self.padding)
+            .filter(
+                CatchQuery.padding.between(
+                    self.padding * 0.99, self.padding * 1.01
+                )
+            )
             .order_by(CatchQuery.query_id.desc())
             .first()
         )

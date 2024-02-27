@@ -28,6 +28,7 @@ The catch survey data model additionally requires:
 
 __all__ = ["NEATPalomarTricam"]
 
+from urllib.parse import urlencode, quote
 from sqlalchemy import BigInteger, Column, String, ForeignKey
 from sbsearch.model.core import Base, Observation
 
@@ -55,19 +56,43 @@ class NEATPalomarTricam(Observation):
 
     @property
     def archive_url(self):
-        return None
+        """URL to original data product.
+
+        Currently using SBN Comet Sub-node local copy.
+
+        For example:
+            https://sbnsurveys.astro.umd.edu/api/images/urn:nasa:pds:gbo.ast.neat.survey:data_tricam:p20020222_obsdata_20020222120052c
+
+        """
+
+        url = "https://sbnsurveys.astro.umd.edu/api/images/" + quote(
+            f"urn:nasa:pds:gbo.ast.neat.survey:data_tricam:{str(self.product_id).lower()}"
+        )
+
+        return url
 
     def cutout_url(self, ra, dec, size=0.0833, format="fits"):
         """URL to cutout ``size`` around ``ra``, ``dec`` in deg.
 
+        Currently using SBN Comet Sub-node local copy.
+
         For example:
-            https://sbnsurveys.astro.umd.edu/api/get/<product_id>
+            https://sbnsurveys.astro.umd.edu/api/images/urn:nasa:pds:gbo.ast.neat.survey:data_tricam:p20020222_obsdata_20020222120052c?format=jpeg&ra=174.62244&dec=17.97594&size=5arcmin&download=false
 
         format = fits, jpeg, png
 
         """
 
-        return None
+        query_string = urlencode(
+            {
+                "format": str(format),
+                "size": "{:.2f}arcmin".format(float(size) * 60),
+                "ra": float(ra),
+                "dec": float(dec),
+            }
+        )
+
+        return f"{self.archive_url}?{query_string}"
 
     def preview_url(self, ra, dec, size=0.0833, format="jpeg"):
         """Web preview image."""
