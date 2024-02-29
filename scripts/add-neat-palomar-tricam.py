@@ -58,6 +58,10 @@ with Catch.with_config(Config.from_file(args.config)) as catch:
             datafn = os.path.join(path, label["^IMAGE"][0]) + ".fz"
             h = fits.getheader(datafn, ext=1)
 
+            # skip dark frames:
+            if h["SHUTTER"] == "CLOSED":
+                continue
+
             # hardcoded because Palomar Tricam part 1 labels are wrong
             # shape = np.array((label['IMAGE']['LINES'],
             #                   label['IMAGE']['SAMPLES']))
