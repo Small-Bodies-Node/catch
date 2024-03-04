@@ -9,20 +9,32 @@ pushd .
 mkdir -p build
 cd build
 
-# install s2geometry library
-S2HASH=a4dddf40647c68cd0104eafc31e9c8fb247a6308
+# checkout code, S2 and Abseil
+S2_TAG=v0.10.0
+test ! -e ${S2_TAG}.tar.gz && wget https://github.com/google/s2geometry/archive/refs/tags/${S2_TAG}.tar.gz
+test ! -e s2geometry-${S2_TAG} && tar xzf ${S2_TAG}.tar.gz
 
-test ! -e ${S2HASH}.tar.gz && wget https://github.com/google/s2geometry/archive/${S2HASH}.tar.gz
-test ! -e s2geometry-${S2HASH} && tar xzf ${S2HASH}.tar.gz
+# install abseil from source, as per s2geometry's readme
+# (it must be configured with -DCMAKE_POSITION_INDEPENDENT_CODE=ON)
+# We are using C++11, and the last version to support it is LTS 20220623.1
+ABSEIL_TAG=20220623.1
+test ! -e ${ABSEIL_TAG}.tar.gz && wget https://github.com/abseil/abseil-cpp/archive/refs/tags/${ABSEIL_TAG}.tar.gz
+test ! -e abseil-cpp-${ABSEIL_TAG} && tar xzf ${ABSEIL_TAG}.tar.gz
 
-# apply patch so we can build without google's testing library
-test ! -e 78.patch && wget https://patch-diff.githubusercontent.com/raw/google/s2geometry/pull/78.patch
-cd s2geometry-${S2HASH}
-test ! -e CMakeLists.txt.orig && patch -i ../78.patch
-
+cd abseil-cpp-${ABSEIL_TAG}
 mkdir -p build
 cd build
-cmake -DCMAKE_INSTALL_PREFIX=$VIRTUAL_ENV ..
+cmake -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_CXX_STANDARD=11 -DCMAKE_INSTALL_PREFIX=$VIRTUAL_ENV ..
+make -j $(nproc)
+make install
+cd ../..
+export LDFLAGS="-L$VIRTUAL_ENV/lib -Wl,-rpath=$VIRTUAL_ENV/lib"
+
+cd s2geometry-${S2_TAG:1}
+ln -sfn ../abseil-cpp-${ABSEIL_TAG} abseil
+mkdir -p build
+cd build
+cmake -DCMAKE_PREFIX_PATH=$VIRTUAL_ENV -DCMAKE_CXX_STANDARD=11 -DCMAKE_INSTALL_PREFIX=$VIRTUAL_ENV -Wno-dev ..
 make -j $(nproc)
 make install
 
@@ -30,38 +42,7 @@ popd
 
 # install python libraries
 pip install numpy sbpy cython psycopg2-binary
-LDFLAGS="-L$VIRTUAL_ENV/lib -Wl,-rpath=$VIRTUAL_ENV/lib" pip install -e git+https://git@github.com/Small-Bodies-Node/sbsearch.git#egg=sbsearch
+pip install -e git+https://git@github.com/Small-Bodies-Node/sbsearch.git#egg=sbsearch
 pip install -e .
 pip install matplotlib spherical_geometry pycairo pygobject ipython
 
-## update s2 someday? ...
-
-# install abseil
-
-# install abseil from source, as per s2geometry's readme
-# (it must be configured with -DCMAKE_POSITION_INDEPENDENT_CODE=ON)
-# ABSEIL_HASH=9edef2349c8c4ace11b4a1b97365cf9c9a293dc8
-
-# test ! -e ${ABSEIL_HASH}.tar.gz && wget https://github.com/abseil/abseil-cpp/archive/${ABSEIL_HASH}.tar.gz
-# test ! -e abseil-cpp-${ABSEIL_HASH} && tar xzf ${ABSEIL_HASH}.tar.gz
-
-# cd abseil-cpp-${ABSEIL_HASH}
-# mkdir -p build
-# cd build
-# cmake -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_CXX_STANDARD=11 -DCMAKE_INSTALL_PREFIX=$VIRTUAL_ENV ..
-# make -j $(nproc)
-# make install
-# cd ../..
-
-# # install s2geometry library
-# S2_HASH=7a40135059545396237a0199c558d749fe3be0b1
-
-# test ! -e ${S2_HASH}.tar.gz && wget https://github.com/google/s2geometry/archive/${S2_HASH}.tar.gz
-# test ! -e s2geometry-${S2_HASH} && tar xzf ${S2_HASH}.tar.gz
-
-# cd s2geometry-${S2_HASH}
-# mkdir -p build
-# cd build
-# cmake -DCMAKE_PREFIX_PATH=$VIRTUAL_ENV -DCMAKE_CXX_STANDARD=11 -DCMAKE_INSTALL_PREFIX=$VIRTUAL_ENV ..
-# make -j $(nproc)
-# make install

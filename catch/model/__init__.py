@@ -73,6 +73,16 @@ class CatchQuery(Base):
         doc="Fixed target areal search intersection type",
         nullable=True,
     )
+    start_date = Column(
+        String(32),
+        doc="Query range start date",
+        nullable=True,
+    )
+    stop_date = Column(
+        String(32),
+        doc="Query range stop date",
+        nullable=True,
+    )
     date = Column(
         String(64),
         doc="Date query was executed",
@@ -94,6 +104,8 @@ class CatchQuery(Base):
             f" uncertainty_ellipse={self.uncertainty_ellipse}"
             f" padding={self.padding}"
             f" intersection='{self.intersection}'"
+            f" start_date='{self.start_date}'"
+            f" stop_date='{self.stop_date}'"
             f" date={self.date}"
             f" execution_time={self.execution_time}"
             f" status={self.status}>"

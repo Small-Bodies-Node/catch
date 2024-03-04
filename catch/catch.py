@@ -65,6 +65,8 @@ class Catch(SBSearch):
         uncertainty_ellipse: bool = False,
         padding: float = 0,
         intersection: IntersectionType = IntersectionType.ImageIntersectsArea,
+        start_date: Optional[str] = None,
+        stop_date: Optional[str] = None,
         **kwargs,
     ) -> None:
         super().__init__(
@@ -75,6 +77,8 @@ class Catch(SBSearch):
             uncertainty_ellipse=uncertainty_ellipse,
             padding=padding,
             intersection=intersection,
+            start_date=start_date,
+            stop_date=stop_date,
             logger_name="Catch",
             **kwargs,
         )
@@ -267,6 +271,8 @@ class Catch(SBSearch):
                 status="in progress",
                 uncertainty_ellipse=self.uncertainty_ellipse,
                 padding=self.padding,
+                start_date=self.start_date,
+                stop_date=self.stop_date,
                 intersection=None,  # not used for moving targets
             )
             self.db.session.add(q)
@@ -338,6 +344,8 @@ class Catch(SBSearch):
             status="in progress",
             uncertainty_ellipse=0,
             padding=self.padding,
+            start_date=self.start_date,
+            stop_date=self.stop_date,
             intersection=self.intersection.value,
         )
         self.db.session.add(q)
@@ -346,7 +354,7 @@ class Catch(SBSearch):
         observations: List[Observation] = []
         try:
             observations = self._get_fixed_target_observations(
-                target, radius, intersection, task_messenger, sources
+                target, task_messenger, sources
             )
         except DataSourceWarning as e:
             task_messenger.send(str(e))
