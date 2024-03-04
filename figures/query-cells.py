@@ -9,23 +9,28 @@ from sbsearch.spatial import term_to_cell_vertices
 
 target = '65P'
 dates = ('2017-07-15', '2017-08-15')
-#dates = ('2017-01-01', '2017-12-31')
-#dates = ('2014-03-15', '2018-03-15')
+# dates = ('2017-01-01', '2017-12-31')
+# dates = ('2014-03-15', '2018-03-15')
 view = (10, -110)  # elevation, azimuth for 3D plot
-config = Config(database='postgresql://@/catch_dev',
-                log='/dev/null',
-                debug=True)
+# config = Config(database='postgresql://@/catch_dev',
+#                 log='/dev/null',
+#                 debug=True)
+config = Config.from_file("../catch-dev_aws.config")
 
 file_suffix = (f'{target.lower().replace(" ", "").replace("/", "")}'
                f'-{dates[0].replace("-", "")}'
                f'-{dates[1].replace("-", "")}')
 
+timestamps = []
+timestamps.append(("Open catch...", Time.now()))
 with Catch.with_config(config) as catch:
+    timestamps.append(("Opened...", Time.now()))
     # get 65P query terms for Jul/Aug 2017
     comet = catch.get_designation(target)
     eph = comet.ephemeris(model.SkyMapper,
                           start=Time(dates[0]),
                           stop=Time(dates[1]))
+    timestamps.append(("Got ephemeris", Time.now()))
 
     ra = np.array([e.ra for e in eph])
     dec = np.array([e.dec for e in eph])
@@ -33,12 +38,14 @@ with Catch.with_config(config) as catch:
     query_terms = set(sum([
         terms for (terms, segment) in line_to_segment_query_terms(
             catch.indexer, np.radians(ra), np.radians(dec), t)], []))
+    timestamps.append(("Got query terms", Time.now()))
 
     # convert query terms into cells
     query_cells = {
         term: np.degrees(term_to_cell_vertices(term.lstrip('$').encode()))
         for term in query_terms
     }
+    timestamps.append(("Generated cell vertices", Time.now()))
 
     # get matching observations from database
     catch.source = 'skymapper'
@@ -46,8 +53,11 @@ with Catch.with_config(config) as catch:
     obs_by_ephemeris = catch.find_observations_by_ephemeris(eph)
     obs_terms = sum([obs.spatial_terms for obs in obs_by_ephemeris], [])
 
-    # detach data objects from database to make them perisistent
+    timestamps.append(("Got observations", Time.now()))
+    # detach data objects from database to make them persistent
     catch.db.session.expunge_all()
+
+    timestamps.append(("Made observations persistent", Time.now()))
 
 # ################################################################################
 
@@ -159,7 +169,7 @@ plt.tight_layout(pad=0.2)
 annotate(ax, dates[0], ra[0], dec[0])
 annotate(ax, dates[1], ra[-1], dec[-1])
 
-plt.savefig(f'query-cells-ra-dec-{file_suffix}.png')
+plt.savefig(f'query-cells-ra-dec-{file_suffix}.png', dpi=200)
 ra_lim = ax.get_xlim()
 dec_lim = ax.get_ylim()
 
@@ -197,7 +207,7 @@ plt.tight_layout(pad=0.2)
 annotate(ax, dates[0], ra[0], t[0])
 annotate(ax, dates[1], ra[-1], t[-1])
 
-plt.savefig(f'query-cells-ra-time-{file_suffix}.png')
+plt.savefig(f'query-cells-ra-time-{file_suffix}.png', dpi=200)
 
 # ################################################################################
 
@@ -232,7 +242,7 @@ plt.tight_layout(pad=0.2)
 annotate(ax, dates[0], t[0], dec[0])
 annotate(ax, dates[1], t[-1], dec[-1])
 
-plt.savefig(f'query-cells-dec-time-{file_suffix}.png')
+plt.savefig(f'query-cells-dec-time-{file_suffix}.png', dpi=200)
 
 # ################################################################################
 
@@ -259,7 +269,7 @@ ax.view_init(*view)
 plt.setp(ax, xlim=ra_lim, xlabel='RA (deg)',
          ylim=dec_lim, ylabel='Dec (deg)')
 plt.tight_layout()
-plt.savefig(f'query-cells-ra-dec-time-{file_suffix}.png')
+plt.savefig(f'query-cells-ra-dec-time-{file_suffix}.png', dpi=200)
 
 
 # ################################################################################
@@ -306,4 +316,10 @@ plt.tight_layout(pad=0.2)
 annotate(ax, dates[0], ra[0], dec[0])
 annotate(ax, dates[1], ra[-1], dec[-1])
 
-plt.savefig(f'query-cells-{file_suffix}.png')
+plt.savefig(f'query-cells-{file_suffix}.png', dpi=200)
+
+timestamps.append(("Plots generated", Time.now()))
+
+t0 = timestamps[0][1]
+for timestamp in timestamps:
+    print(timestamp[0], timestamp[1].iso, (timestamp[1] - t0).jd * 86400)
