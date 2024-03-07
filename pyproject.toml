@@ -22,7 +22,7 @@ dependencies = [
     "astroquery>=0.4.5",
     "pds4_tools>=1.3",
     "sbpy>0.3.0",
-    "sbsearch>=2.1.0dev0",
+    "sbsearch>=2.1.0dev22",
 ]
 dynamic = [ "version" ]
 
@@ -61,14 +61,14 @@ doctest_plus = "enabled"
 remote_data_strict = true
 doctest_norecursedirs = [ "*/setup_package.py" ]
 
-[tools.coverage.run]
+[tool.coverage.run]
 omit = [
     "catch/test/*",
     "catch/version*",
     "catch/setup_package.py",
 ]
 
-[tools.coverage.report]
+[tool.coverage.report]
 exclude_lines = [
     # Don't complain if tests don't hit assertions
     "raise AssertionError",
