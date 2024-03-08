@@ -200,7 +200,25 @@ def test_query_all(catch, caplog, monkeypatch):
     m = catch.query(target, job_id)
     assert n == m
 
-    # second query should be a cached result and just for Tricam
+    # repeat with a date range
+    catch.start_date = Time(GEODSS_START, format="mjd")
+    job_id = uuid.uuid4()
+    target = MovingTarget("2P")
+    m = catch.query(target, job_id)
+    assert n == m  # no change
+
+    # more restrictive date range
+    catch.stop_date = Time(GEODSS_START + TRICAM_OFFSET - 1, format="mjd")
+    job_id = uuid.uuid4()
+    target = MovingTarget("2P")
+    n = catch.query(target, job_id)
+    caught = catch.caught(job_id)
+    assert n == 1
+    assert isinstance(caught[0][1], NEATMauiGEODSS)
+
+    # next query should be a cached result and just for Tricam
+    catch.start_date = None
+    catch.stop_date = None
     job_id = uuid.uuid4()
     n = catch.query("2P", job_id, sources=["neat_palomar_tricam"])
     assert n == 1
@@ -212,7 +230,7 @@ def test_query_all(catch, caplog, monkeypatch):
     ) in caplog.record_tuples
 
     caught = catch.caught(job_id)
-    assert len(caught) == 1  # one for each survey
+    assert len(caught) == 1
     assert isinstance(caught[0][1], NEATPalomarTricam)
 
     # cached results do not store an execution time

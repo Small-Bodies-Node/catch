@@ -267,9 +267,9 @@ class Catch(SBSearch):
                 status="in progress",
                 uncertainty_ellipse=self.uncertainty_ellipse,
                 padding=self.padding,
-                start_date=self.start_date,
-                stop_date=self.stop_date,
-                intersection=None,  # not used for moving targets
+                start_date=None if self.start_date is None else self.start_date.iso,
+                stop_date=None if self.stop_date is None else self.stop_date.iso,
+                intersection_type=None,  # not used for moving targets
             )
             self.db.session.add(q)
             self.db.session.commit()
@@ -523,8 +523,14 @@ class Catch(SBSearch):
             .filter(
                 CatchQuery.padding.between(self.padding * 0.99, self.padding * 1.01)
             )
-            .filter(CatchQuery.start_date == self.start_date)
-            .filter(CatchQuery.stop_date == self.stop_date)
+            .filter(
+                CatchQuery.start_date
+                == (None if self.start_date is None else self.start_date.iso)
+            )
+            .filter(
+                CatchQuery.stop_date
+                == (None if self.stop_date is None else self.stop_date.iso)
+            )
             .order_by(CatchQuery.query_id.desc())
             .first()
         )

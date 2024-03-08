@@ -103,7 +103,7 @@ class CatchQuery(Base):
             f" source={repr(self.source)}"
             f" uncertainty_ellipse={self.uncertainty_ellipse}"
             f" padding={self.padding}"
-            f" intersection='{self.intersection_type}'"
+            f" intersection_type='{self.intersection_type}'"
             f" start_date='{self.start_date}'"
             f" stop_date='{self.stop_date}'"
             f" date={self.date}"
