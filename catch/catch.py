@@ -1,6 +1,6 @@
 # Licensed with the 3-clause BSD license.  See LICENSE for details.
 
-__all__ = ["Catch"]
+__all__ = ["Catch", "IntersectionType"]
 
 import time
 import uuid
