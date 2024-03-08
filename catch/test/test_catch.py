@@ -1,9 +1,9 @@
 # Licensed with the 3-clause BSD license.  See LICENSE for details.
 
 import uuid
-from numpy.core.fromnumeric import product
-import pytest
+from typing import List
 
+import pytest
 import numpy as np
 from astropy.time import Time
 import sqlalchemy as sa
@@ -13,12 +13,14 @@ from sbsearch.target import MovingTarget, FixedTarget
 from ..catch import Catch
 from ..config import Config
 from ..model import (
+    CatchQuery,
     NEATMauiGEODSS,
     NEATPalomarTricam,
     Found,
     SkyMapper,
     CatalinaBigelow,
     CatalinaLemmon,
+    Spacewatch,
     SurveyStats,
 )
 
@@ -106,20 +108,21 @@ def test_css_cutout_url():
     assert url == (
         "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images/"
         "urn:nasa:pds:gbo.ast.catalina.survey:data_calibrated:g96_20220130_2b_n27011_01_0001.arch"
-        "?ra=12.3&dec=-4.56&size=6arcmin&format=fits"
+        "?ra=12.3&dec=-4.56&size=6.00arcmin&format=fits"
     )
 
     url = obs.preview_url(found.ra, found.dec, size=0.1)
     assert url == (
         "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images/"
         "urn:nasa:pds:gbo.ast.catalina.survey:data_calibrated:g96_20220130_2b_n27011_01_0001.arch"
-        "?ra=12.3&dec=-4.56&size=6arcmin&format=jpeg"
+        "?ra=12.3&dec=-4.56&size=6.00arcmin&format=jpeg"
     )
 
 
 def test_sw_url():
     obs = Spacewatch(
-        product_id="urn:nasa:pds:gbo.ast.spacewatch.survey:data:sw_1071_04.06_2009_07_29_03_59_40.003.fits"
+        product_id="urn:nasa:pds:gbo.ast.spacewatch.survey:data:sw_1071_04.06_2009_07_29_03_59_40.003.fits",
+        label="gbo.ast.spacewatch.survey/data/2009/07/29/sw_1071_04.06_2009_07_29_03_59_40.003.xml",
     )
     assert (
         obs.archive_url
@@ -137,14 +140,14 @@ def test_sw_cutout_url():
     assert url == (
         "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images/"
         "urn:nasa:pds:gbo.ast.spacewatch.survey:data:sw_1071_04.06_2009_07_29_03_59_40.003.fits"
-        "?ra=12.3&dec=-4.56&size=6arcmin&format=fits"
+        "?ra=12.3&dec=-4.56&size=6.00arcmin&format=fits"
     )
 
     url = obs.preview_url(found.ra, found.dec, size=0.1)
     assert url == (
         "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images/"
         "urn:nasa:pds:gbo.ast.spacewatch.survey:data:sw_1071_04.06_2009_07_29_03_59_40.003.fits"
-        "?ra=12.3&dec=-4.56&size=6arcmin&format=jpeg"
+        "?ra=12.3&dec=-4.56&size=6.00arcmin&format=jpeg"
     )
 
 
@@ -165,9 +168,7 @@ def test_source_time_limits(catch):
         sa.func.max(NEATPalomarTricam.mjd_stop),
     ).one()
     assert mjd_start == GEODSS_START + TRICAM_OFFSET
-    assert np.isclose(
-        mjd_stop, 50814.0 + 900 * (EXPTIME + SLEWTIME) + TRICAM_OFFSET
-    )
+    assert np.isclose(mjd_stop, 50814.0 + 900 * (EXPTIME + SLEWTIME) + TRICAM_OFFSET)
 
 
 @pytest.mark.remote_data
@@ -232,9 +233,7 @@ def test_query_all(catch, caplog, monkeypatch):
     job_id = uuid.uuid4()
     with monkeypatch.context() as m:
         m.setattr(catch, "find_observations_by_ephemeris", failed_search)
-        n = catch.query(
-            "2P", job_id, sources=["neat_palomar_tricam"], cached=False
-        )
+        n = catch.query("2P", job_id, sources=["neat_palomar_tricam"], cached=False)
         assert n == 0
         assert (
             f"CATCH-APIs {job_id.hex}",
@@ -279,9 +278,7 @@ def test_update_statistics(catch):
     assert stats.count == 900
 
     all_stats: SurveyStats = (
-        catch.db.session.query(SurveyStats)
-        .filter(SurveyStats.name == "All")
-        .one()
+        catch.db.session.query(SurveyStats).filter(SurveyStats.name == "All").one()
     )
     assert all_stats.count == 1800
 
@@ -310,9 +307,7 @@ def test_update_statistics(catch):
     assert stats.count == 900
 
     all_stats: SurveyStats = (
-        catch.db.session.query(SurveyStats)
-        .filter(SurveyStats.name == "All")
-        .one()
+        catch.db.session.query(SurveyStats).filter(SurveyStats.name == "All").one()
     )
     assert all_stats.count == 1800
 
@@ -330,9 +325,7 @@ def test_update_statistics(catch):
     assert stats.stop_date == stop.iso
 
     all_stats = (
-        catch.db.session.query(SurveyStats)
-        .filter(SurveyStats.name == "All")
-        .one()
+        catch.db.session.query(SurveyStats).filter(SurveyStats.name == "All").one()
     )
     assert all_stats.count == 1801
     assert all_stats.start_date == start.iso
@@ -343,8 +336,25 @@ def test_update_statistics(catch):
     assert all_stats.stop_date == stop.iso
     assert all_stats.updated == stats.updated
 
-def test_fixed_target_search(catch):
+
+def test_fixed_target_point_search(catch: Catch):
     target = FixedTarget.from_radec("00 05 00", "-30 15 00", unit=("hourangle", "deg"))
     job_id = uuid.uuid4()
     observations = catch.query(target, job_id)
     assert len(observations) == 4
+
+    queries: List[CatchQuery] = catch.queries_from_job_id(job_id)
+    assert all([query.intersection_type is None for query in queries])
+    assert all([query.query == str(target) for query in queries])
+
+
+def test_fixed_target_areal_search(catch: Catch):
+    target = FixedTarget.from_radec("00 08 00", "-30 15 00", unit=("hourangle", "deg"))
+    catch.padding = 180  # arcmin
+    job_id = uuid.uuid4()
+    observations = catch.query(target, job_id)
+    assert len(observations) == 8
+
+    queries: List[CatchQuery] = catch.queries_from_job_id(job_id)
+    assert all([query.intersection_type == "ImageIntersectsArea" for query in queries])
+    assert all([query.query == str(target) for query in queries])

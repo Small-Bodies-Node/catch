@@ -46,6 +46,12 @@ class Catch(SBSearch):
     padding : float, optional
         Additional padding to the search area, arcmin.
 
+    start_date, stop_date : Time, optional
+        Optional date range parameters for fixed target queries.
+
+    intersection_type : sbsearch.IntersectionType
+        Type of intersections allowed between observations and query area.
+
     debug : bool, optional
         Enable debugging messages.
 
@@ -62,11 +68,6 @@ class Catch(SBSearch):
         self,
         database: Union[str, Session],
         *args,
-        uncertainty_ellipse: bool = False,
-        padding: float = 0,
-        intersection: IntersectionType = IntersectionType.ImageIntersectsArea,
-        start_date: Optional[str] = None,
-        stop_date: Optional[str] = None,
         **kwargs,
     ) -> None:
         super().__init__(
@@ -74,11 +75,6 @@ class Catch(SBSearch):
             *args,
             min_edge_length=1e-3,
             max_edge_length=0.017,
-            uncertainty_ellipse=uncertainty_ellipse,
-            padding=padding,
-            intersection=intersection,
-            start_date=start_date,
-            stop_date=stop_date,
             logger_name="Catch",
             **kwargs,
         )
@@ -336,6 +332,10 @@ class Catch(SBSearch):
         self.source = Observation
         self.logger.debug("Query {}".format(", ".join(sources)))
 
+        intersection_type: Union[str, None] = (
+            None if self.padding == 0 else self.intersection_type.name
+        )
+
         q = CatchQuery(
             query=str(target),
             job_id=job_id.hex,
@@ -346,7 +346,7 @@ class Catch(SBSearch):
             padding=self.padding,
             start_date=self.start_date,
             stop_date=self.stop_date,
-            intersection=self.intersection.value,
+            intersection_type=intersection_type,
         )
         self.db.session.add(q)
         self.db.session.commit()
@@ -507,7 +507,8 @@ class Catch(SBSearch):
     ) -> Union[CatchQuery, None]:
         """Find query ID for this moving target and source.
 
-        ``uncertainty_ellipse``, and ``padding`` parameters are also checked.
+        ``uncertainty_ellipse``, ``padding``, ``start_date``, and ``stop_date``
+        parameters are also checked.
 
         Returns the last search with status=='finished', ``None`` otherwise.
 
@@ -522,6 +523,8 @@ class Catch(SBSearch):
             .filter(
                 CatchQuery.padding.between(self.padding * 0.99, self.padding * 1.01)
             )
+            .filter(CatchQuery.start_date == self.start_date)
+            .filter(CatchQuery.stop_date == self.stop_date)
             .order_by(CatchQuery.query_id.desc())
             .first()
         )
@@ -581,8 +584,8 @@ class Catch(SBSearch):
         q: Query = self.db.session.query(
             func.min(Observation.mjd_start), func.max(Observation.mjd_stop)
         )
-        if self.source.__tablename__ != "observation":
-            q = q.filter(Observation.source == self.source.__tablename__)
+        q = self._filter_by_source(q)
+        q = self._filter_by_date(q)
 
         mjd_start: float
         mjd_stop: float
@@ -661,9 +664,9 @@ class Catch(SBSearch):
         observations: List[Observation]
         try:
             if self.padding > 0:
-                observations = self.find_observations_containing_point(target)
-            else:
                 observations = self.find_observations_intersecting_cap(target)
+            else:
+                observations = self.find_observations_containing_point(target)
         except Exception as e:
             raise FindObjectError(
                 "Critical error: could not search database for this target."
