@@ -344,8 +344,8 @@ class Catch(SBSearch):
             status="in progress",
             uncertainty_ellipse=0,
             padding=self.padding,
-            start_date=self.start_date,
-            stop_date=self.stop_date,
+            start_date=None if self.start_date is None else self.start_date.iso,
+            stop_date=None if self.stop_date is None else self.stop_date.iso,
             intersection_type=intersection_type,
         )
         self.db.session.add(q)

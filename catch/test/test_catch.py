@@ -358,3 +358,12 @@ def test_fixed_target_areal_search(catch: Catch):
     queries: List[CatchQuery] = catch.queries_from_job_id(job_id)
     assert all([query.intersection_type == "ImageIntersectsArea" for query in queries])
     assert all([query.query == str(target) for query in queries])
+
+
+def test_fixed_target_date_range(catch: Catch):
+    target = FixedTarget.from_radec("00 05 00", "-30 15 00", unit=("hourangle", "deg"))
+    job_id = uuid.uuid4()
+    catch.stop_date = Time(52000, format="mjd")  # just search dates before Palomar Tricam
+    observations = catch.query(target, job_id)
+    assert len(observations) == 2
+    assert all([obs.source == "neat_maui_geodss" for obs in observations])
