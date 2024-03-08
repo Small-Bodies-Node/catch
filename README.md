@@ -1,4 +1,4 @@
-# catch v1.3.0dev
+# catch v1.3.0
 
 Planetary Data System Small Bodies Node (PDS-SBN) astronomical survey data search tool.
 
