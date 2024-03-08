@@ -1,23 +1,26 @@
 # Licensed with the 3-clause BSD license.  See LICENSE for details.
 
 import uuid
-from numpy.core.fromnumeric import product
-import pytest
+from typing import List
 
+import pytest
 import numpy as np
 from astropy.time import Time
 import sqlalchemy as sa
 import testing.postgresql
 
+from sbsearch.target import MovingTarget, FixedTarget
 from ..catch import Catch
 from ..config import Config
 from ..model import (
+    CatchQuery,
     NEATMauiGEODSS,
     NEATPalomarTricam,
     Found,
     SkyMapper,
     CatalinaBigelow,
     CatalinaLemmon,
+    Spacewatch,
     SurveyStats,
 )
 
@@ -95,6 +98,59 @@ def test_css_url():
     )
 
 
+def test_css_cutout_url():
+    obs = CatalinaLemmon(
+        product_id="urn:nasa:pds:gbo.ast.catalina.survey:data_calibrated:g96_20220130_2b_n27011_01_0001.arch"
+    )
+    found = Found(ra=12.3, dec=-4.56)
+
+    url = obs.cutout_url(found.ra, found.dec, size=0.1)
+    assert url == (
+        "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images/"
+        "urn:nasa:pds:gbo.ast.catalina.survey:data_calibrated:g96_20220130_2b_n27011_01_0001.arch"
+        "?ra=12.3&dec=-4.56&size=6.00arcmin&format=fits"
+    )
+
+    url = obs.preview_url(found.ra, found.dec, size=0.1)
+    assert url == (
+        "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images/"
+        "urn:nasa:pds:gbo.ast.catalina.survey:data_calibrated:g96_20220130_2b_n27011_01_0001.arch"
+        "?ra=12.3&dec=-4.56&size=6.00arcmin&format=jpeg"
+    )
+
+
+def test_sw_url():
+    obs = Spacewatch(
+        product_id="urn:nasa:pds:gbo.ast.spacewatch.survey:data:sw_1071_04.06_2009_07_29_03_59_40.003.fits",
+        label="gbo.ast.spacewatch.survey/data/2009/07/29/sw_1071_04.06_2009_07_29_03_59_40.003.xml",
+    )
+    assert (
+        obs.archive_url
+        == "https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.spacewatch.survey/data/2009/07/29/sw_1071_04.06_2009_07_29_03_59_40.003.fits"
+    )
+
+
+def test_sw_cutout_url():
+    obs = Spacewatch(
+        product_id="urn:nasa:pds:gbo.ast.spacewatch.survey:data:sw_1071_04.06_2009_07_29_03_59_40.003.fits"
+    )
+    found = Found(ra=12.3, dec=-4.56)
+
+    url = obs.cutout_url(found.ra, found.dec, size=0.1)
+    assert url == (
+        "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images/"
+        "urn:nasa:pds:gbo.ast.spacewatch.survey:data:sw_1071_04.06_2009_07_29_03_59_40.003.fits"
+        "?ra=12.3&dec=-4.56&size=6.00arcmin&format=fits"
+    )
+
+    url = obs.preview_url(found.ra, found.dec, size=0.1)
+    assert url == (
+        "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images/"
+        "urn:nasa:pds:gbo.ast.spacewatch.survey:data:sw_1071_04.06_2009_07_29_03_59_40.003.fits"
+        "?ra=12.3&dec=-4.56&size=6.00arcmin&format=jpeg"
+    )
+
+
 def failed_search(self, *args):
     raise Exception
 
@@ -112,21 +168,16 @@ def test_source_time_limits(catch):
         sa.func.max(NEATPalomarTricam.mjd_stop),
     ).one()
     assert mjd_start == GEODSS_START + TRICAM_OFFSET
-    assert np.isclose(
-        mjd_stop, 50814.0 + 900 * (EXPTIME + SLEWTIME) + TRICAM_OFFSET
-    )
+    assert np.isclose(mjd_stop, 50814.0 + 900 * (EXPTIME + SLEWTIME) + TRICAM_OFFSET)
 
 
 @pytest.mark.remote_data
 def test_query_all(catch, caplog, monkeypatch):
-    # test data only exists for:
-    sources = None  # ['neat_palomar_tricam', 'neat_maui_geodss']
-
     cached = catch.is_query_cached("2P")
     assert not cached
 
     job_id = uuid.uuid4()
-    n = catch.query("2P", job_id, sources=sources)
+    n = catch.query("2P", job_id)
     assert n == 2
 
     cached = catch.is_query_cached("2P")
@@ -143,7 +194,31 @@ def test_query_all(catch, caplog, monkeypatch):
     for source in (NEATMauiGEODSS, NEATPalomarTricam):
         assert sum([isinstance(c[1], source) for c in caught]) == 1
 
-    # second query should be a cached result and just for Tricam
+    # new query using a MovingTarget
+    job_id = uuid.uuid4()
+    target = MovingTarget("2P")
+    m = catch.query(target, job_id)
+    assert n == m
+
+    # repeat with a date range
+    catch.start_date = Time(GEODSS_START, format="mjd")
+    job_id = uuid.uuid4()
+    target = MovingTarget("2P")
+    m = catch.query(target, job_id)
+    assert n == m  # no change
+
+    # more restrictive date range
+    catch.stop_date = Time(GEODSS_START + TRICAM_OFFSET - 1, format="mjd")
+    job_id = uuid.uuid4()
+    target = MovingTarget("2P")
+    n = catch.query(target, job_id)
+    caught = catch.caught(job_id)
+    assert n == 1
+    assert isinstance(caught[0][1], NEATMauiGEODSS)
+
+    # next query should be a cached result and just for Tricam
+    catch.start_date = None
+    catch.stop_date = None
     job_id = uuid.uuid4()
     n = catch.query("2P", job_id, sources=["neat_palomar_tricam"])
     assert n == 1
@@ -155,7 +230,7 @@ def test_query_all(catch, caplog, monkeypatch):
     ) in caplog.record_tuples
 
     caught = catch.caught(job_id)
-    assert len(caught) == 1  # one for each survey
+    assert len(caught) == 1
     assert isinstance(caught[0][1], NEATPalomarTricam)
 
     # cached results do not store an execution time
@@ -176,9 +251,7 @@ def test_query_all(catch, caplog, monkeypatch):
     job_id = uuid.uuid4()
     with monkeypatch.context() as m:
         m.setattr(catch, "find_observations_by_ephemeris", failed_search)
-        n = catch.query(
-            "2P", job_id, sources=["neat_palomar_tricam"], cached=False
-        )
+        n = catch.query("2P", job_id, sources=["neat_palomar_tricam"], cached=False)
         assert n == 0
         assert (
             f"CATCH-APIs {job_id.hex}",
@@ -189,14 +262,11 @@ def test_query_all(catch, caplog, monkeypatch):
 
 @pytest.mark.remote_data
 def test_cache(catch):
-    # test data only exists for:
-    sources = None  # ['neat_palomar_tricam', 'neat_maui_geodss']
-
     cached = catch.is_query_cached("2P")
     assert not cached
 
     job_id = uuid.uuid4()
-    n = catch.query("2P", job_id, sources=sources)
+    n = catch.query("2P", job_id)
     assert n == 2
 
     cached = catch.is_query_cached("2P")
@@ -208,7 +278,7 @@ def test_cache(catch):
     assert not cached
 
     # run the query with padding
-    n = catch.query("2P", job_id, sources=sources)
+    n = catch.query("2P", job_id)
     assert n == 2
 
     # was it cached?
@@ -226,9 +296,7 @@ def test_update_statistics(catch):
     assert stats.count == 900
 
     all_stats: SurveyStats = (
-        catch.db.session.query(SurveyStats)
-        .filter(SurveyStats.name == "All")
-        .one()
+        catch.db.session.query(SurveyStats).filter(SurveyStats.name == "All").one()
     )
     assert all_stats.count == 1800
 
@@ -257,9 +325,7 @@ def test_update_statistics(catch):
     assert stats.count == 900
 
     all_stats: SurveyStats = (
-        catch.db.session.query(SurveyStats)
-        .filter(SurveyStats.name == "All")
-        .one()
+        catch.db.session.query(SurveyStats).filter(SurveyStats.name == "All").one()
     )
     assert all_stats.count == 1800
 
@@ -277,9 +343,7 @@ def test_update_statistics(catch):
     assert stats.stop_date == stop.iso
 
     all_stats = (
-        catch.db.session.query(SurveyStats)
-        .filter(SurveyStats.name == "All")
-        .one()
+        catch.db.session.query(SurveyStats).filter(SurveyStats.name == "All").one()
     )
     assert all_stats.count == 1801
     assert all_stats.start_date == start.iso
@@ -289,3 +353,35 @@ def test_update_statistics(catch):
     )
     assert all_stats.stop_date == stop.iso
     assert all_stats.updated == stats.updated
+
+
+def test_fixed_target_point_search(catch: Catch):
+    target = FixedTarget.from_radec("00 05 00", "-30 15 00", unit=("hourangle", "deg"))
+    job_id = uuid.uuid4()
+    observations = catch.query(target, job_id)
+    assert len(observations) == 4
+
+    queries: List[CatchQuery] = catch.queries_from_job_id(job_id)
+    assert all([query.intersection_type is None for query in queries])
+    assert all([query.query == str(target) for query in queries])
+
+
+def test_fixed_target_areal_search(catch: Catch):
+    target = FixedTarget.from_radec("00 08 00", "-30 15 00", unit=("hourangle", "deg"))
+    catch.padding = 180  # arcmin
+    job_id = uuid.uuid4()
+    observations = catch.query(target, job_id)
+    assert len(observations) == 8
+
+    queries: List[CatchQuery] = catch.queries_from_job_id(job_id)
+    assert all([query.intersection_type == "ImageIntersectsArea" for query in queries])
+    assert all([query.query == str(target) for query in queries])
+
+
+def test_fixed_target_date_range(catch: Catch):
+    target = FixedTarget.from_radec("00 05 00", "-30 15 00", unit=("hourangle", "deg"))
+    job_id = uuid.uuid4()
+    catch.stop_date = Time(52000, format="mjd")  # just search dates before Palomar Tricam
+    observations = catch.query(target, job_id)
+    assert len(observations) == 2
+    assert all([obs.source == "neat_maui_geodss" for obs in observations])

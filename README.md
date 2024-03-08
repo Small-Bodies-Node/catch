@@ -1,10 +1,10 @@
-# catch v1.2.7
+# catch v1.3.0
 
 Planetary Data System Small Bodies Node (PDS-SBN) astronomical survey data search tool.
 
 ## Overview
 
-`catch` finds observations of comets and asteroids in sky survey data.  The primary goal is to enable searches on PDS-SBN-archived datasets, but datasets archived elsewhere may be included.  It is built on the [`sbsearch`](https://github.com/Small-Bodies-Node/sbsearch) library and designed to support web-based searches via [`catch-apis`](https://github.com/Small-Bodies-Node/catch-apis).
+`catch` finds observations of comets, asteroids, and fixed targets in sky survey data.  The primary goal is to enable searches on PDS-SBN-archived datasets, but datasets archived elsewhere may be included.  It is built on the [`sbsearch`](https://github.com/Small-Bodies-Node/sbsearch) library, and designed to support web-based searches via [`catch-apis`](https://github.com/Small-Bodies-Node/catch-apis).
 
 To illustrate the technique, an example search for comet 65P/Gunn in July/August 2017 is shown in Figure 1.  The ephemeris was transformed into a database query using the S2 library, which describes lines or areas in spherical coordinates with a nested grid of cells.  The ephemeris cells are compared to the `catch` database, which stores the cell identifiers for all images in the SkyMapper survey.  Observations with cells matching any of the ephemeris cells are considered as candidate observations of the comet.  Each candidate is checked in detail for the intersection of the ephemeris and observation field-of-view, including time.
 
