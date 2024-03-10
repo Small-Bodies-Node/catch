@@ -36,12 +36,8 @@ from .spacewatch import Spacewatch
 from .loneos import LONEOS
 
 
-# database version
-version: str = "2.1"
-
-
 class CatchQuery(Base):
-    __tablename__ = f"catch_query_{version.replace('.', '_')}"
+    __tablename__ = f"catch_query"
     query_id = Column(
         Integer,
         primary_key=True,
@@ -123,8 +119,7 @@ class SurveyStats(Base):
     updated = Column(Text, doc="Date these statistics were updated")
 
 
-# Version found table and add CATCH specific columns
-Found.__tablename__ = f"found_{version.replace('.', '_')}"
+# Add CATCH specific columns to Found
 Found.query_id = Column(
     Integer,
     ForeignKey(
