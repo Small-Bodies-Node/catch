@@ -1,4 +1,4 @@
-# catch v1.3.1
+# catch v1.3
 
 Planetary Data System Small Bodies Node (PDS-SBN) astronomical survey data search tool.
 
@@ -41,9 +41,9 @@ Figure 1.  Ephemeris (dashed line) and S2 query cells (thin solid lines) for com
 
       ```sql
       GRANT SELECT ON all tables IN SCHEMA public TO user;
-      GRANT INSERT ON catch_query, found, obj, designation TO user;
-      GRANT UPDATE ON catch_query, found TO user;
-      GRANT USAGE ON SEQUENCE catch_query_query_id_seq, found_found_id_seq, obj_object_id_seq,designation_desg_id_seq TO user;
+      GRANT INSERT ON catch_query_VERSION, found, obj, designation TO user;
+      GRANT UPDATE ON catch_query_VERSION, found TO user;
+      GRANT USAGE ON SEQUENCE catch_query_VERSION_query_id_seq, found_found_id_seq, obj_object_id_seq,designation_desg_id_seq TO user;
       ```
 
    1. Edit log file location.

@@ -1,6 +1,6 @@
 #!/bin/bash -eu
 
-### create virtual environment for daily harvesting of surveys for CATCH
+### create virtual environment for CATCH development
 test ! -e .venv && python3 -m venv .venv --prompt='catch-v1'
 source .venv/bin/activate
 python3 -m pip install -U pip setuptools wheel
@@ -24,17 +24,18 @@ test ! -e abseil-cpp-${ABSEIL_TAG} && tar xzf ${ABSEIL_TAG}.tar.gz
 cd abseil-cpp-${ABSEIL_TAG}
 mkdir -p build
 cd build
-cmake -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_CXX_STANDARD=11 -DCMAKE_INSTALL_PREFIX=$VIRTUAL_ENV -DABSL_PROPAGATE_CXX_STD=ON ..
+cmake -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_CXX_STANDARD=11 -DCMAKE_INSTALL_PREFIX=$VIRTUAL_ENV -DABSL_PROPAGATE_CXX_STD=ON -DABSL_ENABLE_INSTALL=ON ..
 make -j $(nproc)
 make install
 cd ../..
 export LDFLAGS="-L$VIRTUAL_ENV/lib -Wl,-rpath=$VIRTUAL_ENV/lib"
+export CXXFLAGS="-I$VIRTUAL_ENV/include"
 
 cd s2geometry-${S2_TAG:1}
 ln -sfn ../abseil-cpp-${ABSEIL_TAG} abseil
 mkdir -p build
 cd build
-cmake -DCMAKE_PREFIX_PATH=$VIRTUAL_ENV -DCMAKE_CXX_STANDARD=11 -DCMAKE_INSTALL_PREFIX=$VIRTUAL_ENV -Wno-dev ..
+cmake -DWITH_PYTHON=ON -DCMAKE_PREFIX_PATH=$VIRTUAL_ENV -DCMAKE_CXX_STANDARD=11 -DCMAKE_INSTALL_PREFIX=$VIRTUAL_ENV -Wno-dev ..
 make -j $(nproc)
 make install
 
