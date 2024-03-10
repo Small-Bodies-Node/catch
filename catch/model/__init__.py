@@ -53,7 +53,7 @@ class CatchQuery(Base):
         doc="User's query string",
     )
     source = Column(
-        String(512),
+        String(128),
         doc="Survey source table queried",
     )
     uncertainty_ellipse = Column(
