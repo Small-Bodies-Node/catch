@@ -18,10 +18,10 @@ from ..model import (
     NEATPalomarTricam,
     Found,
     SkyMapper,
-    CatalinaBigelow,
     CatalinaLemmon,
     Spacewatch,
     SurveyStats,
+    PS1DR2,
 )
 
 
@@ -107,14 +107,14 @@ def test_css_cutout_url():
     url = obs.cutout_url(found.ra, found.dec, size=0.1)
     assert url == (
         "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images/"
-        "urn:nasa:pds:gbo.ast.catalina.survey:data_calibrated:g96_20220130_2b_n27011_01_0001.arch"
+        "urn%3Anasa%3Apds%3Agbo.ast.catalina.survey%3Adata_calibrated%3Ag96_20220130_2b_n27011_01_0001.arch"
         "?ra=12.3&dec=-4.56&size=6.00arcmin&format=fits"
     )
 
     url = obs.preview_url(found.ra, found.dec, size=0.1)
     assert url == (
         "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images/"
-        "urn:nasa:pds:gbo.ast.catalina.survey:data_calibrated:g96_20220130_2b_n27011_01_0001.arch"
+        "urn%3Anasa%3Apds%3Agbo.ast.catalina.survey%3Adata_calibrated%3Ag96_20220130_2b_n27011_01_0001.arch"
         "?ra=12.3&dec=-4.56&size=6.00arcmin&format=jpeg"
     )
 
@@ -139,15 +139,30 @@ def test_sw_cutout_url():
     url = obs.cutout_url(found.ra, found.dec, size=0.1)
     assert url == (
         "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images/"
-        "urn:nasa:pds:gbo.ast.spacewatch.survey:data:sw_1071_04.06_2009_07_29_03_59_40.003.fits"
+        "urn%3Anasa%3Apds%3Agbo.ast.spacewatch.survey%3Adata%3Asw_1071_04.06_2009_07_29_03_59_40.003.fits"
         "?ra=12.3&dec=-4.56&size=6.00arcmin&format=fits"
     )
 
     url = obs.preview_url(found.ra, found.dec, size=0.1)
     assert url == (
         "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images/"
-        "urn:nasa:pds:gbo.ast.spacewatch.survey:data:sw_1071_04.06_2009_07_29_03_59_40.003.fits"
+        "urn%3Anasa%3Apds%3Agbo.ast.spacewatch.survey%3Adata%3Asw_1071_04.06_2009_07_29_03_59_40.003.fits"
         "?ra=12.3&dec=-4.56&size=6.00arcmin&format=jpeg"
+    )
+
+
+def test_ps1dr2_url():
+    obs = PS1DR2(
+        product_id="rings.v3.skycell.1405.053.stk.g.unconv.fits",
+        projection_id=1405,
+        skycell_id=53,
+    )
+
+    url = obs.preview_url(ra=332.4875, dec=2.14639, size=0.025)
+    assert url == (
+        "https://ps1images.stsci.edu/cgi-bin/fitscut.cgi?"
+        "red=%2Frings.v3.skycell%2F1405%2F053%2Frings.v3.skycell.1405.053.stk.g.unconv.fits"
+        "&ra=332.4875&dec=2.14639&size=360&format=jpeg"
     )
 
 
@@ -381,7 +396,9 @@ def test_fixed_target_areal_search(catch: Catch):
 def test_fixed_target_date_range(catch: Catch):
     target = FixedTarget.from_radec("00 05 00", "-30 15 00", unit=("hourangle", "deg"))
     job_id = uuid.uuid4()
-    catch.stop_date = Time(52000, format="mjd")  # just search dates before Palomar Tricam
+    catch.stop_date = Time(
+        52000, format="mjd"
+    )  # just search dates before Palomar Tricam
     observations = catch.query(target, job_id)
     assert len(observations) == 2
     assert all([obs.source == "neat_maui_geodss" for obs in observations])

@@ -7,6 +7,7 @@ PanSTARRS 1 Data Release 2
 
 __all__ = ["PS1DR2"]
 
+from urllib.parse import quote
 from sqlalchemy import BigInteger, Column, Integer, SmallInteger, String, ForeignKey
 from sbsearch.model.core import Base, Observation
 
@@ -52,10 +53,6 @@ class PS1DR2(Observation):
         For example:
             https://ps1images.stsci.edu/rings.v3.skycell/0798/045/rings.v3.skycell.0798.045.wrp.i.56533_48941.fits
 
-        /rings.v3.skycell/{projectionid:04d}/{skycellid:03d}/rings.v3.skycell.{projectionid:04d}.{skycellid:03d}.wrp.{filter}.{date_sfx}.fits
-        date_sfx = mjd[:11].replace('.', '_')
-        filter from filterid: 1-5 for grizy (Flewelling et al. 2019)
-
         """
         url: str = f"https://ps1images.stsci.edu{self._warp_path}"
         return url
@@ -74,7 +71,7 @@ class PS1DR2(Observation):
         pixels: int = int(size * 3600 / 0.25)  # 0.25"/pixel
         url: str = (
             "https://ps1images.stsci.edu/cgi-bin/fitscut.cgi?"
-            f"red={self._warp_path}&ra={ra}&dec={dec}"
+            f"red={quote(self._warp_path, safe='')}&ra={ra}&dec={dec}"
             f"&size={pixels}&format={format}"
         )
         return url
