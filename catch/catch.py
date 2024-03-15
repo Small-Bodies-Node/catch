@@ -25,6 +25,7 @@ from .model import (
 from .exceptions import (
     CatchException,
     DataSourceWarning,
+    DateRangeError,
     FindObjectError,
     EphemerisError,
 )
@@ -247,6 +248,10 @@ class Catch(SBSearch):
             Number of observations found.
 
         """
+
+        if None not in [self.start_date, self.stop_date]:
+            if self.start_date.mjd > self.stop_date:
+                raise DateRangeError("Start date is after stop date.")
 
         count: int = 0
         for source in sources:
@@ -591,13 +596,25 @@ class Catch(SBSearch):
             func.min(Observation.mjd_start), func.max(Observation.mjd_stop)
         )
         q = self._filter_by_source(q)
-        q = self._filter_by_date(q)
 
+        mjd_survey_start: float
+        mjd_survey_stop: float
+        mjd_survey_start, mjd_survey_stop = q.one()
+
+        # apply date range limits
         mjd_start: float
-        mjd_stop: float
-        mjd_start, mjd_stop = q.one()
+        if self.start_date is not None and mjd_survey_start is not None:
+            mjd_start = max(mjd_survey_start, self.start_date.mjd)
+        else:
+            mjd_start = mjd_survey_start
 
-        if None in [mjd_start, mjd_stop]:
+        mjd_stop: float
+        if self.stop_date is not None and mjd_survey_stop is not None:
+            mjd_stop = min(mjd_survey_stop, self.stop_date.mjd)
+        else:
+            mjd_stop = mjd_survey_stop
+
+        if None in [mjd_start, mjd_stop] or mjd_stop < mjd_start:
             raise DataSourceWarning(
                 f"No observations to search in database for {self.source.__data_source_name__}."
             )

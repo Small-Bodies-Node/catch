@@ -13,6 +13,10 @@ class InvalidSourceName(CatchException):
     pass
 
 
+class DateRangeError(CatchException):
+    pass
+
+
 class FindObjectError(CatchException):
     pass
 
