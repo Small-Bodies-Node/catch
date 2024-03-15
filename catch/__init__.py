@@ -31,6 +31,8 @@ def catch_cli(*args):
         "--time-limit", type=float, help="maximal time length to search, days"
     )
     parser.add_argument("--debug", action="store_true", help="debug mode")
+
+    # define subparsers
     subparsers = parser.add_subparsers(help="sub-command help")
 
     verify = subparsers.add_parser(
@@ -38,38 +40,54 @@ def catch_cli(*args):
     )
     verify.set_defaults(command="verify")
 
-    list_sources = subparsers.add_parser(
-        "sources", help="show available data sources")
+    list_sources = subparsers.add_parser("sources", help="show available data sources")
     list_sources.set_defaults(command="sources")
 
     moving = subparsers.add_parser("moving", help="search for a moving object")
     moving.set_defaults(command="moving")
-    moving.add_argument("desg", help="object designation")
-    moving.add_argument(
-        "--source",
-        dest="sources",
-        action="append",
-        help="search this observation source (may be used multiple times)",
-    )
-    moving.add_argument(
-        "--force", dest="cached", action="store_false", help="do not use cached results"
-    )
-    moving.add_argument("-o", help="write table to this file")
 
     fixed = subparsers.add_parser("fixed", help="search for a fixed object")
     fixed.set_defaults(command="fixed")
+
+    # subparser arguments
+    # moving and fixed have an overlap in parameters
+    moving.add_argument("desg", help="object designation")
+
     fixed.add_argument("ra", help="Right ascension")
     fixed.add_argument("dec", help="Declination")
-    fixed.add_argument("--unit", default="hourangle,deg",
-                       help="RA, Dec unit, may be a single string, or two separated"
-                       " by a comma (default: hourangle,deg)")
     fixed.add_argument(
-        "--source",
-        dest="sources",
-        action="append",
-        help="search this observation source (may be used multiple times)",
+        "--unit",
+        default="hourangle,deg",
+        help="RA, Dec unit, may be a single string, or two separated"
+        " by a comma (default: hourangle,deg)",
     )
-    fixed.add_argument("-o", help="write table to this file")
+
+    for subparser in (moving, fixed):
+        subparser.add_argument(
+            "--source",
+            dest="sources",
+            action="append",
+            help="search this observation source (may be used multiple times)",
+        )
+        subparser.add_argument(
+            "--start-date",
+            dest="start_date",
+            type=Time,
+            help="search after this date/time",
+        )
+        subparser.add_argument(
+            "--stop-date",
+            dest="stop_date",
+            type=Time,
+            help="search before this date/time",
+        )
+
+    moving.add_argument(
+        "--force", dest="cached", action="store_false", help="do not use cached results"
+    )
+
+    for subparser in (moving, fixed):
+        subparser.add_argument("-o", help="write table to this file")
 
     args = parser.parse_args()
 
@@ -85,15 +103,21 @@ def catch_cli(*args):
     rows = []
     config = Config.from_args(args)
     with Catch.with_config(config) as catch:
+        catch.start_date = args.start_date
+        catch.stop_date = args.stop_date
+
         if args.command == "verify":
             pass
         elif args.command == "sources":
-            print("Available sources:\n  *",
-                  "\n  * ".join(catch.sources.keys()))
+            print("Available sources:\n  *", "\n  * ".join(catch.sources.keys()))
         elif args.command == "moving":
             job_id = uuid.uuid4()
-            catch.query(args.desg, job_id, sources=args.sources,
-                        cached=args.cached)
+            catch.query(
+                args.desg,
+                job_id,
+                sources=args.sources,
+                cached=args.cached,
+            )
             columns = set()
             # catch.caught returns a list of rows.
             for row in catch.caught(job_id):
@@ -118,7 +142,11 @@ def catch_cli(*args):
         elif args.command == "fixed":
             job_id = uuid.uuid4()
             target = FixedTarget.from_radec(args.ra, args.dec, unit=args.unit)
-            observations = catch.query(target, job_id, sources=args.sources)
+            observations = catch.query(
+                target,
+                job_id,
+                sources=args.sources,
+            )
             columns = set()
             for obs in observations:
                 r = {}
@@ -145,19 +173,53 @@ def catch_cli(*args):
             tab = Table(rows=rows)
 
             # add a column for the target
-            tab['designation'] = args.desg
+            tab["designation"] = args.desg
 
             # re-order columns
             all_colnames = tab.colnames
-            base_colnames = ['designation', 'source', 'date', 'mjd', 'ra', 'dec', 'dra', 'ddec', 'vmag', 'rh', 'drh', 'delta', 'phase', 'elong', 'sangle', 'vangle', 'true_anomaly', 'unc_a', 'unc_b', 'unc_theta',
-                             'retrieved', 'filter', 'exposure', 'mjd_start', 'mjd_stop', 'fov', 'airmass', 'seeing', 'maglimit', 'found_id', 'object_id', 'observation_id', 'orbit_id', 'query_id', 'archive_url', 'cutout_url']
-            colnames = (base_colnames +
-                        list(set(all_colnames) - set(base_colnames)))
+            base_colnames = [
+                "designation",
+                "source",
+                "date",
+                "mjd",
+                "ra",
+                "dec",
+                "dra",
+                "ddec",
+                "vmag",
+                "rh",
+                "drh",
+                "delta",
+                "phase",
+                "elong",
+                "sangle",
+                "vangle",
+                "true_anomaly",
+                "unc_a",
+                "unc_b",
+                "unc_theta",
+                "retrieved",
+                "filter",
+                "exposure",
+                "mjd_start",
+                "mjd_stop",
+                "fov",
+                "airmass",
+                "seeing",
+                "maglimit",
+                "found_id",
+                "object_id",
+                "observation_id",
+                "orbit_id",
+                "query_id",
+                "archive_url",
+                "cutout_url",
+            ]
+            colnames = base_colnames + list(set(all_colnames) - set(base_colnames))
             tab = tab[colnames]
 
             if args.o:
-                tab.write(args.o, format="ascii.fixed_width_two_line",
-                          overwrite=True)
+                tab.write(args.o, format="ascii.fixed_width_two_line", overwrite=True)
             else:
                 tab.pprint(-1, -1)
 
@@ -172,21 +234,33 @@ def catch_cli(*args):
             tab = Table(rows=rows)
 
             # add columns for the target in the user's format
-            tab['ra'] = args.ra
-            tab['dec'] = args.dec
+            tab["ra"] = args.ra
+            tab["dec"] = args.dec
 
             # re-order columns
             all_colnames = tab.colnames
-            base_colnames = ['source', 'date', 'ra', 'dec', 'filter', 'exposure',
-                             'mjd_start', 'mjd_stop', 'fov', 'airmass', 'seeing', 
-                             'maglimit', 'observation_id', 'archive_url', 'cutout_url']
-            colnames = (base_colnames +
-                        list(set(all_colnames) - set(base_colnames)))
+            base_colnames = [
+                "source",
+                "date",
+                "ra",
+                "dec",
+                "filter",
+                "exposure",
+                "mjd_start",
+                "mjd_stop",
+                "fov",
+                "airmass",
+                "seeing",
+                "maglimit",
+                "observation_id",
+                "archive_url",
+                "cutout_url",
+            ]
+            colnames = base_colnames + list(set(all_colnames) - set(base_colnames))
             tab = tab[colnames]
 
             if args.o:
-                tab.write(args.o, format="ascii.fixed_width_two_line",
-                          overwrite=True)
+                tab.write(args.o, format="ascii.fixed_width_two_line", overwrite=True)
             else:
                 tab.pprint(-1, -1)
 
