@@ -250,7 +250,7 @@ class Catch(SBSearch):
         """
 
         if None not in [self.start_date, self.stop_date]:
-            if self.start_date.mjd > self.stop_date:
+            if self.start_date > self.stop_date:
                 raise DateRangeError("Start date is after stop date.")
 
         count: int = 0
@@ -382,7 +382,8 @@ class Catch(SBSearch):
         """Determine if this query has already been cached.
 
 
-        ``uncertainty_ellipse`` and ``padding`` parameters are also checked.
+        ``uncertainty_ellipse``, ``padding``, ``start_date``, and ``stop_date``
+        parameters are checked.
 
 
         Parameters
@@ -391,15 +392,15 @@ class Catch(SBSearch):
             Target for which to search.
 
         sources : list of strings, optional
-            Limit search to these sources.  See ``Catch.sources.keys()``
-            for possible values.
+            Limit search to these sources.  See ``Catch.sources.keys()`` for
+            possible values.
 
 
         Returns
         -------
         cached : bool
-            ``False`` if any source specified by ``sources`` is not yet
-            cached for this ``target``.
+            ``False`` if any source specified by ``sources`` is not yet cached
+            for this ``target``.
 
         """
 
@@ -440,13 +441,13 @@ class Catch(SBSearch):
             sources = [self.sources.get(source, source)]
 
         for _source in sources:
-            self._update_statistics(_source)
+            self._update_statistics_for_source(_source)
 
-        self._update_statistics_all()
+        self._update_statistics_for_all()
 
         self.db.session.commit()
 
-    def _update_statistics(self, source):
+    def _update_statistics_for_source(self, source):
         count: int = self.db.session.query(func.count(source.observation_id)).scalar()
 
         q: Query = self.db.session.query(
@@ -478,7 +479,7 @@ class Catch(SBSearch):
 
         self.db.session.merge(stats)
 
-    def _update_statistics_all(self):
+    def _update_statistics_for_all(self):
         # update the 'All' entry in survey_statistics
         q: Query = self.db.session.query(
             func.sum(SurveyStats.count),
@@ -519,6 +520,34 @@ class Catch(SBSearch):
 
         """
 
+        # use start/stop_date = None when search start/stop dates are outside
+        # the range for this survey (there is no need to re-run a search on the
+        # NEAT archive when the stop date is in the 2020s)
+
+        # date range for this survey
+        q: Query = self.db.session.query(
+            func.min(Observation.mjd_start), func.max(Observation.mjd_stop)
+        )
+        q = self._filter_by_source(q)
+
+        mjd_survey_start: Union[float, None]
+        mjd_survey_stop: Union[float, None]
+        mjd_survey_start, mjd_survey_stop = q.one()
+
+        # by default, use the survey date range
+        start_date: Union[str, None] = None
+        stop_date: Union[str, None] = None
+
+        # ensure the survey actually has data in the archive
+        if None not in [mjd_survey_start, mjd_survey_stop]:
+            # if the user start/stop dates are inside the survey range, use
+            # those values
+            if self.start_date is not None and self.start_date.mjd > mjd_survey_start:
+                start_date = self.start_date.iso
+
+            if self.stop_date is not None and self.stop_date.mjd < mjd_survey_stop:
+                stop_date = self.stop_date.iso
+
         q: int = (
             self.db.session.query(CatchQuery)
             .filter(CatchQuery.query == str(target))
@@ -528,14 +557,8 @@ class Catch(SBSearch):
             .filter(
                 CatchQuery.padding.between(self.padding * 0.99, self.padding * 1.01)
             )
-            .filter(
-                CatchQuery.start_date
-                == (None if self.start_date is None else self.start_date.iso)
-            )
-            .filter(
-                CatchQuery.stop_date
-                == (None if self.stop_date is None else self.stop_date.iso)
-            )
+            .filter(CatchQuery.start_date == start_date)
+            .filter(CatchQuery.stop_date == stop_date)
             .order_by(CatchQuery.query_id.desc())
             .first()
         )
@@ -597,24 +620,28 @@ class Catch(SBSearch):
         )
         q = self._filter_by_source(q)
 
-        mjd_survey_start: float
-        mjd_survey_stop: float
+        mjd_survey_start: Union[float, None]
+        mjd_survey_stop: Union[float, None]
         mjd_survey_start, mjd_survey_stop = q.one()
 
-        # apply date range limits
-        mjd_start: float
-        if self.start_date is not None and mjd_survey_start is not None:
-            mjd_start = max(mjd_survey_start, self.start_date.mjd)
-        else:
-            mjd_start = mjd_survey_start
+        if None in [mjd_survey_start, mjd_survey_stop]:
+            raise DataSourceWarning(
+                f"No observations to search in database for {self.source.__data_source_name__}."
+            )
 
-        mjd_stop: float
-        if self.stop_date is not None and mjd_survey_stop is not None:
-            mjd_stop = min(mjd_survey_stop, self.stop_date.mjd)
-        else:
-            mjd_stop = mjd_survey_stop
+        # apply user-requested date range limits
+        mjd_start: float = (
+            mjd_survey_start
+            if self.start_date is None
+            else max(mjd_survey_start, self.start_date.mjd)
+        )
+        mjd_stop: float = (
+            mjd_survey_stop
+            if self.stop_date is None
+            else min(mjd_survey_stop, self.stop_date.mjd)
+        )
 
-        if None in [mjd_start, mjd_stop] or mjd_stop < mjd_start:
+        if mjd_stop < mjd_start:
             raise DataSourceWarning(
                 f"No observations to search in database for {self.source.__data_source_name__}."
             )

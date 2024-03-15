@@ -187,7 +187,8 @@ def test_source_time_limits(catch):
 
 
 @pytest.mark.remote_data
-def test_query_all(catch, caplog, monkeypatch):
+def test_query_moving_target(catch):
+    # not yet searched --> not yet cached
     cached = catch.is_query_cached("2P")
     assert not cached
 
@@ -215,8 +216,30 @@ def test_query_all(catch, caplog, monkeypatch):
     m = catch.query(target, job_id)
     assert n == m
 
+    # the query should now be cached
+    cached = catch.is_query_cached("2P")
+    assert cached
+
+    # verify cache retrieval
+    job_id = uuid.uuid4()
+    m = catch.query(target, job_id)
+    assert n == m
+
+    # cached results do not store an execution time
+    queries = catch.queries_from_job_id(job_id)
+    assert all([q.execution_time is None for q in queries])
+
+
+@pytest.mark.remote_data
+def test_query_moving_target_date_range(catch, caplog):
+    # cache a full survey query
+    job_id = uuid.uuid4()
+    target = MovingTarget("2P")
+    n = catch.query(target, job_id)
+    assert n == 2
+
     # repeat with a date range
-    catch.start_date = Time(GEODSS_START, format="mjd")
+    catch.start_date = Time(GEODSS_START - 100, format="mjd")
     job_id = uuid.uuid4()
     target = MovingTarget("2P")
     m = catch.query(target, job_id)
@@ -248,10 +271,34 @@ def test_query_all(catch, caplog, monkeypatch):
     assert len(caught) == 1
     assert isinstance(caught[0][1], NEATPalomarTricam)
 
-    # cached results do not store an execution time
-    queries = catch.queries_from_job_id(job_id)
-    assert all([q.execution_time is None for q in queries])
+    # if the date range is outside the survey range, a cached result should be
+    # returned
 
+    # first, check start_date
+    catch.start_date = Time(GEODSS_START + TRICAM_OFFSET - 300, format="mjd")
+    catch.stop_date = None
+    job_id = uuid.uuid4()
+
+    cached = catch.is_query_cached("2P")
+    assert cached
+
+    n = catch.query("2P", job_id, sources=["neat_palomar_tricam"])
+    assert n == 1
+
+    # check stop_date
+    catch.start_date = None
+    catch.stop_date = Time(60000, format="mjd")
+    job_id = uuid.uuid4()
+
+    cached = catch.is_query_cached("2P")
+    assert cached
+
+    n = catch.query("2P", job_id, sources=["neat_palomar_tricam"])
+    assert n == 1
+
+
+@pytest.mark.remote_data
+def test_query_moving_target_ephemeris_error(catch, caplog):
     # trigger ephemeris error
     job_id = uuid.uuid4()
     n = catch.query("2000P", job_id, sources=["neat_palomar_tricam"])
@@ -262,6 +309,9 @@ def test_query_all(catch, caplog, monkeypatch):
         "Could not get an ephemeris.",
     ) in caplog.record_tuples
 
+
+@pytest.mark.remote_data
+def test_query_moving_target_search_failure(catch, caplog, monkeypatch):
     # mock a search failure
     job_id = uuid.uuid4()
     with monkeypatch.context() as m:
