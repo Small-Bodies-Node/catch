@@ -44,6 +44,6 @@ popd
 # install python libraries
 pip install numpy sbpy cython psycopg2-binary
 pip install -e git+https://git@github.com/Small-Bodies-Node/sbsearch.git#egg=sbsearch
-pip install -e .[test]
-pip install matplotlib spherical_geometry pycairo pygobject ipython
+pip install -e .[test,figures]
+pip install pycairo pygobject ipython
 
