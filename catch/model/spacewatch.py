@@ -18,7 +18,6 @@ The catch survey data model additionally requires:
 
 __all__ = ["Spacewatch"]
 
-from urllib.parse import quote
 from sqlalchemy import BigInteger, Column, String, ForeignKey
 from sbsearch.model.core import Base, Observation
 
@@ -26,7 +25,7 @@ from sbsearch.model.core import Base, Observation
 _ARCHIVE_URL_PREFIX: str = "https://sbnarchive.psi.edu/pds4/surveys"
 
 _CUTOUT_URL_PREFIX: str = (
-    "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images"
+    "https://5ub5yo2kmj.execute-api.us-east-1.amazonaws.com/api/images"
 )
 
 
@@ -73,7 +72,7 @@ class Spacewatch(Observation):
         size_arcmin: float = max(0.01, size * 60)
 
         return (
-            f"{_CUTOUT_URL_PREFIX}/{quote(self.product_id)}"
+            f"{_CUTOUT_URL_PREFIX}/{self.product_id}"
             f"?ra={ra}&dec={dec}&size={size_arcmin:.2f}arcmin"
             f"&format={format}"
         )

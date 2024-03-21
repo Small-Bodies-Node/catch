@@ -8,7 +8,6 @@ Catalina Sky Survey archive at PDS
 __all__ = ["CatalinaBigelow", "CatalinaLemmon", "CatalinaBokNEOSurvey"]
 
 from typing import List, Dict
-from urllib.parse import quote
 from sqlalchemy import BigInteger, Column, String, ForeignKey
 from sbsearch.model.core import Base, Observation
 
@@ -77,7 +76,7 @@ class CatalinaSkySurvey:
         size_arcmin: float = max(0.01, size * 60)
 
         return (
-            f"{_CUTOUT_URL_PREFIX}/{quote(self.product_id)}"
+            f"{_CUTOUT_URL_PREFIX}/{self.product_id}"
             f"?ra={ra}&dec={dec}&size={size_arcmin:.2f}arcmin"
             f"&format={format}"
         )
