@@ -12,13 +12,12 @@ from urllib.parse import quote
 from sqlalchemy import BigInteger, Column, String, ForeignKey
 from sbsearch.model.core import Base, Observation
 
-
 _ARCHIVE_URL_PREFIX: str = (
     "https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.catalina.survey/data_calibrated"
 )
 
 _CUTOUT_URL_PREFIX: str = (
-    "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images"
+    "https://5ub5yo2kmj.execute-api.us-east-1.amazonaws.com/api/images"
 )
 
 _month_to_Mon: Dict[str, str] = {

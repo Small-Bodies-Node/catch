@@ -106,14 +106,14 @@ def test_css_cutout_url():
 
     url = obs.cutout_url(found.ra, found.dec, size=0.1)
     assert url == (
-        "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images/"
+        "https://5ub5yo2kmj.execute-api.us-east-1.amazonaws.com/api/images/"
         "urn%3Anasa%3Apds%3Agbo.ast.catalina.survey%3Adata_calibrated%3Ag96_20220130_2b_n27011_01_0001.arch"
         "?ra=12.3&dec=-4.56&size=6.00arcmin&format=fits"
     )
 
     url = obs.preview_url(found.ra, found.dec, size=0.1)
     assert url == (
-        "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images/"
+        "https://5ub5yo2kmj.execute-api.us-east-1.amazonaws.com/api/images/"
         "urn%3Anasa%3Apds%3Agbo.ast.catalina.survey%3Adata_calibrated%3Ag96_20220130_2b_n27011_01_0001.arch"
         "?ra=12.3&dec=-4.56&size=6.00arcmin&format=jpeg"
     )
@@ -138,14 +138,14 @@ def test_sw_cutout_url():
 
     url = obs.cutout_url(found.ra, found.dec, size=0.1)
     assert url == (
-        "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images/"
+        "https://5ub5yo2kmj.execute-api.us-east-1.amazonaws.com/api/images/"
         "urn%3Anasa%3Apds%3Agbo.ast.spacewatch.survey%3Adata%3Asw_1071_04.06_2009_07_29_03_59_40.003.fits"
         "?ra=12.3&dec=-4.56&size=6.00arcmin&format=fits"
     )
 
     url = obs.preview_url(found.ra, found.dec, size=0.1)
     assert url == (
-        "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images/"
+        "https://5ub5yo2kmj.execute-api.us-east-1.amazonaws.com/api/images/"
         "urn%3Anasa%3Apds%3Agbo.ast.spacewatch.survey%3Adata%3Asw_1071_04.06_2009_07_29_03_59_40.003.fits"
         "?ra=12.3&dec=-4.56&size=6.00arcmin&format=jpeg"
     )
