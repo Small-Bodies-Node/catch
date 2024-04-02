@@ -11,7 +11,7 @@ class SkyMapperDR4(Observation):
     __tablename__ = "skymapper_dr4"
     __data_source_name__ = "SkyMapperDR4"
     __obscode__ = "413"
-    __field_prefix__ = "skymapper_dr4"
+    __field_prefix__ = "skymapper"
 
     source_id = Column(BigInteger, primary_key=True)
     observation_id = Column(
