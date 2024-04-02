@@ -92,15 +92,15 @@ The tricam ingestion would fail on two directories in V1.0 of the PDS3 data set:
 
 Then, optimize the new tables (see below).
 
-### SkyMapper DR2
+### SkyMapper DR4
 
-SkyMapper Data Release 2 exposure (images) and CCD tables are available at [http://skymapper.anu.edu.au/_data/DR2/].  Download these tables and run the corresponding catch script:
+SkyMapper Data Release 4 exposure (images) and CCD tables are available at [http://skymapper.anu.edu.au/_data/DR4/].  Download these tables and run the corresponding catch script:
 
 ```bash
-python3 add-skymapper.py dr2_images.csv.gz dr2_ccds.csv.gz
+python3 add-skymapper.py SkyMapper.DR4.images.csv.gz SkyMapper.DR4.ccds.part*.csv.gz
 ```
 
-Then, optimize the new tables (see below).
+Use the --noop option to test out the files before adding to the database.
 
 ### Pan-STARRS 1 DR2
 

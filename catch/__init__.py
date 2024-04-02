@@ -124,7 +124,7 @@ def catch_cli(*args):
                 r = {}
                 # Each row consists of a Found and an Observation object.  The
                 # Observation object will be a subclass, e.g.,
-                # NeatPalomarTricam, or SkyMapper.
+                # NeatPalomarTricam, or SkyMapperDR4.
                 for data_object in row:
                     # Aggregate fields and values from each data object
                     for k, v in _serialize_object(data_object):

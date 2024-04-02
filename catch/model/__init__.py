@@ -14,7 +14,7 @@ __all__ = [
     "Obj",
     "NEATPalomarTricam",
     "NEATMauiGEODSS",
-    "SkyMapper",
+    "SkyMapperDR4",
     "PS1DR2",
     "CatalinaBigelow",
     "CatalinaLemmon",
@@ -29,7 +29,7 @@ from sbsearch.model.example_survey import ExampleSurvey
 from sqlalchemy.sql.sqltypes import Boolean
 from .neat_palomar_tricam import NEATPalomarTricam
 from .neat_maui_geodss import NEATMauiGEODSS
-from .skymapper import SkyMapper
+from .skymapper import SkyMapperDR4
 from .ps1dr2 import PS1DR2
 from .catalina import CatalinaBigelow, CatalinaLemmon, CatalinaBokNEOSurvey
 from .spacewatch import Spacewatch
