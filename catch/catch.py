@@ -50,7 +50,7 @@ class Catch(SBSearch):
     start_date, stop_date : Time, optional
         Optional date range parameters for fixed target queries.
 
-    intersection_type : sbsearch.IntersectionType
+    intersection_type : sbsearch.IntersectionType, optional
         Type of intersections allowed between observations and query area.
 
     debug : bool, optional
