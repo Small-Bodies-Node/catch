@@ -10,6 +10,7 @@ import pywraps2 as s2
 
 from sbsearch.visualization import term_to_spherical_polygon
 from sbsearch.spatial import term_to_cell_vertices
+from sbsearch.logging import ProgressBar
 from catch import Catch, Config
 from catch.model import Observation
 
@@ -45,6 +46,8 @@ def cell_sky_coverage(catch, level):
     # break iteration at this cell
     end = s2.S2CellId.End(level)
 
+    progress = ProgressBar(6 * 4**level, catch.logger, length=62)
+
     while True:
         term = cell.ToToken()
 
@@ -53,6 +56,7 @@ def cell_sky_coverage(catch, level):
         ra, dec = np.degrees(term_to_cell_vertices(term.lstrip("$")))
         fov.append(radec_to_fov(ra, dec))
 
+        progress.update()
         cell = cell.next()
 
         if cell == end:
@@ -62,10 +66,10 @@ def cell_sky_coverage(catch, level):
 
 
 def query_cell(catch, term):
-    q = catch.db.session.query(Observation)
-    q = catch._filter_by_source(q)
-    q = q.filter(catch.source.spatial_terms.overlap(["$" + term, term]))
-    count = q.count()
+    query = catch.db.session.query(Observation)
+    query = catch._filter_by_source(query)
+    query = query.filter(catch.source.spatial_terms.overlap(["$" + term, term]))
+    count = query.count()
     return count
 
 
@@ -125,6 +129,12 @@ if __name__ == "__main__":
     )
     parser.add_argument("--format", default="png", help="plot file format")
     parser.add_argument("--dpi", type=int, default=300)
+    parser.add_argument(
+        "-f",
+        dest="force",
+        action="store_true",
+        help="ignore previous saved file and reprocess",
+    )
     args = parser.parse_args()
 
     prefix = args.source if args.o is None else args.o
@@ -134,7 +144,7 @@ if __name__ == "__main__":
     with Catch.with_config(config) as catch:
         catch.source = args.source
         source_name = catch.source.__data_source_name__
-        if os.path.exists(table_fn):
+        if os.path.exists(table_fn) and not args.force:
             tab = ascii.read(table_fn)
             terms = tab["term"].data
             count = tab["count"].data
