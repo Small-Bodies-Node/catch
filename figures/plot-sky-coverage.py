@@ -21,7 +21,7 @@ python3 plot-sky-coverage.py --config=../catch_prod-aws.config --source=neat_pal
 python3 plot-sky-coverage.py --config=../catch_prod-aws.config --source=neat_maui_geodss
 
 for source in skymapper neat_palomar_tricam neat_maui_geodss catalina_bigelow catalina_lemmon spacewatch ps1dr2; do
-  echo python3 plot-sky-coverage.py --config=../catch_prod-aws.config --source=$source
+  echo python3 plot-sky-coverage.py --config=../catch-prod-aws.config --source=$source
 done
 
 """
