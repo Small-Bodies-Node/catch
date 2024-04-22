@@ -1,5 +1,5 @@
 # Licensed with the 3-clause BSD license.  See LICENSE for details.
-"""loneos
+"""LONEOS
 
 To create a new survey, use this file or `sbsearch/model/example_survey.py` from
 the sbsearch source code as examples.  The latter has detailed comments on what
@@ -45,15 +45,12 @@ class LONEOS(Observation):
     product_id = Column(
         String(128), doc="Archive product id", unique=True, index=True, nullable=False
     )
-    label = Column(
-        String(128), doc="PDS4 label file name and path.",
-    )
 
     __mapper_args__ = {"polymorphic_identity": "loneos"}
 
     @property
     def archive_url(self):
-        return "/".join((_ARCHIVE_URL_PREFIX, self.label.replace('.xml', '.fits')))
+        return None
 
     def cutout_url(self, ra, dec, size=0.0833, format="fits"):
         """URL to cutout ``size`` around ``ra``, ``dec`` in deg.

@@ -151,6 +151,14 @@ The script `scripts/add-spacewatch.py` will harvest metadata from calibrated dat
 
 `wget -r -R *.fits --no-parent https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.spacewatch.survey/data/`
 
+### LONEOS
+
+The SBN also archives the LONEOS survey.
+
+Download the labels and harvest metadata with the `scripts/add-loneos.py` script.
+
+`wget -r -R *.fits --no-parent https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.loneos.survey/data_augmented/`
+
 ## Modifying existing surveys
 
 After deleting any observations, the observation spatial index must be regenerated: `REINDEX ix_observation_spatial_terms`.
