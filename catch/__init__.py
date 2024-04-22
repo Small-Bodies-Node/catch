@@ -54,6 +54,7 @@ def catch_cli(*args):
     moving.add_argument(
         "--padding",
         type=float,
+        default=0,
         help="additional padding around the ephemeris to search, arcmin",
     )
 
