@@ -122,9 +122,7 @@ def catch_cli(*args):
     with Catch.with_config(config) as catch:
         catch.start_date = args.start_date
         catch.stop_date = args.stop_date
-        catch.intersection_type = args.intersection_type
         catch.padding = args.padding
-        catch.intersection_type = IntersectionType[args.intersection_type]
 
         if args.command == "verify":
             pass
@@ -160,6 +158,7 @@ def catch_cli(*args):
 
                 rows.append(r)
         elif args.command == "fixed":
+            catch.intersection_type = IntersectionType[args.intersection_type]
             job_id = uuid.uuid4()
             target = FixedTarget.from_radec(args.ra, args.dec, unit=args.unit)
             observations = catch.query(
