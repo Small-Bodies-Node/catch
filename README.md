@@ -205,7 +205,7 @@ surveys=> SELECT COUNT(*) FROM catch_query;
 (1 row)
 ```
 
-Note, the `obj` and `found` tables will still be populated with objects and observations of found objects, respectively. Their existence will not have an adverse effect on new CATCH queries.
+Note, the `obj` and `found` tables will still be populated with objects and observations of found objects, respectively. Their existence will not have an adverse effect on new CATCH queries, except potentially on performance (i.e., database bloat).
 
 ### Found objects reset
 
