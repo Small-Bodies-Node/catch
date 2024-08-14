@@ -4,7 +4,7 @@ except ImportError:
     __version__ = ""
 
 from sbsearch.target import FixedTarget
-from .catch import *
+from .catch import Catch, IntersectionType
 from .config import *
 
 
