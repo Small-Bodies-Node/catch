@@ -8,7 +8,6 @@ from astropy.io import ascii
 from astropy.table import Table
 import pywraps2 as s2
 
-from sbsearch.visualization import term_to_spherical_polygon
 from sbsearch.spatial import term_to_cell_vertices
 from sbsearch.logging import ProgressBar
 from catch import Catch, Config
@@ -105,9 +104,6 @@ def plot(terms, count, source_name):
         ra, dec = term_to_cell_vertices(term)
         for poly in get_polygons(ra, dec, s):
             ax.add_patch(poly)
-
-    # fig.axes[1].set_title("$\log_{10}$(N$_{images}$)")
-    # fig.axes[1].minorticks_on()
 
 
 if __name__ == "__main__":
