@@ -17,7 +17,7 @@ from ..model import (
     NEATMauiGEODSS,
     NEATPalomarTricam,
     Found,
-    SkyMapper,
+    SkyMapperDR4,
     CatalinaLemmon,
     Spacewatch,
     SurveyStats,
@@ -78,12 +78,12 @@ def fixture_catch():
             yield catch
 
 
-def test_skymapper_url():
-    obs = SkyMapper(product_id="asdf")
+def test_skymapper_dr4_url():
+    obs = SkyMapperDR4(product_id="asdf")
     found = Found(ra=12.3, dec=-4.56)
     url = obs.cutout_url(found.ra, found.dec, size=0.1)
     assert url == (
-        "https://api.skymapper.nci.org.au/public/siap/dr2/get_image?"
+        "https://api.skymapper.nci.org.au/public/siap/dr4/get_image?"
         f"IMAGE={obs.product_id}&SIZE=0.1&POS={found.ra},{found.dec}&FORMAT=fits"
     )
 

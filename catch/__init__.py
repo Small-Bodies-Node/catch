@@ -52,6 +52,12 @@ def catch_cli(*args):
     # subparser arguments
     # moving and fixed have an overlap in parameters
     moving.add_argument("desg", help="object designation")
+    moving.add_argument(
+        "--padding",
+        type=float,
+        default=0,
+        help="additional padding around the ephemeris to search, arcmin",
+    )
 
     fixed.add_argument("ra", help="Right ascension")
     fixed.add_argument("dec", help="Declination")
@@ -60,6 +66,19 @@ def catch_cli(*args):
         default="hourangle,deg",
         help="RA, Dec unit, may be a single string, or two separated"
         " by a comma (default: hourangle,deg)",
+    )
+    fixed.add_argument(
+        "--radius",
+        dest="padding",
+        type=float,
+        default=0,
+        help="search a circle around the point with this radius, arcmin",
+    )
+    fixed.add_argument(
+        "--intersection_type",
+        choices=list(IntersectionType.__members__.keys()),
+        default="ImageIntersectsArea",
+        help="areal intersection requirement (default: AreaIntersectsImage)",
     )
 
     for subparser in (moving, fixed):
@@ -105,6 +124,7 @@ def catch_cli(*args):
     with Catch.with_config(config) as catch:
         catch.start_date = args.start_date
         catch.stop_date = args.stop_date
+        catch.padding = args.padding
 
         if args.command == "verify":
             pass
@@ -124,7 +144,7 @@ def catch_cli(*args):
                 r = {}
                 # Each row consists of a Found and an Observation object.  The
                 # Observation object will be a subclass, e.g.,
-                # NeatPalomarTricam, or SkyMapper.
+                # NeatPalomarTricam, or SkyMapperDR4.
                 for data_object in row:
                     # Aggregate fields and values from each data object
                     for k, v in _serialize_object(data_object):
@@ -140,6 +160,7 @@ def catch_cli(*args):
 
                 rows.append(r)
         elif args.command == "fixed":
+            catch.intersection_type = IntersectionType[args.intersection_type]
             job_id = uuid.uuid4()
             target = FixedTarget.from_radec(args.ra, args.dec, unit=args.unit)
             observations = catch.query(

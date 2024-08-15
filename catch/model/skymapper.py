@@ -4,12 +4,12 @@ from typing import List
 from sqlalchemy import BigInteger, Column, Integer, String, Float, ForeignKey
 from sbsearch.model.core import Base, Observation
 
-__all__: List[str] = ["SkyMapper"]
+__all__: List[str] = ["SkyMapperDR4"]
 
 
-class SkyMapper(Observation):
-    __tablename__ = "skymapper"
-    __data_source_name__ = "SkyMapper"
+class SkyMapperDR4(Observation):
+    __tablename__ = "skymapper_dr4"
+    __data_source_name__ = "SkyMapperDR4"
     __obscode__ = "413"
     __field_prefix__ = "skymapper"
 
@@ -27,7 +27,7 @@ class SkyMapper(Observation):
     )
 
     sb_mag = Column(Float(16), doc="Surface brightness estimate (ABmag)")
-    field_id = Column(Integer, doc="Field ID")
+    field_id = Column(Integer, doc="Field ID", nullable=True)
     image_type = Column(
         String(3),
         doc="Type of image: fs=Shallow Survey, ms=Main Survey, std=Standard Field (images)",
@@ -36,7 +36,7 @@ class SkyMapper(Observation):
         Float(16), doc="Approximate photometric zeropoint for the exposure"
     )
 
-    __mapper_args__ = {"polymorphic_identity": "skymapper"}
+    __mapper_args__ = {"polymorphic_identity": "skymapper_dr4"}
 
     @property
     def archive_url(self):
@@ -48,14 +48,14 @@ class SkyMapper(Observation):
         https://skymapper.anu.edu.au/how-to-access/#public_siap
 
         For example:
-            https://api.skymapper.nci.org.au/public/siap/dr2/get_image?IMAGE=20140425124821-10&SIZE=0.0833&POS=189.99763,-11.62305&FORMAT=fits
+            https://api.skymapper.nci.org.au/public/siap/dr4/get_image?IMAGE=20140425124821-10&SIZE=0.0833&POS=189.99763,-11.62305&FORMAT=fits
 
         format = fits, png, or mask
 
         """
 
         return (
-            "https://api.skymapper.nci.org.au/public/siap/dr2/get_image?"
+            "https://api.skymapper.nci.org.au/public/siap/dr4/get_image?"
             f"IMAGE={self.product_id}&SIZE={size}&POS={ra},{dec}&FORMAT={format}"
         )
 
