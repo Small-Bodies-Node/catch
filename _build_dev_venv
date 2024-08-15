@@ -1,6 +1,6 @@
 #!/bin/bash -eu
 
-test -z "$PYTHON" && set PYTHON=python3
+test -z "$PYTHON" && PYTHON=python3
 
 ### create virtual environment for CATCH development
 test ! -e .venv && $PYTHON -m venv .venv --prompt='catch-v1'
