@@ -28,8 +28,6 @@ env:
 jobs:
   s2geometry:
     uses: Small-Bodies-Node/sbsearch/.github/workflows/s2geometry-venv.yml@main
-    with:
-      repository:
   test:
     name: CI testing
     needs: [s2geometry]
