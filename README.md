@@ -1,5 +1,8 @@
 # catch v1.4
 
+[![CI Tests](https://github.com/Small-Bodies-Node/catch/actions/workflows/ci-tests.yml/badge.svg)](https://github.com/Small-Bodies-Node/catch/actions/workflows/ci-tests.yml)
+[![codecov](https://codecov.io/gh/Small-Bodies-Node/catch/graph/badge.svg?token=KFB69L7G65)](https://codecov.io/gh/Small-Bodies-Node/catch)
+
 Planetary Data System Small Bodies Node (PDS-SBN) astronomical survey data search tool.
 
 ## Overview
