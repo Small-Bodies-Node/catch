@@ -1,8 +1,4 @@
 # GitHub Actions workflow for testing and continuous integration.
-#
-# This file performs testing using tox and tox.ini to define and configure the test environments.
-
-# Remove -numpy126 when we support testing with numpy 2.0
 
 name: CI Tests
 
