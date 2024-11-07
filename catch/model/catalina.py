@@ -16,7 +16,7 @@ _ARCHIVE_URL_PREFIX: str = (
 )
 
 _CUTOUT_URL_PREFIX: str = (
-    "https://5ub5yo2kmj.execute-api.us-east-1.amazonaws.com/api/images"
+    "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images"
 )
 
 _month_to_Mon: Dict[str, str] = {

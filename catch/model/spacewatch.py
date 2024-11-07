@@ -25,7 +25,7 @@ from sbsearch.model.core import Base, Observation
 _ARCHIVE_URL_PREFIX: str = "https://sbnarchive.psi.edu/pds4/surveys"
 
 _CUTOUT_URL_PREFIX: str = (
-    "https://5ub5yo2kmj.execute-api.us-east-1.amazonaws.com/api/images"
+    "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images"
 )
 
 
