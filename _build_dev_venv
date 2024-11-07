@@ -1,6 +1,9 @@
-#!/bin/bash -eu
+#!/bin/bash
+
+set -e
 
 test -z "$PYTHON" && PYTHON=python3
+test -z "$PYTHON_ROOT" && PYTHON_ROOT=`${PYTHON} -c "import sys; print(sys.exec_prefix)"`
 
 ### create virtual environment for CATCH development
 test ! -e .venv && $PYTHON -m venv .venv --prompt='catch-v1'
@@ -11,35 +14,37 @@ pushd .
 mkdir -p build
 cd build
 
-# checkout code, S2 and Abseil
-S2_TAG=v0.10.0
-test ! -e ${S2_TAG}.tar.gz && wget https://github.com/google/s2geometry/archive/refs/tags/${S2_TAG}.tar.gz
-test ! -e s2geometry-${S2_TAG} && tar xzf ${S2_TAG}.tar.gz
-
 # install abseil from source, as per s2geometry's readme
 # (it must be configured with -DCMAKE_POSITION_INDEPENDENT_CODE=ON)
 # We are using C++11, and the last version to support it is LTS 20220623.1
-ABSEIL_TAG=20220623.1
-test ! -e ${ABSEIL_TAG}.tar.gz && wget https://github.com/abseil/abseil-cpp/archive/refs/tags/${ABSEIL_TAG}.tar.gz
-test ! -e abseil-cpp-${ABSEIL_TAG} && tar xzf ${ABSEIL_TAG}.tar.gz
+if [ ! -e $VIRTUAL_ENV/lib/libabsl_base.a ]; then
+    ABSEIL_TAG=20220623.1
+    test ! -e ${ABSEIL_TAG}.tar.gz && wget https://github.com/abseil/abseil-cpp/archive/refs/tags/${ABSEIL_TAG}.tar.gz
+    test ! -e abseil-cpp-${ABSEIL_TAG} && tar xzf ${ABSEIL_TAG}.tar.gz
 
-cd abseil-cpp-${ABSEIL_TAG}
-mkdir -p build
-cd build
-cmake -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_CXX_STANDARD=11 -DCMAKE_INSTALL_PREFIX=${VIRTUAL_ENV} -DABSL_PROPAGATE_CXX_STD=ON -DABSL_ENABLE_INSTALL=ON ..
-make -j $(nproc)
-make install
-cd ../..
-export LDFLAGS="-L${VIRTUAL_ENV}/lib -Wl,-rpath=${VIRTUAL_ENV}/lib"
-export CXXFLAGS="-I${VIRTUAL_ENV}/include"
+    cd abseil-cpp-${ABSEIL_TAG}
+    mkdir -p build
+    cd build
+    cmake -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_CXX_STANDARD=11 -DCMAKE_INSTALL_PREFIX=$VIRTUAL_ENV -DABSL_ENABLE_INSTALL=ON -DABSL_PROPAGATE_CXX_STD=ON ..
+    make -j $(nproc)
+    make install
+    cd ../..
+fi
 
-cd s2geometry-${S2_TAG:1}
-ln -sfn ../abseil-cpp-${ABSEIL_TAG} abseil
-mkdir -p build
-cd build
-cmake -DWITH_PYTHON=ON -DCMAKE_PREFIX_PATH=${VIRTUAL_ENV} -DCMAKE_CXX_STANDARD=11 -DCMAKE_INSTALL_PREFIX=${VIRTUAL_ENV} -Wno-dev -DPython3_FIND_STRATEGY=LOCATION -DPython3_ROOT_DIR=${VIRTUAL_ENV} ..
-make -j $(nproc)
-make install
+if [ ! -e $VIRTUAL_ENV/lib/libs2.so ]; then
+    S2_TAG=v0.10.0
+    test ! -e ${S2_TAG}.tar.gz && wget https://github.com/google/s2geometry/archive/refs/tags/${S2_TAG}.tar.gz
+    test ! -e s2geometry-${S2_TAG} && tar xzf ${S2_TAG}.tar.gz
+
+    export LDFLAGS="-L$VIRTUAL_ENV/lib -Wl,-rpath=$VIRTUAL_ENV/lib"
+    export CXXFLAGS="-I$VIRTUAL_ENV/include"
+    cd s2geometry-${S2_TAG:1}
+    mkdir -p build
+    cd build
+    cmake -DWITH_PYTHON=ON -DCMAKE_PREFIX_PATH=${VIRTUAL_ENV} -DCMAKE_CXX_STANDARD=11 -DCMAKE_INSTALL_PREFIX=${VIRTUAL_ENV} -Wno-dev -DPython3_FIND_STRATEGY=LOCATION -DPython3_ROOT_DIR=${PYTHON_ROOT} ..
+    make -j $(nproc)
+    make install
+fi
 
 popd
 
