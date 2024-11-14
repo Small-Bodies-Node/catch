@@ -50,6 +50,8 @@ Figure 1. Ephemeris (dashed line) and S2 query cells (thin solid lines) for come
       GRANT USAGE ON SEQUENCE catch_query_query_id_seq, found_found_id_seq, obj_object_id_seq, designation_desg_id_seq TO user;
       ```
 
+      Note: update is needed on found so that CATCH can add the query ID to the found observation table.
+
    1. Edit log file location.
 
 1. Run the installed script `catch` to initialize the databases: `catch verify`. See `catch` script below for more.
