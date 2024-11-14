@@ -22,8 +22,10 @@ from sqlalchemy import BigInteger, Column, String, ForeignKey
 from sbsearch.model.core import Base, Observation
 
 
-_ARCHIVE_URL_PREFIX: str = (
-    "https://sbnarchive.psi.edu/pds4/surveys"
+_ARCHIVE_URL_PREFIX: str = "https://sbnarchive.psi.edu/pds4/surveys"
+
+_CUTOUT_URL_PREFIX: str = (
+    "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images"
 )
 
 
@@ -50,19 +52,50 @@ class LONEOS(Observation):
 
     @property
     def archive_url(self):
-        return None
+        """Augmented data product at PSI.
+
+        urn:nasa:pds:gbo.ast.loneos.survey:data_augmented:041226_2a_082_fits
+        -> https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.loneos.survey/data_augmented/
+           lois_3_2_0_beta/041226/041226_2a_082.fits
+
+        urn:nasa:pds:gbo.ast.loneos.survey:data_augmented:051113_1a_011_fits
+        -> https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.loneos.survey/data_augmented/
+           lois_4_2_0/051113/051113_1a_011.fits
+
+        Using the date to determine the URL:
+            * Last lois_3_2_0_beta data is 041226
+            * First lois 4_2_0 data is 051113
+
+        """
+
+        product_id: str = self.product_id.split(":")[-1]
+        fn: str = product_id[:-5] + ".fits"
+        date: str = product_id[:6]
+
+        lois: str
+        if date < "050101":
+            lois = "lois_3_2_0_beta"
+        else:
+            lois = "lois_4_2_0"
+
+        return f"{_ARCHIVE_URL_PREFIX}/gbo.ast.loneos.survey/data_augmented/{lois}/{date}/{fn}"
 
     def cutout_url(self, ra, dec, size=0.0833, format="fits"):
         """URL to cutout ``size`` around ``ra``, ``dec`` in deg.
 
-        For example:
-            https://sbnsurveys.astro.umd.edu/api/get/<product_id>
-
         format = fits, jpeg, png
+
+        https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images/urn:nasa:pds:gbo.ast.loneos.survey:data_augmented:051113_1a_011_fits?ra=320.8154669&dec=9.1222266&size=5arcmin&format=fits
 
         """
 
-        return None
+        size_arcmin: float = max(0.01, size * 60)
+
+        return (
+            f"{_CUTOUT_URL_PREFIX}/{self.product_id}"
+            f"?ra={ra}&dec={dec}&size={size_arcmin:.2f}arcmin"
+            f"&format={format}"
+        )
 
     def preview_url(self, ra, dec, size=0.0833, format="jpeg"):
         """Web preview image."""
