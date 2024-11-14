@@ -31,3 +31,7 @@ class DataSourceError(CatchException):
 
 class DataSourceWarning(CatchException):
     pass
+
+
+class AddFoundObservationsError(CatchException):
+    pass
