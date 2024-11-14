@@ -3,11 +3,11 @@
 set -e
 
 test -z "$PYTHON" && PYTHON=python3
-test -z "$PYTHON_ROOT" && PYTHON_ROOT=`${PYTHON} -c "import sys; print(sys.exec_prefix)"`
 
 ### create virtual environment for CATCH development
 test ! -e .venv && $PYTHON -m venv .venv --prompt='catch-v1'
 source .venv/bin/activate
+test -z "$PYTHON_ROOT" && PYTHON_ROOT=`${PYTHON} -c "import sys; print(sys.exec_prefix)"`
 python3 -m pip install -U pip setuptools wheel
 
 pushd .
