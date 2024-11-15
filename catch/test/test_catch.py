@@ -22,6 +22,7 @@ from ..model import (
     Spacewatch,
     SurveyStats,
     PS1DR2,
+    LONEOS,
 )
 
 
@@ -117,6 +118,38 @@ def test_css_cutout_url():
         "urn:nasa:pds:gbo.ast.catalina.survey:data_calibrated:g96_20220130_2b_n27011_01_0001.arch"
         "?ra=12.3&dec=-4.56&size=6.00arcmin&format=jpeg"
     )
+
+
+@pytest.mark.parametrize(
+    "lid, ra, dec, expected",
+    [
+        (
+            "urn:nasa:pds:gbo.ast.loneos.survey:data_augmented:041226_2a_082_fits",
+            11.3999188,
+            -29.3221650,
+            "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images/"
+            "urn:nasa:pds:gbo.ast.loneos.survey:data_augmented:041226_2a_082_fits?"
+            "ra=11.3999188&dec=-29.322165&size=6.00arcmin&format=fits",
+        ),
+        (
+            "urn:nasa:pds:gbo.ast.loneos.survey:data_augmented:051113_1a_011_fits",
+            320.8154669,
+            9.1222266,
+            "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images/"
+            "urn:nasa:pds:gbo.ast.loneos.survey:data_augmented:051113_1a_011_fits?"
+            "ra=320.8154669&dec=9.1222266&size=6.00arcmin&format=fits",
+        ),
+    ],
+)
+def test_loneos_cutout_url(lid, ra, dec, expected):
+    obs = LONEOS(product_id=lid)
+    found = Found(ra=ra, dec=dec)
+
+    url = obs.cutout_url(found.ra, found.dec, size=0.1)
+    assert url == expected
+
+    url = obs.preview_url(found.ra, found.dec, size=0.1)
+    assert url == expected[:-4] + "jpeg"
 
 
 def test_sw_url():
