@@ -24,6 +24,7 @@ from .model import (
 )
 from .exceptions import (
     CatchException,
+    AddFoundObservationsError,
     DataSourceWarning,
     DateRangeError,
     FindObjectError,
@@ -301,6 +302,12 @@ class Catch(SBSearch):
                 except CatchException as e:
                     q.status = "errored"
                     task_messenger.error(str(e))
+                    self.logger.error(e, exc_info=self.debug)
+                except Exception as e:
+                    q.status = "errored"
+                    task_messenger.error(
+                        "Unexpected error.  Contact us with this issue and your job ID."
+                    )
                     self.logger.error(e, exc_info=self.debug)
                 else:
                     count += n
@@ -680,7 +687,12 @@ class Catch(SBSearch):
 
         if len(observations) > 0:
             # Observations found?  Then add them to the found table.
-            founds: List[Found] = self.add_found(_target, observations)
+            try:
+                founds: List[Found] = self.add_found(_target, observations)
+            except Exception as e:
+                raise AddFoundObservationsError(
+                    "Critical error: could not save results to the found object database."
+                ) from e
 
             # include query_id
             found: Found
