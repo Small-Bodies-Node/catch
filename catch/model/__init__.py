@@ -42,6 +42,7 @@ from .spacewatch import Spacewatch
 from .loneos import LONEOS
 from .atlas import ATLASMaunaLoa, ATLASHaleakela, ATLASRioHurtado, ATLASSutherland
 
+
 class CatchQuery(Base):
     __tablename__ = f"catch_query"
     query_id = Column(

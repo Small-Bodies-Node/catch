@@ -15,17 +15,14 @@ The catch survey data model additionally requires:
 
 """
 
+__all__ = ["ATLASMaunaLoa", "ATLASHaleakela", "ATLASRioHurtado", "ATLASSutherland"]
 
-__all__ = ["ATLASMaunaLoa", "ATLASHaleakela",
-           "ATLASRioHurtado", "ATLASSutherland"]
-
+from typing import Union
 from sqlalchemy import BigInteger, Column, String, Boolean, ForeignKey
 from sbsearch.model.core import Base, Observation
 
 
-_ARCHIVE_URL_PREFIX: str = (
-    "https://sbnsurveys.astro.umd.edu/images/"
-)
+_ARCHIVE_URL_PREFIX: str = "https://sbnsurveys.astro.umd.edu/images/"
 
 
 class ATLAS:
@@ -46,17 +43,22 @@ class ATLAS:
         return f"{_ARCHIVE_URL_PREFIX}/{lid}?format=label"
 
     @property
-    def diff_url(self) -> str:
+    def diff_url(self) -> Union[str, None]:
         # generate URL to difference image based on prime LID
         if self.diff:
-            lid: str = self.product_id.replace('_fits', '_diff')
+            lid: str = self.product_id.replace("_fits", "_diff")
             return f"{_ARCHIVE_URL_PREFIX}/{lid}"
         else:
             # this image has no diff
             return None
 
     def cutout_url(
-        self, ra: float, dec: float, size: float = 0.0833, format: str = "fits"
+        self,
+        ra: float,
+        dec: float,
+        size: float = 0.0833,
+        format: str = "fits",
+        diff: bool = False,
     ) -> str:
         """URL to cutout ``size`` around ``ra``, ``dec`` in deg.
 
@@ -67,7 +69,19 @@ class ATLAS:
 
         """
 
-        return f"{self.archive_url}/ra={float(ra)}&dec={float(dec)}&size={float(size)}deg&format={format}"
+        if diff and not self.diff:
+            return None
+
+        base_url: str = self.diff_url if diff else self.archive_url
+        return f"{base_url}/ra={float(ra)}&dec={float(dec)}&size={float(size)}deg&format={format}"
+
+    def diff_cutout_url(self, *args, **kwargs):
+        """URL to cutout for difference image."""
+        return self.cutout_url(*args, diff=True, **kwargs)
+
+    def diff_preview_url(self, *args, **kwargs):
+        """URL to cutout preview for difference image."""
+        return self.preview_url(*args, diff=True, **kwargs)
 
     def preview_url(
         self, ra: float, dec: float, size: float = 0.0833, format: str = "jpeg"
@@ -105,10 +119,8 @@ class ATLASMaunaLoa(Observation, ATLAS):
     product_id = Column(
         String(128), doc="Archive product id", unique=True, index=True, nullable=False
     )
-    field_id = Column(String(16), doc="Survey field ID",
-                      index=True, nullable=False)
-    diff = Column(Boolean, doc="True if a difference image exists",
-                  nullable=False)
+    field_id = Column(String(16), doc="Survey field ID", index=True, nullable=False)
+    diff = Column(Boolean, doc="True if a difference image exists", nullable=False)
 
 
 class ATLASHaleakela(Observation, ATLAS):
@@ -131,10 +143,8 @@ class ATLASHaleakela(Observation, ATLAS):
     product_id = Column(
         String(128), doc="Archive product id", unique=True, index=True, nullable=False
     )
-    field_id = Column(String(16), doc="Survey field ID",
-                      index=True, nullable=False)
-    diff = Column(Boolean, doc="True if a difference image exists",
-                  nullable=False)
+    field_id = Column(String(16), doc="Survey field ID", index=True, nullable=False)
+    diff = Column(Boolean, doc="True if a difference image exists", nullable=False)
 
 
 class ATLASRioHurtado(Observation, ATLAS):
@@ -157,10 +167,8 @@ class ATLASRioHurtado(Observation, ATLAS):
     product_id = Column(
         String(128), doc="Archive product id", unique=True, index=True, nullable=False
     )
-    field_id = Column(String(16), doc="Survey field ID",
-                      index=True, nullable=False)
-    diff = Column(Boolean, doc="True if a difference image exists",
-                  nullable=False)
+    field_id = Column(String(16), doc="Survey field ID", index=True, nullable=False)
+    diff = Column(Boolean, doc="True if a difference image exists", nullable=False)
 
 
 class ATLASSutherland(Observation, ATLAS):
@@ -183,7 +191,5 @@ class ATLASSutherland(Observation, ATLAS):
     product_id = Column(
         String(128), doc="Archive product id", unique=True, index=True, nullable=False
     )
-    field_id = Column(String(16), doc="Survey field ID",
-                      index=True, nullable=False)
-    diff = Column(Boolean, doc="True if a difference image exists",
-                  nullable=False)
+    field_id = Column(String(16), doc="Survey field ID", index=True, nullable=False)
+    diff = Column(Boolean, doc="True if a difference image exists", nullable=False)

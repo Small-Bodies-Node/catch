@@ -1,24 +1,34 @@
 """Harvest ATLAS metadata.
 
-* ATLAS data will be continuously archived.  Track which files have been
-  previously harvested and skip as appropriate.
+* ATLAS data will be continuously archived.
+* We have a database that tracks validated collections and the time they were
+  validated.
+* Check this database to identify new collections to harvest.
+* Track harvest runs in a local file.
 * Files are fz compressed.
 * We just want labels with LIDs ending in .fits.
 
 """
 
 import os
-import argparse
+import sys
+import shlex
 import logging
 import sqlite3
-from glob import iglob
-from datetime import datetime
-from contextlib import contextmanager
+import argparse
+from glob import glob
+import logging.handlers
+from typing import Iterator
+from packaging.version import Version
 
+import numpy as np
+import astropy.units as u
 from astropy.time import Time
-from pds4_tools import pds4_read
+from astropy.table import Table
+from astropy.coordinates import SkyCoord
+import pds4_tools
 
-from catch import Catch, Config
+from catch import Catch, Config as CatchConfig
 from catch.model.atlas import (
     ATLASMaunaLoa,
     ATLASHaleakela,
@@ -35,61 +45,193 @@ from sbpy import __version__ as sbpy_version
 from sbsearch import __version__ as sbsearch_version
 
 
-DB_SETUP = (
-    """
-    CREATE TABLE IF NOT EXISTS labels (
-        lid TEXT,
-        date TEXT,
-        status TEXT
-    )
-    """,
-    "CREATE UNIQUE INDEX IF NOT EXISTS lid_index ON labels (lid)",
-    "CREATE INDEX IF NOT EXISTS date_index ON labels (date)",
-    "CREATE INDEX IF NOT EXISTS status_index ON labels (status)",
-)
+class Config:
+    harvest_log_filename: str = "atlas-harvest-log.ecsv"
+    harvest_log_format: str = "ascii.ecsv"
+    harvest_source: str = "atlas"
+    logger_name: str = "CATCH/Add ATLAS"
+
+
+class LabelError(Exception):
+    pass
+
+
+class CornerTestFail(Exception):
+    pass
+
+
+def get_logger():
+    return logging.getLogger(Config.logger_name)
 
 
 def setup_logger(log_filename):
-    logger = logging.getLogger("add-atlas")
+    if not os.path.exists(os.path.dirname(args.log)):
+        os.makedirs(os.path.dirname(args.log), exist_ok=True)
+
+    logger = logging.getLogger(Config.logger_name)
+    logger.setLevel(logging.INFO)
+
     for handler in list(logger.handlers):
         handler.close()
         logger.removeHandler(handler)
-    logger.addHandler(logging.StreamHandler())
-    logger.addHandler(logging.FileHandler(log_filename))
-    formatter = logging.Formatter("%(levelname)s %(asctime)s (%(name)s): %(message)s")
-    for handler in logger.handlers:
-        handler.setFormatter(formatter)
-    logger.setLevel(logging.INFO)
+
+    formatter = logging.Formatter("%(levelname)s:%(name)s:%(asctime)s: %(message)s")
+
+    handler = logging.StreamHandler(sys.stderr)
+    handler.setLevel(logging.DEBUG if args.verbose else logging.ERROR)
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+    handler = logging.FileHandler(args.log)
+    handler.setLevel(logging.DEBUG if args.verbose else logging.INFO)
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
     logger.info("Initialized.")
     logger.debug(f"astropy {astropy_version}")
     logger.debug(f"catch {catch_version}")
     logger.debug(f"pds4_tools {pds4_tools_version}")
     logger.debug(f"sbpy {sbpy_version}")
     logger.debug(f"sbsearch {sbsearch_version}")
+    logger.info("%s", " ".join([shlex.quote(s) for s in sys.argv]))
+
     return logger
 
 
-def inventory(base_path, recursive):
-    """Find ATLAS labels within this path.
+def get_validation_database(fn) -> sqlite3.Connection:
+    logger = get_logger()
 
-    Labels we want are *.fits.xml  LIDs will end with .fits
+    try:
+        db = sqlite3.connect(f"file:{fn}?mode=ro", uri=True)
+        db.row_factory = sqlite3.Row
+    except Exception as exc:
+        logger.error("Could not connect to database %s", fn)
+        raise exc
+
+    return db
+
+
+def get_harvest_log() -> Table:
+    tab: Table
+    if os.path.exists(Config.harvest_log_filename):
+        tab = Table.read(Config.harvest_log_filename, format=Config.harvest_log_format)
+    else:
+        tab = Table(
+            names=[
+                "start",
+                "end",
+                "source",
+                "time_of_last",
+                "files",
+                "added",
+                "errors",
+            ],
+            dtype=["<U23", "<U23", "<U32", "<U23", int, int, int],
+        )
+
+    os.system(
+        f"cp -f --backup=numbered {Config.harvest_log_filename} {Config.harvest_log_filename}"
+    )
+
+    sixth_backup = Config.harvest_log_filename + ".~6~"
+    if os.path.exists(sixth_backup):
+        os.unlink(sixth_backup)
+
+    return tab
+
+
+def write_harvest_log(tab: Table, dry_run: bool) -> None:
+    if dry_run:
+        return
+
+    tab.write(
+        Config.harvest_log_filename, format=Config.harvest_log_format, overwrite=True
+    )
+
+
+def get_time_of_last(tab: Table) -> Time:
+    """Get the time of the last file validation."""
+    last_run = np.argsort(tab[tab["source"] == Config.harvest_source]["end"])[-1]
+    return Time(tab[last_run]["time_of_last"])
+
+
+def is_harvest_processing(tab: Table) -> bool:
+    """True if a harvester log entry is set to 'processing'."""
+    is_processing = any(
+        tab[tab["source"] == Config.harvest_source]["end"] == "processing"
+    )
+    return is_processing
+
+
+def get_collections(db, start, stop):
+    """Get collections validated between start and stop.
+
+    The rows are ordered so that if a fatal error occurs the next run might be
+    able to recover.
 
     """
 
-    for dirpath, dirnames, filenames in os.walk(base_path):
-        for fn in filenames:
-            if not fn.endswith(".fits.xml"):
-                continue
+    cursor = db.execute(
+        """SELECT * FROM nn
+           WHERE current_status = 'validated'
+             AND recorded_at > ? AND recorded_at < ?
+           ORDER BY recorded_at
+        """,
+        (start.unix, stop.unix),
+    )
+    return list(cursor.fetchall())
 
-            path = os.path.join(dirpath, fn)
-            label = pds4_read(path, lazy_load=True, quiet=True).label
-            lid = label.find("Identification_Area/logical_identifier").text
-            if lid.endswith(".fits"):
-                # Should be good!
-                yield fn, lid, label
-        
-        if not recursive:
-            break
+
+def collection_version(collection) -> Version:
+    """Get the collection version."""
+    is_collection = (
+        collection.label.find("Identification_Area/product_class").text
+        == "Product_Collection"
+    )
+    vid = collection.label.find("Identification_Area/version_id")
+    if not is_collection or vid is None:
+        raise LabelError("This does not appear to be a valid PDS4 label.")
+    return Version(vid.text)
+
+
+def get_lidvid(label):
+    """Return the LIDVID."""
+    lid = label.find("Identification_Area/logical_identifier").text
+    vid = label.find("Identification_Area/version_id").text
+    return "::".join((lid, vid))
+
+
+def get_image_labels(collection, data_directory) -> Iterator:
+    """Iterator of image files to ingest.
+
+    The label file names for all LIDVIDs ending with ".fits" in the collection
+    inventory will be returned.   (Do not add .diff files to CATCH.)
+
+    Candidate labels are collected from xml files within `data_directory`.
+
+    """
+
+    logger = get_logger()
+
+    # get lidvids of images from the collection inventory
+    fits_inventory = {
+        lidvid for lidvid in collection[0].data["LIDVID_LID"] if ".fits::" in lidvid
+    }
+
+    # yield all .fits.xml labels in the data directory with lidvids in the
+    # fits_inventory
+    for fn in glob(f"{data_directory}/*.fits.xml"):
+        label = pds4_tools.read(fn, quiet=True, lazy_load=True).label
+        lidvid = get_lidvid(label)
+        if lidvid in fits_inventory:
+            fits_inventory -= set([lidvid])
+            yield label
+        else:
+            raise LabelError(f"Not found in collection inventory: {lidvid}")
+
+    for lidvid in fits_inventory:
+        logger.error("%s not found in %s", lidvid, data_directory)
+
 
 def get_obs_model(lid):
     # example LID: urn:nasa:pds:gbo.ast.atlas.survey:59613:01a59613o0586o_fits
@@ -102,26 +244,8 @@ def get_obs_model(lid):
     }[tel]
 
 
-@contextmanager
-def harvester_db(filename):
-    db = sqlite3.connect(filename)
-    try:
-        for statement in DB_SETUP:
-            db.execute(statement)
-        yield db
-        db.commit()
-    finally:
-        db.close()
-
-
-def process(db, fn, label):
+def process(label):
     lid = label.find("Identification_Area/logical_identifier").text
-
-    is_processed = db.execute(
-        "SELECT TRUE FROM labels WHERE lid = ?", (lid,)
-    ).fetchone()
-    if is_processed is not None:
-        return None
 
     obs = get_obs_model(lid)()
     obs.product_id = lid
@@ -152,28 +276,59 @@ def process(db, fn, label):
 
     obs.field_id = survey.find("survey:field_id").text
 
-    obs.diff = os.path.exists(fn.replace(".fits", ".diff"))
+    # is there a diff image?
+    derived_lids = label.findall(
+        "Reference_List/Internal_Reference[reference_type='data_to_derived_product']/lid_reference"
+    )
+    expected_diff_lid = lid[:-4] + "diff"  # replace fits with diff
+    obs.diff = any(
+        [derived_lid.text == expected_diff_lid for derived_lid in derived_lids]
+    )
+
+    # verify corner order
+    coords1 = SkyCoord(ra, dec, unit="deg")
+    coords2 = SkyCoord(np.roll(ra, 1), np.roll(dec, 1), unit="deg")
+    c = coords1.cartesian.cross(coords2.cartesian)
+    test = np.sqrt(np.sum(c.xyz.sum(1) ** 2))
+    # expecting a value ~0.02, if it is much smaller then there is an issue
+    if test < 0.01:
+        raise CornerTestFail("Corner test failure: " + get_lidvid(label))
 
     return obs
 
 
-parser = argparse.ArgumentParser(
-    description="Add ATLAS data to CATCH.",
-    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-)
-parser.add_argument("base_path", help="path to data collection root directory")
+parser = argparse.ArgumentParser()
 parser.add_argument(
-    "--db", default="add-atlas.db", help="harvested file tracking database"
+    "file",
+    type=os.path.normpath,
+    help="ATLAS-PDS processing database or PDS4 label to test (with --test)",
 )
-parser.add_argument("-r", action="store_true", help="recursively add files in subdirectories")
 parser.add_argument(
     "--config",
     default="catch.config",
-    type=Config.from_file,
+    type=CatchConfig.from_file,
     help="CATCH configuration file",
 )
-parser.add_argument("--log", default="add-atlas.log", help="log file")
-parser.add_argument("-v", action="store_true", help="verbose logging")
+
+mutex = parser.add_mutually_exclusive_group()
+mutex.add_argument(
+    "--since-date", type=Time, help="harvest metadata validated since this date"
+)
+mutex.add_argument(
+    "--past",
+    type=int,
+    help="harvest metadata validated in the past SINCE hours",
+)
+mutex.add_argument(
+    "--between-dates",
+    type=Time,
+    nargs=2,
+    help="harvest metadata validated between these dates",
+)
+
+parser.add_argument(
+    "--log", default="./logging/add-atlas.log", help="log messages to this file"
+)
 parser.add_argument(
     "--dry-run",
     "-n",
@@ -181,103 +336,146 @@ parser.add_argument(
     help="process labels, but do not add to the database",
 )
 parser.add_argument(
-    "-t",
-    action="store_true",
-    help="just test for the existence of the files (implies -n)",
+    "--test", action="store_true", help="<file> is a PDS4 ATLAS label to test"
+)
+parser.add_argument(
+    "--verbose", "-v", action="store_true", help="log debugging messages"
 )
 
 args = parser.parse_args()
 
+if args.test:
+    label = pds4_tools.read(args.file, quiet=True, lazy_load=True).label
+    print(process(label))
+    sys.exit()
+
 logger = setup_logger(args.log)
 
-if args.t:
-    logger.info("Testing for existence of all files.")
-
-if args.dry_run or args.t:
-    logger.info("Dry run, databases will not be updated.")
-
-if args.v:
+if args.verbose:
     logger.setLevel(logging.DEBUG)
 
-with harvester_db(args.db) as db:
+if args.dry_run:
+    logger.info("Dry run, databases will not be updated.")
+
+validation_db = get_validation_database(args.file)
+
+harvest_log = get_harvest_log()
+if is_harvest_processing(harvest_log):
+    logger.error('Harvester log state is "processing"')
+    sys.exit(1)
+
+start: Time
+stop: Time = Time.now().iso
+if args.between_dates is not None:
+    start = args.between_dates[0]
+    stop = args.between_dates[-1]
+    logger.info(
+        "Checking for collections validated between %s and %s", start.iso, stop.iso
+    )
+elif args.past is not None:
+    start = Time.now() - args.past * u.hr
+    logger.info(
+        "Checking for collections validated in the past %d hr (since %s)",
+        args.past,
+        start.iso,
+    )
+elif args.since_date:
+    start = args.since_date
+    logger.info("Checking for collections validated since %s", start.iso)
+else:
+    start = get_time_of_last(harvest_log)
+
+results = get_collections(validation_db, start, stop)
+
+if len(results) == 0:
+    logger.info("No new data collections found.")
+else:
     with Catch.with_config(args.config) as catch:
-        observations = []
-        added = 0
-        failed = 0
+        harvest_log.add_row(
+            {
+                "start": Time.now().iso,
+                "end": "processing",
+                "source": Config.harvest_source,
+                "time_of_last": "",
+                "files": 0,
+                "added": 0,
+                "errors": 0,
+            }
+        )
 
-        tri = ProgressTriangle(1, logger=logger, base=2)
-        db.execute("BEGIN TRANSACTION")
-        for fn, lid, label in inventory(args.base_path, args.r):
-            tri.update()
+        write_harvest_log(harvest_log, args.dry_run)
 
-            if args.t:
-                if not os.path.exists(fn):
-                    logger.error("Missing %s", fn)
-                continue
+        for i, row in enumerate(results):
+            logger.info("%d collections to process.", len(results) - i)
 
-            try:
-                obs = process(db, fn, label)
-                if obs is None:
-                    msg = "skipped"
-                else:
-                    observations.append(obs)
-                    msg = "added"
-            except ValueError as e:
-                failed += 1
-                msg = str(e)
-            except:
-                logger.error("A fatal error occurred processing %s", fn, exc_info=True)
-                raise
+            collections = [
+                pds4_tools.read(fn, quiet=True, lazy_load=True)
+                for fn in glob(f"/n/{row['location']}/collection_{row['nn']}*.xml")
+            ]
 
-            logger.debug("%s (%s): %s", fn, lid, msg)
+            # find the latest collection lidvid and save to the log
+            versions = [collection_version(label) for label in collections]
+            latest = collections[versions.index(max(versions))]
+            lid = latest.label.find("Identification_Area/logical_identifier").text
+            vid = latest.label.find("Identification_Area/version_id").text
+            logger.info("%s::%s", lid, vid)
 
-            if args.dry_run or args.t or obs is None:
-                continue
+            # Find image products in the data directory
+            data_directory = f"/n/{row['location']}/data"
+            logger.debug(
+                "Inspecting directory %s for image products",
+                data_directory,
+            )
 
-            added += 1
-            db.execute("INSERT INTO labels VALUES (?,?,?)", (lid, Time.now().iso, msg))
-            
-            if len(observations) >= 8192:
+            # harvest metadata
+            added = 0
+            errors = 0
+            observations = []
+            tri: ProgressTriangle = ProgressTriangle(1, logger)
+            for label in get_image_labels(latest, data_directory):
+                tri.update()
                 try:
-                    catch.add_observations(observations)
-                except:
-                    logger.error(
-                        "A fatal error occurred saving data to the database.",
-                        exc_info=True,
-                    )
-                    db.execute("ROLLBACK TRANSACTION")
-                    raise
-                db.execute("END TRANSACTION")
-                db.execute("BEGIN TRANSACTION")
-                observations = []
+                    observations.append(process(label))
+                    added += 1
+                except Exception as exc:
+                    logger.error(exc)
+                    errors += 1
 
-        # add any remaining files
-        if not (args.dry_run or args.t) and (len(observations) > 0):
-            try:
+            if not args.dry_run:
                 catch.add_observations(observations)
-            except:
-                logger.error(
-                    "A fatal error occurred saving data to the database.", exc_info=True
-                )
-                db.execute("ROLLBACK TRANSACTION")
-                raise
 
-        db.execute("END TRANSACTION")
+            logger.info("%d files processed", tri.i)
+            logger.info("%d files added", added)
+            logger.info("%d files errored", errors)
+            tri.done()
 
-        logger.info("%d files processed.", tri.i)
-        logger.info("%d files added.", added)
-        logger.info("%d files failed.", failed)
+            # update harvest log
+            harvest_log[-1]["files"] += tri.i
+            harvest_log[-1]["added"] += added
+            harvest_log[-1]["errors"] += errors
+            harvest_log[-1]["time_of_last"] = max(
+                harvest_log[-1]["time_of_last"],
+                Time(row["recorded_at"], format="unix").iso,
+            )
+            write_harvest_log(harvest_log, args.dry_run)
 
-        if failed > 0:
-            logger.warning("Failed processing %d files", failed)
+        logger.info("Processing complete.")
+        logger.info("%d files processed", harvest_log[-1]["files"])
+        logger.info("%d files added", harvest_log[-1]["added"])
+        logger.info("%d files errored", harvest_log[-1]["errors"])
 
-        if not (args.dry_run or args.t):
-            logger.info("Updating survey statistics.")
-            for source in (
-                "atlas_mauna_loa",
-                "atlas_haleakela",
-                "atlas_rio_hurtado",
-                "atlas_sutherland",
-            ):
-                catch.update_statistics(source=source)
-            logger.info("Consider database vacuum.")
+        harvest_log[-1]["end"] = Time.now().iso
+        write_harvest_log(harvest_log, args.dry_run)
+
+        # if not args.dry_run:
+        #     logger.info("Updating survey statistics.")
+        #     for source in (
+        #         "atlas_mauna_loa",
+        #         "atlas_haleakela",
+        #         "atlas_rio_hurtado",
+        #         "atlas_sutherland",
+        #     ):
+        #         catch.update_statistics(source=source)
+        logger.warning("Survey statistics not updated.")
+
+logger.info("Finished.")
