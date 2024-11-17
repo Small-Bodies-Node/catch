@@ -424,17 +424,18 @@ else:
             latest = collections[versions.index(max(versions))]
             lid = latest.label.find("Identification_Area/logical_identifier").text
             vid = latest.label.find("Identification_Area/version_id").text
-            logger.info("%s::%s", lid, vid)
 
             if args.only_process is not None and lid != args.only_process:
                 continue
 
             # Find image products in the data directory
-            data_directory = f"/n/{row['location']}/data"
+            data_directory = os.path.normpath(f"/n/{row['location']}/data")
             logger.debug(
                 "Inspecting directory %s for image products",
                 data_directory,
             )
+
+            logger.info("%s::%s, %s", lid, vid, data_directory)
 
             # harvest metadata
             added = 0
