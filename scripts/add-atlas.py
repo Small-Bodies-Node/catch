@@ -65,8 +65,8 @@ def get_logger():
 
 
 def setup_logger(log_filename):
-    if not os.path.exists(os.path.dirname(args.log)):
-        os.makedirs(os.path.dirname(args.log), exist_ok=True)
+    if not os.path.exists(os.path.dirname(log_filename)):
+        os.makedirs(os.path.dirname(log_filename), exist_ok=True)
 
     logger = logging.getLogger(Config.logger_name)
     logger.setLevel(logging.INFO)
@@ -82,7 +82,7 @@ def setup_logger(log_filename):
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
-    handler = logging.FileHandler(args.log)
+    handler = logging.FileHandler(log_filename)
     handler.setLevel(logging.DEBUG if args.verbose else logging.INFO)
     handler.setFormatter(formatter)
     logger.addHandler(handler)
@@ -124,6 +124,7 @@ def get_harvest_log() -> Table:
                 "time_of_last",
                 "files",
                 "added",
+                "duplicates",
                 "errors",
             ],
             dtype=["<U23", "<U23", "<U32", "<U23", int, int, int],
@@ -327,6 +328,11 @@ mutex.add_argument(
 )
 
 parser.add_argument(
+    "--only-process",
+    metavar="LID",
+    help="only process the collection matching this LID",
+)
+parser.add_argument(
     "--log", default="./logging/add-atlas.log", help="log messages to this file"
 )
 parser.add_argument(
@@ -420,6 +426,9 @@ else:
             vid = latest.label.find("Identification_Area/version_id").text
             logger.info("%s::%s", lid, vid)
 
+            if args.only_process is not None and lid != args.only_process:
+                continue
+
             # Find image products in the data directory
             data_directory = f"/n/{row['location']}/data"
             logger.debug(
@@ -429,13 +438,23 @@ else:
 
             # harvest metadata
             added = 0
+            duplicates = 0
             errors = 0
             observations = []
             tri: ProgressTriangle = ProgressTriangle(1, logger)
             for label in get_image_labels(latest, data_directory):
                 tri.update()
                 try:
-                    observations.append(process(label))
+                    obs = process(label)
+
+                    # was this already in the database?
+                    if catch.session.query(
+                        type(obs).product_id == obs.product_id
+                    ).exists():
+                        duplicates += 1
+                        continue
+
+                    observations.append(obs)
                     added += 1
                 except Exception as exc:
                     logger.error(exc)
@@ -446,12 +465,14 @@ else:
 
             logger.info("%d files processed", tri.i)
             logger.info("%d files added", added)
+            logger.info("%d files already in the database", added)
             logger.info("%d files errored", errors)
             tri.done()
 
             # update harvest log
             harvest_log[-1]["files"] += tri.i
             harvest_log[-1]["added"] += added
+            harvest_log[-1]["duplicates"] += duplicates
             harvest_log[-1]["errors"] += errors
             harvest_log[-1]["time_of_last"] = max(
                 harvest_log[-1]["time_of_last"],
@@ -462,20 +483,20 @@ else:
         logger.info("Processing complete.")
         logger.info("%d files processed", harvest_log[-1]["files"])
         logger.info("%d files added", harvest_log[-1]["added"])
+        logger.info("%d files already in the database", harvest_log[-1]["duplicates"])
         logger.info("%d files errored", harvest_log[-1]["errors"])
 
         harvest_log[-1]["end"] = Time.now().iso
         write_harvest_log(harvest_log, args.dry_run)
 
-        # if not args.dry_run:
-        #     logger.info("Updating survey statistics.")
-        #     for source in (
-        #         "atlas_mauna_loa",
-        #         "atlas_haleakela",
-        #         "atlas_rio_hurtado",
-        #         "atlas_sutherland",
-        #     ):
-        #         catch.update_statistics(source=source)
-        logger.warning("Survey statistics not updated.")
+        if not args.dry_run:
+            logger.info("Updating survey statistics.")
+            for source in (
+                "atlas_mauna_loa",
+                "atlas_haleakela",
+                "atlas_rio_hurtado",
+                "atlas_sutherland",
+            ):
+                catch.update_statistics(source=source)
 
 logger.info("Finished.")
