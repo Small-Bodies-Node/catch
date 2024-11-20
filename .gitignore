@@ -115,7 +115,8 @@ Pipfile*
 !logrotate.config
 *.log
 catch/version.py
-css.db
+*.db
+atlas-harvest-log.ecsv
 
 # figures, only keep specific files
 figures/*png
