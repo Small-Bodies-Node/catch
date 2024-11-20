@@ -44,9 +44,9 @@ Figure 1. Ephemeris (dashed line) and S2 query cells (thin solid lines) for come
       For day-to-day operations, a more limited set of privileges should be used:
 
       ```sql
-      GRANT SELECT ON all tables IN SCHEMA public TO user;
+      GRANT SELECT ON ALL TABLES IN SCHEMA public TO user;
       GRANT INSERT ON catch_query, found, obj, designation TO user;
-      GRANT UPDATE ON catch_query TO user;
+      GRANT UPDATE ON catch_query, found TO user;
       GRANT USAGE ON SEQUENCE catch_query_query_id_seq, found_found_id_seq, obj_object_id_seq, designation_desg_id_seq TO user;
       ```
 
