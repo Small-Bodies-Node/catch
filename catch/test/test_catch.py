@@ -93,9 +93,9 @@ def test_css_url():
     obs = CatalinaLemmon(
         product_id="urn:nasa:pds:gbo.ast.catalina.survey:data_calibrated:g96_20220130_2b_n27011_01_0001.arch"
     )
-    assert (
-        obs.archive_url
-        == "https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.catalina.survey/data_calibrated/G96/2022/22Jan30/G96_20220130_2B_N27011_01_0001.arch.fz"
+    assert obs.archive_url == (
+        "https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.catalina.survey/data_calibrated/G96/2022/22Jan30/"
+        "G96_20220130_2B_N27011_01_0001.arch.fz"
     )
 
 
@@ -157,9 +157,9 @@ def test_sw_url():
         product_id="urn:nasa:pds:gbo.ast.spacewatch.survey:data:sw_1071_04.06_2009_07_29_03_59_40.003.fits",
         label="gbo.ast.spacewatch.survey/data/2009/07/29/sw_1071_04.06_2009_07_29_03_59_40.003.xml",
     )
-    assert (
-        obs.archive_url
-        == "https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.spacewatch.survey/data/2009/07/29/sw_1071_04.06_2009_07_29_03_59_40.003.fits"
+    assert obs.archive_url == (
+        "https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.spacewatch.survey/data/2009/07/29/"
+        "sw_1071_04.06_2009_07_29_03_59_40.003.fits"
     )
 
 
