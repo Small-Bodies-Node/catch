@@ -19,7 +19,7 @@ The catch survey data model additionally requires:
 __all__ = ["LONEOS"]
 
 from sqlalchemy import BigInteger, Column, String, ForeignKey
-from sbsearch.model.core import Base, Observation  # noqa: F401
+from sbsearch.model.core import Observation
 
 
 _ARCHIVE_URL_PREFIX: str = "https://sbnarchive.psi.edu/pds4/surveys"
@@ -80,7 +80,7 @@ class LONEOS(Observation):
 
         return f"{_ARCHIVE_URL_PREFIX}/gbo.ast.loneos.survey/data_augmented/{lois}/{date}/{fn}"
 
-    def cutout_url(self, ra, dec, size=0.0833, format="fits"):
+    def cutout_url(self, ra, dec, size=0.21, format="fits"):
         """URL to cutout ``size`` around ``ra``, ``dec`` in deg.
 
         format = fits, jpeg, png
@@ -97,6 +97,6 @@ class LONEOS(Observation):
             f"&format={format}"
         )
 
-    def preview_url(self, ra, dec, size=0.0833, format="jpeg"):
+    def preview_url(self, ra, dec, size=0.21, format="jpeg"):
         """Web preview image."""
         return self.cutout_url(ra, dec, size=size, format=format)

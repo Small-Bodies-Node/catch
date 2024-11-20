@@ -4,7 +4,7 @@ __all__ = ["NEATMauiGEODSS"]
 
 from urllib.parse import urlencode, quote
 from sqlalchemy import BigInteger, Column, String, ForeignKey
-from sbsearch.model.core import Base, Observation  # noqa: F401
+from sbsearch.model.core import Observation
 
 
 class NEATMauiGEODSS(Observation):

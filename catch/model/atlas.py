@@ -19,7 +19,7 @@ __all__ = ["ATLASMaunaLoa", "ATLASHaleakela", "ATLASRioHurtado", "ATLASSutherlan
 
 from typing import Union
 from sqlalchemy import BigInteger, Column, String, Boolean, ForeignKey
-from sbsearch.model.core import Base, Observation
+from sbsearch.model.core import Observation
 
 
 _ARCHIVE_URL_PREFIX: str = "https://sbnsurveys.astro.umd.edu/images/"
@@ -56,7 +56,7 @@ class ATLAS:
         self,
         ra: float,
         dec: float,
-        size: float = 0.0833,
+        size: float = 0.16,
         format: str = "fits",
         diff: bool = False,
     ) -> str:
@@ -84,7 +84,7 @@ class ATLAS:
         return self.preview_url(*args, diff=True, **kwargs)
 
     def preview_url(
-        self, ra: float, dec: float, size: float = 0.0833, format: str = "jpeg"
+        self, ra: float, dec: float, size: float = 0.16, format: str = "jpeg"
     ) -> str:
         """Web preview image."""
         return self.cutout_url(ra, dec, size=size, format=format)

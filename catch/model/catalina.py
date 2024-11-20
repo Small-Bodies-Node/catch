@@ -9,7 +9,7 @@ __all__ = ["CatalinaBigelow", "CatalinaLemmon", "CatalinaBokNEOSurvey"]
 
 from typing import List, Dict
 from sqlalchemy import BigInteger, Column, String, ForeignKey
-from sbsearch.model.core import Base, Observation
+from sbsearch.model.core import Observation
 
 _ARCHIVE_URL_PREFIX: str = (
     "https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.catalina.survey/data_calibrated"
@@ -18,6 +18,14 @@ _ARCHIVE_URL_PREFIX: str = (
 _CUTOUT_URL_PREFIX: str = (
     "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images"
 )
+
+# About 300 pixels for each:
+_DEFAULT_CUTOUT_SIZE = {
+    "703": 0.25,
+    "G96": 0.13,
+    "I52": 0.086,
+    "V06": 0.047,
+}
 
 _month_to_Mon: Dict[str, str] = {
     "01": "Jan",
@@ -63,7 +71,7 @@ class CatalinaSkySurvey:
         return f"{_ARCHIVE_URL_PREFIX}/{tel.upper()}/{year}/{year[-2:]}{Mon}{day}/{prefix}{suffix}"
 
     def cutout_url(
-        self, ra: float, dec: float, size: float = 0.0833, format: str = "fits"
+        self, ra: float, dec: float, size: float | None = None, format: str = "fits"
     ) -> str:
         """URL to cutout ``size`` around ``ra``, ``dec`` in deg.
 
@@ -71,7 +79,14 @@ class CatalinaSkySurvey:
 
         format = fits, jpeg, png
 
+        The default size is based on the telescope via product_id.
+
         """
+
+        if size is None:
+            lid = self.product_id
+            tel = lid[lid.rindex(":") :][:3]  # noqa: E203
+            size = _DEFAULT_CUTOUT_SIZE.get(tel, 0.0833)
 
         size_arcmin: float = max(0.01, size * 60)
 
@@ -82,7 +97,7 @@ class CatalinaSkySurvey:
         )
 
     def preview_url(
-        self, ra: float, dec: float, size: float = 0.0833, format: str = "jpeg"
+        self, ra: float, dec: float, size: float | None = None, format: str = "jpeg"
     ) -> str:
         """Web preview image."""
         return self.cutout_url(ra, dec, size=size, format=format)
