@@ -19,7 +19,7 @@ The catch survey data model additionally requires:
 __all__ = ["LONEOS"]
 
 from sqlalchemy import BigInteger, Column, String, ForeignKey
-from sbsearch.model.core import Base, Observation
+from sbsearch.model.core import Base, Observation  # noqa: F401
 
 
 _ARCHIVE_URL_PREFIX: str = "https://sbnarchive.psi.edu/pds4/surveys"

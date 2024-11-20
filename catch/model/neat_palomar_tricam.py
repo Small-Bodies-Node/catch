@@ -30,7 +30,7 @@ __all__ = ["NEATPalomarTricam"]
 
 from urllib.parse import urlencode, quote
 from sqlalchemy import BigInteger, Column, String, ForeignKey
-from sbsearch.model.core import Base, Observation
+from sbsearch.model.core import Base, Observation  # noqa: F401
 
 
 class NEATPalomarTricam(Observation):
@@ -71,7 +71,7 @@ class NEATPalomarTricam(Observation):
 
         return url
 
-    def cutout_url(self, ra, dec, size=0.0833, format="fits"):
+    def cutout_url(self, ra, dec, size=0.12, format="fits"):
         """URL to cutout ``size`` around ``ra``, ``dec`` in deg.
 
         Currently using SBN Comet Sub-node local copy.
@@ -94,6 +94,6 @@ class NEATPalomarTricam(Observation):
 
         return f"{self.archive_url}?{query_string}"
 
-    def preview_url(self, ra, dec, size=0.0833, format="jpeg"):
+    def preview_url(self, ra, dec, size=0.12, format="jpeg"):
         """Web preview image."""
         return self.cutout_url(ra, dec, size=size, format=format)
