@@ -4,8 +4,8 @@ except ImportError:
     __version__ = ""
 
 from sbsearch.target import FixedTarget
-from .catch import Catch, IntersectionType
-from .config import *
+from .catch import Catch, IntersectionType  # noqa: F401
+from .config import Config  # noqa: F401
 
 
 def catch_cli(*args):
@@ -15,7 +15,6 @@ def catch_cli(*args):
     import uuid
     from astropy.time import Time
     from astropy.table import Table
-    from catch import Catch, Config
     from catch.config import _config_example
 
     parser = argparse.ArgumentParser(
@@ -299,6 +298,7 @@ def _serialize_object(data_object):
         "preview_url",
         "set_fov",
         "registry",
+        "test_edges",
     ]
 
     # Scan each data object for field names and their values
