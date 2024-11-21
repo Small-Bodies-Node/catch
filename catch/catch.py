@@ -100,7 +100,9 @@ class Catch(SBSearch):
         """
         return {
             source.__tablename__: source
-            for source in Observation.__subclasses__()
+            for source in sorted(
+                Observation.__subclasses__(), key=lambda source: source.__tablename__
+            )
             if source not in [ExampleSurvey]
         }
 
