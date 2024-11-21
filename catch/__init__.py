@@ -39,6 +39,11 @@ def catch_cli(*args):
     )
     verify.set_defaults(command="verify")
 
+    status_sources = subparsers.add_parser(
+        "status/sources", help="show or update source summaries"
+    )
+    status_sources.set_defaults(command="status/sources")
+
     list_sources = subparsers.add_parser("sources", help="show available data sources")
     list_sources.set_defaults(command="sources")
 
@@ -107,6 +112,10 @@ def catch_cli(*args):
     for subparser in (moving, fixed):
         subparser.add_argument("-o", help="write table to this file")
 
+    status_sources.add_argument(
+        "--update", action="store_true", help="update source status tables"
+    )
+
     args = parser.parse_args()
 
     try:
@@ -120,11 +129,18 @@ def catch_cli(*args):
 
     rows = []
     config = Config.from_args(args)
+    catch: Catch
     with Catch.with_config(config) as catch:
         if args.command == "verify":
             pass
         elif args.command == "sources":
             print("Available sources:\n  *", "\n  * ".join(catch.sources.keys()))
+        elif args.command == "status/sources":
+            if args.update:
+                print("Updating survey statistics.")
+                catch.update_statistics()
+            tab = Table(catch.source_statistics())
+            tab.pprint_all()
         elif args.command == "moving":
             catch.start_date = args.start_date
             catch.stop_date = args.stop_date
@@ -243,7 +259,7 @@ def catch_cli(*args):
             if args.o:
                 tab.write(args.o, format="ascii.fixed_width_two_line", overwrite=True)
             else:
-                tab.pprint(-1, -1)
+                tab.pprint_all()
 
     if args.command == "fixed":
         if rows == []:
@@ -284,7 +300,7 @@ def catch_cli(*args):
             if args.o:
                 tab.write(args.o, format="ascii.fixed_width_two_line", overwrite=True)
             else:
-                tab.pprint(-1, -1)
+                tab.pprint_all()
 
 
 def _serialize_object(data_object):

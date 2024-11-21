@@ -430,6 +430,24 @@ class Catch(SBSearch):
 
         return cached
 
+    def source_statistics(self) -> List[Dict[str, str | int | None]]:
+        """Get source statistics from survey statistics table."""
+
+        rows = []
+        stat: SurveyStats
+        for stat in self.db.session.query(SurveyStats).order_by(SurveyStats.name).all():
+            rows.append(
+                {
+                    "source": stat.source,
+                    "name": stat.name,
+                    "start-date": stat.start_date,
+                    "stop-date": stat.stop_date,
+                    "count": stat.count,
+                }
+            )
+
+        return rows
+
     def update_statistics(self, source=None):
         """Update source survey statistics table.
 
