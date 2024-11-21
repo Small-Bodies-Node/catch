@@ -121,15 +121,14 @@ def catch_cli(*args):
     rows = []
     config = Config.from_args(args)
     with Catch.with_config(config) as catch:
-        catch.start_date = args.start_date
-        catch.stop_date = args.stop_date
-        catch.padding = args.padding
-
         if args.command == "verify":
             pass
         elif args.command == "sources":
             print("Available sources:\n  *", "\n  * ".join(catch.sources.keys()))
         elif args.command == "moving":
+            catch.start_date = args.start_date
+            catch.stop_date = args.stop_date
+            catch.padding = args.padding
             job_id = uuid.uuid4()
             catch.query(
                 args.desg,
@@ -159,6 +158,9 @@ def catch_cli(*args):
 
                 rows.append(r)
         elif args.command == "fixed":
+            catch.start_date = args.start_date
+            catch.stop_date = args.stop_date
+            catch.padding = args.padding
             catch.intersection_type = IntersectionType[args.intersection_type]
             job_id = uuid.uuid4()
             target = FixedTarget.from_radec(args.ra, args.dec, unit=args.unit)
