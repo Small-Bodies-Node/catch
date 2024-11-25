@@ -33,6 +33,13 @@ from sqlalchemy import BigInteger, Column, String, ForeignKey
 from sbsearch.model.core import Observation
 
 
+_ARCHIVE_URL_PREFIX: str = (
+    "https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.neat.survey/data_tricam"
+)
+
+_CUTOUT_URL_PREFIX: str = "https://sbnsurveys.astro.umd.edu/api/images"
+
+
 class NEATPalomarTricam(Observation):
     __tablename__: str = "neat_palomar_tricam"
     __data_source_name__: str = "NEAT Palomar Tricam"
@@ -49,29 +56,45 @@ class NEATPalomarTricam(Observation):
         index=True,
     )
     product_id = Column(
-        String(64), doc="Archive product id", unique=True, index=True, nullable=False
+        String(100), doc="Archive product id", unique=True, index=True, nullable=False
     )
 
     __mapper_args__ = {"polymorphic_identity": "neat_palomar_tricam"}
 
     @property
-    def archive_url(self):
+    def archive_url(self) -> str:
         """URL to original data product.
 
-        Currently using SBN Comet Sub-node local copy.
+        urn:nasa:pds:gbo.ast.neat.survey:data_tricam:p20011126_obsdata_20011126021342d
 
-        For example:
-            https://sbnsurveys.astro.umd.edu/api/images/urn:nasa:pds:gbo.ast.neat.survey:data_tricam:p20020222_obsdata_20020222120052c
+        https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.neat.survey/data_tricam/p20011126/
+        obsdata/20011126021342d.fit.fz
 
         """
 
-        url = "https://sbnsurveys.astro.umd.edu/api/images/" + quote(
-            f"urn:nasa:pds:gbo.ast.neat.survey:data_tricam:{str(self.product_id).lower()}"
-        )
+        # url = "https://sbnsurveys.astro.umd.edu/api/images/" + quote(
+        #     f"urn:nasa:pds:gbo.ast.neat.survey:data_tricam:{str(self.product_id).lower()}"
+        # )
 
-        return url
+        product_id = self.product_id[self.product_id.rindex(":") + 1 :]
+        path = product_id.replace("_", "/")
 
-    def cutout_url(self, ra, dec, size=0.12, format="fits"):
+        return f"{_ARCHIVE_URL_PREFIX}/{path}.fit.fz"
+
+    @property
+    def label_url(self) -> str:
+        """URL to PDS4 label.
+
+        urn:nasa:pds:gbo.ast.neat.survey:data_tricam:p20011126_obsdata_20011126021342d
+
+        https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.neat.survey/data_tricam/p20011126/
+        obsdata/20011126021342d.xml
+
+        """
+
+        return self.archive_url[:-6] + "xml"
+
+    def cutout_url(self, ra, dec, size=0.12, format="fits") -> str:
         """URL to cutout ``size`` around ``ra``, ``dec`` in deg.
 
         Currently using SBN Comet Sub-node local copy.
@@ -85,14 +108,14 @@ class NEATPalomarTricam(Observation):
 
         query_string = urlencode(
             {
-                "format": str(format),
-                "size": "{:.2f}arcmin".format(float(size) * 60),
                 "ra": float(ra),
                 "dec": float(dec),
+                "size": "{:.2f}arcmin".format(float(size) * 60),
+                "format": str(format),
             }
         )
 
-        return f"{self.archive_url}?{query_string}"
+        return f"{_CUTOUT_URL_PREFIX}/{self.product_id}?{query_string}"
 
     def preview_url(self, ra, dec, size=0.12, format="jpeg"):
         """Web preview image."""

@@ -80,6 +80,10 @@ class LONEOS(Observation):
 
         return f"{_ARCHIVE_URL_PREFIX}/gbo.ast.loneos.survey/data_augmented/{lois}/{date}/{fn}"
 
+    def label_url(self) -> str:
+        """URL to PDS4 label."""
+        return self.archive_url[:-4] + "xml"
+
     def cutout_url(self, ra, dec, size=0.21, format="fits"):
         """URL to cutout ``size`` around ``ra``, ``dec`` in deg.
 

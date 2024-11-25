@@ -55,6 +55,7 @@ class CatalinaSkySurvey:
 
     @property
     def archive_url(self) -> str:
+        """URL to original archive data product."""
         # generate from PDS4 LID, e.g.,
         # urn:nasa:pds:gbo.ast.catalina.survey:data_calibrated:703_20220120_2b_n02006_01_0001.arch
         # https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.catalina.survey/data_calibrated/703/2022/22Jan20/703_20220120_2B_N02006_01_0001.arch.xml
@@ -69,6 +70,11 @@ class CatalinaSkySurvey:
         prefix: str = lid[5][:i].upper()
         suffix: str = lid[5][i:].lower() + ".fz"
         return f"{_ARCHIVE_URL_PREFIX}/{tel.upper()}/{year}/{year[-2:]}{Mon}{day}/{prefix}{suffix}"
+
+    @property
+    def label_url(self) -> str:
+        """URL to PDS4 label."""
+        return self.archive_url[:-2] + "xml"
 
     def cutout_url(
         self, ra: float, dec: float, size: float | None = None, format: str = "fits"

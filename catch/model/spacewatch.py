@@ -22,7 +22,9 @@ from sqlalchemy import BigInteger, Column, String, ForeignKey
 from sbsearch.model.core import Base, Observation
 
 
-_ARCHIVE_URL_PREFIX: str = "https://sbnarchive.psi.edu/pds4/surveys"
+_ARCHIVE_URL_PREFIX: str = (
+    "https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.spacewatch.survey/data"
+)
 
 _CUTOUT_URL_PREFIX: str = (
     "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images"
@@ -44,19 +46,21 @@ class Spacewatch(Observation):
         nullable=False,
         index=True,
     )
-    product_id = Column(
+    product_id: str = Column(
         String(128), doc="Archive product id", unique=True, index=True, nullable=False
-    )
-    label = Column(
-        String(128),
-        doc="PDS4 label file name and path.",
     )
 
     __mapper_args__ = {"polymorphic_identity": "spacewatch"}
 
     @property
+    def label_url(self):
+        return self.archive_url[:-4] + "xml"
+
+    @property
     def archive_url(self):
-        return "/".join((_ARCHIVE_URL_PREFIX, self.label.replace(".xml", ".fits")))
+        product_id = self.product_id[self.product_id.rindex(":") + 1 :]
+        y, m, d = product_id.split("_")[3:6]
+        return f"{_ARCHIVE_URL_PREFIX}/{y}/{m}/{d}/{product_id}"
 
     def cutout_url(
         self, ra: float, dec: float, size: float = 0.0833, format: str = "fits"

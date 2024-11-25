@@ -89,7 +89,7 @@ def test_skymapper_dr4_url():
     )
 
 
-def test_css_url():
+def test_css_urls():
     obs = CatalinaLemmon(
         product_id="urn:nasa:pds:gbo.ast.catalina.survey:data_calibrated:g96_20220130_2b_n27011_01_0001.arch"
     )
@@ -97,12 +97,11 @@ def test_css_url():
         "https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.catalina.survey/data_calibrated/G96/2022/22Jan30/"
         "G96_20220130_2B_N27011_01_0001.arch.fz"
     )
-
-
-def test_css_cutout_url():
-    obs = CatalinaLemmon(
-        product_id="urn:nasa:pds:gbo.ast.catalina.survey:data_calibrated:g96_20220130_2b_n27011_01_0001.arch"
+    assert obs.label_url == (
+        "https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.catalina.survey/data_calibrated/G96/2022/22Jan30/"
+        "G96_20220130_2B_N27011_01_0001.arch.xml"
     )
+
     found = Found(ra=12.3, dec=-4.56)
 
     url = obs.cutout_url(found.ra, found.dec, size=0.1)
@@ -152,14 +151,97 @@ def test_loneos_cutout_url(lid, ra, dec, expected):
     assert url == expected[:-4] + "jpeg"
 
 
-def test_sw_url():
+def test_sw_urls():
     obs = Spacewatch(
         product_id="urn:nasa:pds:gbo.ast.spacewatch.survey:data:sw_1071_04.06_2009_07_29_03_59_40.003.fits",
-        label="gbo.ast.spacewatch.survey/data/2009/07/29/sw_1071_04.06_2009_07_29_03_59_40.003.xml",
     )
     assert obs.archive_url == (
         "https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.spacewatch.survey/data/2009/07/29/"
         "sw_1071_04.06_2009_07_29_03_59_40.003.fits"
+    )
+    assert obs.label_url == (
+        "https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.spacewatch.survey/data/2009/07/29/"
+        "sw_1071_04.06_2009_07_29_03_59_40.003.xml"
+    )
+
+    found = Found(ra=12.3, dec=-4.56)
+
+    url = obs.cutout_url(found.ra, found.dec, size=0.1)
+    assert url == (
+        "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images/"
+        "urn:nasa:pds:gbo.ast.spacewatch.survey:data:sw_1071_04.06_2009_07_29_03_59_40.003.fits"
+        "?ra=12.3&dec=-4.56&size=6.00arcmin&format=fits"
+    )
+
+    url = obs.preview_url(found.ra, found.dec, size=0.1)
+    assert url == (
+        "https://uxzqjwo0ye.execute-api.us-west-1.amazonaws.com/api/images/"
+        "urn:nasa:pds:gbo.ast.spacewatch.survey:data:sw_1071_04.06_2009_07_29_03_59_40.003.fits"
+        "?ra=12.3&dec=-4.56&size=6.00arcmin&format=jpeg"
+    )
+
+
+def test_neat_palomar_tricam_urls():
+    obs = NEATPalomarTricam(
+        product_id=(
+            "urn:nasa:pds:gbo.ast.neat.survey:data_tricam:p20011126_obsdata_20011126021342d"
+        ),
+    )
+    assert obs.archive_url == (
+        "https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.neat.survey/data_tricam/p20011126/"
+        "obsdata/20011126021342d.fit.fz"
+    )
+    assert obs.label_url == (
+        "https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.neat.survey/data_tricam/p20011126/"
+        "obsdata/20011126021342d.xml"
+    )
+
+    found = Found(ra=174.62244, dec=17.97594)
+
+    url = obs.cutout_url(found.ra, found.dec, size=0.1)
+    assert url == (
+        "https://sbnsurveys.astro.umd.edu/api/images/urn:nasa:pds:gbo.ast.neat.survey:"
+        "data_tricam:p20011126_obsdata_20011126021342d?ra=174.62244"
+        "&dec=17.97594&size=6.00arcmin&format=fits"
+    )
+
+    url = obs.preview_url(found.ra, found.dec, size=0.1)
+    assert url == (
+        "https://sbnsurveys.astro.umd.edu/api/images/urn:nasa:pds:gbo.ast.neat.survey:"
+        "data_tricam:p20011126_obsdata_20011126021342d?ra=174.62244"
+        "&dec=17.97594&size=6.00arcmin&format=jpeg"
+    )
+
+
+def test_neat_maui_geodss_urls():
+    obs = NEATMauiGEODSS(
+        product_id=(
+            "urn:nasa:pds:gbo.ast.neat.survey:data_geodss:g19960514_obsdata_960514061638d"
+        ),
+    )
+    assert obs.archive_url == (
+        "https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.neat.survey/data_geodss/g19960514/"
+        "obsdata/960514061638d.fit.fz"
+    )
+    assert obs.label_url == (
+        "https://sbnarchive.psi.edu/pds4/surveys/gbo.ast.neat.survey/data_geodss/g19960514/"
+        "obsdata/960514061638d.xml"
+    )
+
+    found = Found(ra=174.62244, dec=17.97594)
+
+    url = obs.cutout_url(found.ra, found.dec, size=0.1)
+    assert url == (
+        "https://sbnsurveys.astro.umd.edu/api/images/urn:nasa:pds:gbo.ast.neat.survey:"
+        "data_geodss:g19960514_obsdata_960514061638d?ra=174.62244"
+        "&dec=17.97594&size=6.00arcmin&format=fits"
+    )
+
+    url = obs.preview_url(found.ra, found.dec, size=0.1)
+    assert url == (
+        "https://sbnsurveys.astro.umd.edu/api/images/urn:nasa:pds:gbo.ast.neat.survey:"
+        "data_geodss:g19960514_obsdata_960514061638d?ra=174.62244"
+        "&dec=17.97594&size=6.00arcmin&format=jpeg"
     )
 
 
