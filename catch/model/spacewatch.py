@@ -49,6 +49,11 @@ class Spacewatch(Observation):
     product_id: str = Column(
         String(128), doc="Archive product id", unique=True, index=True, nullable=False
     )
+    # file name is needed, I don't see a way to guess file names from every LID:
+    # the case is important for some files
+    file_name: str = Column(
+        String(64), doc="Archive data product file name", nullable=False
+    )
 
     __mapper_args__ = {"polymorphic_identity": "spacewatch"}
 
@@ -59,8 +64,8 @@ class Spacewatch(Observation):
     @property
     def archive_url(self):
         product_id = self.product_id[self.product_id.rindex(":") + 1 :]
-        y, m, d = product_id.split("_")[3:6]
-        return f"{_ARCHIVE_URL_PREFIX}/{y}/{m}/{d}/{product_id}"
+        y, m, d = product_id.split("_")[-6:-3]
+        return f"{_ARCHIVE_URL_PREFIX}/{y}/{m}/{d}/{self.file_name}"
 
     def cutout_url(
         self, ra: float, dec: float, size: float = 0.0833, format: str = "fits"
@@ -75,8 +80,13 @@ class Spacewatch(Observation):
 
         size_arcmin: float = max(0.01, size * 60)
 
+        # fix the case to match the file_name, at bit of a hack, but will work
+        # until we have a better image service deployed
+
+        lid = self.product_id
+        cased_lid = lid[: -len(self.file_name)] + self.file_name
         return (
-            f"{_CUTOUT_URL_PREFIX}/{self.product_id}"
+            f"{_CUTOUT_URL_PREFIX}/{cased_lid}"
             f"?ra={ra}&dec={dec}&size={size_arcmin:.2f}arcmin"
             f"&format={format}"
         )
