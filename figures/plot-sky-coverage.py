@@ -109,7 +109,7 @@ def get_polygons(fov):
         yield np.array((ra, dec)).transpose()
 
 
-def plot(count, fov, source_name):
+def plot(count, fov, source_name, date):
     plt.style.use("dark_background")
 
     fig = plt.figure(clear=True)
@@ -141,7 +141,7 @@ def plot(count, fov, source_name):
     cb.set_label("Number of images")
     cb.ax.set_xscale("log")
 
-    ax.text(0.02, 0.02, Time.now().iso[:10], transform=fig.transFigure, fontsize=7)
+    ax.text(0.02, 0.02, date, transform=fig.transFigure, fontsize=7)
 
 
 def get_source_name(source):
@@ -153,6 +153,16 @@ def get_source_name(source):
                 return Source.__data_source_name__
 
     raise ValueError(source)
+
+
+def observations_file_date():
+    """The date of the observations file used for plot annotation."""
+
+    try:
+        stat = os.stat("observations.csv")
+        return Time(stat.st_ctime, format="unix").iso[:10]
+    except FileNotFoundError:
+        return ""
 
 
 if __name__ == "__main__":
@@ -170,6 +180,14 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-o", default=None, help="output file name prefix, default based on --source"
+    )
+    parser.add_argument(
+        "--date",
+        default=observations_file_date(),
+        help=(
+            "annotate the plot with this date (default is to use "
+            "the date of the observations.csv file)"
+        ),
     )
     parser.add_argument("--format", default="png", help="plot file format")
     parser.add_argument("--dpi", type=int, default=300)
@@ -193,6 +211,7 @@ if __name__ == "__main__":
     logger.info("%s", " ".join([shlex.quote(s) for s in sys.argv]))
 
     prefix = args.source if args.o is None else args.o
+    prefix = "all" if prefix is None else prefix
     table_fn = f"{prefix}-level{args.level}.csv"
 
     source_name = None if args.source is None else get_source_name(args.source)
@@ -209,5 +228,5 @@ if __name__ == "__main__":
         tab.sort("cell")
         tab.write(table_fn, overwrite=True)
 
-    plot(count, fov, source_name)
+    plot(count, fov, source_name, args.date)
     plt.savefig(f"{prefix}-level{args.level}.{args.format}", dpi=args.dpi)
