@@ -1,3 +1,4 @@
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
@@ -7,19 +8,23 @@ from astropy.time import Time
 from astropy.wcs import WCS
 from catch import Catch, Config, model
 from sbsearch.core import line_to_segment_query_terms
-from sbsearch.spatial import term_to_cell_vertices
 from sbsearch.visualization import plot_terms, plot_observations
 
-target = "65P"
-dates = ("2023-05-01", "2024-05-01")
-projection = "TAN"
+parser = argparse.ArgumentParser()
+parser.add_argument("config", type=Config.from_file)
+parser.add_argument("--target", default="65P")
+parser.add_argument(
+    "--dates", type=Time, default=[Time("2023-05-01"), Time("2024-05-01")], nargs=2
+)
+parser.add_argument("--projection", default="TAN")
+args = parser.parse_args()
+
 view = (10, -110)  # elevation, azimuth for 3D plot
-config = Config.from_file("../../aws-catch_prod_v3.config")
 
 file_suffix = (
-    f'{target.lower().replace(" ", "").replace("/", "")}'
-    f'-{dates[0].replace("-", "")}'
-    f'-{dates[1].replace("-", "")}'
+    f'{args.target.lower().replace(" ", "").replace("/", "")}'
+    f'-{args.dates[0].iso[:10].replace("-", "")}'
+    f'-{args.dates[1].iso[:10].replace("-", "")}'
 )
 data_file = f"query-cells-{file_suffix}.json"
 
@@ -27,12 +32,12 @@ data_file = f"query-cells-{file_suffix}.json"
 def catch_target():
     timestamps = []
     timestamps.append(["Open catch...", Time.now().iso])
-    with Catch.with_config(config) as catch:
+    with Catch.with_config(args.config) as catch:
         timestamps.append(["Opened...", Time.now().iso])
         # get 65P query terms for Jul/Aug 2017
-        comet = catch.get_designation(target)
+        comet = catch.get_designation(args.target)
         eph = comet.ephemeris(
-            model.CatalinaBigelow, start=Time(dates[0]), stop=Time(dates[1])
+            model.CatalinaBigelow, start=args.dates[0], stop=args.dates[1]
         )
         timestamps.append(["Got ephemeris", Time.now().iso])
 
@@ -51,13 +56,6 @@ def catch_target():
             )
         )
         timestamps.append(["Got query terms", Time.now().iso])
-
-        # convert query terms into cells
-        query_cells = {
-            term: np.degrees(term_to_cell_vertices(term.lstrip("$")))
-            for term in query_terms
-        }
-        timestamps.append(["Generated cell vertices", Time.now().iso])
 
         # get matching observations from database
         catch.source = "catalina_bigelow"
@@ -97,11 +95,11 @@ def annotate(ax, text, x, y, wcs=None):
     xlim = ax.get_xlim()
     ylim = ax.get_ylim()
 
-    yt = yp + (-1 if y < np.mean(ylim) else 1) * 0.05 * np.ptp(ylim)
-    if yt > max(ylim) - 0.1 * np.ptp(ylim):
-        yt = yp - 0.1 * np.ptp(ylim)
-    if yt < min(ylim) + 0.1 * np.ptp(ylim):
-        yt = yp + 0.1 * np.ptp(ylim)
+    yt = yp + (-1 if y < np.mean(ylim) else 1) * 0.2 * np.ptp(ylim)
+    if yt > max(ylim) - 0.2 * np.ptp(ylim):
+        yt = yp - 0.2 * np.ptp(ylim)
+    if yt < min(ylim) + 0.2 * np.ptp(ylim):
+        yt = yp + 0.2 * np.ptp(ylim)
 
     if xlim[0] > xlim[1]:
         ha = "left" if xp > np.mean(xlim) else "right"
@@ -119,6 +117,10 @@ def annotate(ax, text, x, y, wcs=None):
         ha=ha,
         va=va,
         arrowprops={"arrowstyle": "-", "shrinkB": 4},
+        fontsize="small",
+        bbox=dict(
+            boxstyle="round,pad=0.3", fc="white", lw=0.5, ec="tab:gray", alpha=0.5
+        ),
         zorder=1000,
     )
 
@@ -138,12 +140,16 @@ class PatchCollectionHandler(HandlerPatch):
             if len(orig_handle.get_edgecolor()) > 0
             else "none"
         )
+        ls = orig_handle.get_linestyle()[0]
+        lw = orig_handle.get_linewidth()[0]
         p = Rectangle(
             (0, 0),
             width,
             height,
             facecolor=fc,
             edgecolor=ec,
+            linestyle=ls,
+            linewidth=lw,
             alpha=orig_handle.get_alpha(),
         )
         return [p]
@@ -176,7 +182,7 @@ wcs = WCS(naxis=2)
 wcs.wcs.crpix = [0, 0]
 wcs.wcs.cdelt = np.array([-1, 1])
 wcs.wcs.crval = [np.mean((np.min(ra), np.max(ra))), np.mean((np.min(dec), np.max(dec)))]
-wcs.wcs.ctype = [f"RA---{projection}", f"DEC--{projection}"]
+wcs.wcs.ctype = [f"RA---{args.projection}", f"DEC--{args.projection}"]
 wcs.wcs.radesys = "ICRS"
 ax = plt.axes(projection=wcs)
 transform = {"transform": ax.get_transform("world")}
@@ -184,20 +190,20 @@ transform = {"transform": ax.get_transform("world")}
 ephemeris_style = dict(lw=1, ls="--", zorder=99, color="k")
 all_obs_style = dict(
     lw=0.5,
-    zorder=-99,
+    zorder=3,
     color="tab:blue",
     fc="none",
     label="Observations matched by fuzzy search",
 )
 matched_obs_style = dict(
-    lw=2,
-    zorder=100,
+    lw=1,
+    zorder=4,
     color="tab:red",
     fc="none",
     label="Observations matched by intersection",
 )
 
-ax.plot(ra, dec, label=target, **transform, **ephemeris_style)
+ax.plot(ra, dec, label=args.target, **transform, **ephemeris_style)
 plot_observations(ax, all_obs, **all_obs_style)
 plot_observations(ax, obs_by_ephemeris, **matched_obs_style)
 
@@ -216,12 +222,12 @@ x, y = wcs.all_world2pix(
 )
 adjust_limits(ax, x, y)
 ax.minorticks_on()
-ax.grid()
+ax.grid(ls=":")
 plt.legend(handler_map={PatchCollection: PatchCollectionHandler()})
 plt.tight_layout(pad=0.2)
 
-annotate(ax, dates[0], ra[0], dec[0], wcs)
-annotate(ax, dates[1], ra[-1], dec[-1], wcs)
+annotate(ax, args.dates[0].iso[:10], ra[0], dec[0], wcs)
+annotate(ax, args.dates[1].iso[:10], ra[-1], dec[-1], wcs)
 
 plt.savefig(f"query-cells-ra-dec-{file_suffix}.png", dpi=300)
 
@@ -231,7 +237,7 @@ fig = plt.figure(2)
 fig.clear()
 ax = fig.add_subplot()
 
-ax.plot(ra, mjd, label=target, **ephemeris_style)
+ax.plot(ra, mjd, label=args.target, **ephemeris_style)
 
 lines = []
 for obs in all_obs:
@@ -252,8 +258,8 @@ plt.legend(loc="upper right")
 plt.tight_layout(pad=0.2)
 
 ra_lim = ax.get_xlim()
-annotate(ax, dates[0], ra[0], mjd[0])
-annotate(ax, dates[1], ra[-1], mjd[-1])
+annotate(ax, args.dates[0].iso[:10], ra[0], mjd[0])
+annotate(ax, args.dates[1].iso[:10], ra[-1], mjd[-1])
 
 plt.savefig(f"query-cells-ra-time-{file_suffix}.png", dpi=300)
 
@@ -263,7 +269,7 @@ fig = plt.figure(3)
 fig.clear()
 ax = fig.add_subplot()
 
-ax.plot(mjd, dec, label=target, **ephemeris_style)
+ax.plot(mjd, dec, label=args.target, **ephemeris_style)
 
 lines = []
 for obs in all_obs:
@@ -284,8 +290,8 @@ plt.legend(loc="upper right")
 plt.tight_layout(pad=0.2)
 
 dec_lim = ax.get_ylim()
-annotate(ax, dates[0], mjd[0], dec[0])
-annotate(ax, dates[1], mjd[-1], dec[-1])
+annotate(ax, args.dates[0].iso[:10], mjd[0], dec[0])
+annotate(ax, args.dates[1].iso[:10], mjd[-1], dec[-1])
 
 plt.savefig(f"query-cells-dec-time-{file_suffix}.png", dpi=300)
 
@@ -331,26 +337,34 @@ fig.clear()
 ax = plt.axes(projection=wcs)
 transform = {"transform": ax.get_transform("world")}
 
-ax.plot(ra, dec, label=target, **transform, **ephemeris_style)
+ax.plot(ra, dec, label=args.target, **transform, **ephemeris_style)
 
-plot_observations(ax, obs_by_ephemeris, **matched_obs_style)
+# plot_observations(ax, all_obs, **all_obs_style)
+# plot_observations(ax, obs_by_ephemeris, **matched_obs_style)
+
+obs_terms = set(sum([obs.spatial_terms for obs in all_obs], []))
 
 query_terms_style = dict(
-    color="tab:brown",
+    color="tab:purple",
     fc="none",
-    lw=0.75,
+    lw=1,
     alpha=1,
-    label="S2 query cells",
+    label="S2 cells of the query",
+    zorder=2,
 )
 plot_terms(ax, query_terms, **query_terms_style)
 
-obs_terms = set(sum([obs.spatial_terms for obs in obs_by_ephemeris], []))
-matched_terms = query_terms & obs_terms
-matched_terms_style = dict(
-    fc="tab:pink",
-    alpha=0.5,
-    label="Matched S2 cells",
+obs_terms_style = query_terms_style | dict(
+    color="tab:gray",
+    lw=0.5,
+    ls="-",
+    label="S2 cells of the observations",
+    zorder=1,
 )
+plot_terms(ax, obs_terms, **obs_terms_style)
+
+matched_terms = query_terms & obs_terms
+matched_terms_style = dict(fc="tab:pink", alpha=0.5, label="Matched S2 cells", zorder=0)
 plot_terms(ax, matched_terms, **matched_terms_style)
 
 plt.setp(
@@ -368,12 +382,12 @@ x, y = wcs.all_world2pix(
 )
 adjust_limits(ax, x, y)
 ax.minorticks_on()
-ax.grid()
+ax.grid(ls=":")
 ax.legend(handler_map={PatchCollection: PatchCollectionHandler()})
 plt.tight_layout(pad=0.2)
 
-annotate(ax, dates[0], ra[0], dec[0], wcs)
-annotate(ax, dates[1], ra[-1], dec[-1], wcs)
+annotate(ax, args.dates[0].iso[:10], ra[0], dec[0], wcs)
+annotate(ax, args.dates[1].iso[:10], ra[-1], dec[-1], wcs)
 
 plt.savefig(f"query-cells-{file_suffix}.png", dpi=300)
 
