@@ -6,27 +6,20 @@ from matplotlib.collections import PatchCollection, LineCollection
 from matplotlib.legend_handler import HandlerPatch
 from astropy.time import Time
 from astropy.wcs import WCS
-from catch import Catch, Config, model
 from sbsearch.core import line_to_segment_query_terms
 from sbsearch.visualization import plot_terms, plot_observations
+from catch import Catch, Config
+from catch.model import SurveyStats
 
 parser = argparse.ArgumentParser()
 parser.add_argument("config", type=Config.from_file)
 parser.add_argument("--target", default="65P")
-parser.add_argument(
-    "--dates", type=Time, default=[Time("2023-05-01"), Time("2024-05-01")], nargs=2
-)
-parser.add_argument("--projection", default="TAN")
+parser.add_argument("--source", default="catalina_bigelow")
+parser.add_argument("--dates", type=Time, nargs=2)
+parser.add_argument("--projection", default="MOL")
 args = parser.parse_args()
 
-view = (10, -110)  # elevation, azimuth for 3D plot
-
-file_suffix = (
-    f'{args.target.lower().replace(" ", "").replace("/", "")}'
-    f'-{args.dates[0].iso[:10].replace("-", "")}'
-    f'-{args.dates[1].iso[:10].replace("-", "")}'
-)
-data_file = f"query-cells-{file_suffix}.json"
+# view = (10, -110)  # elevation, azimuth for 3D plot
 
 
 def catch_target():
@@ -34,11 +27,23 @@ def catch_target():
     timestamps.append(["Open catch...", Time.now().iso])
     with Catch.with_config(args.config) as catch:
         timestamps.append(["Opened...", Time.now().iso])
-        # get 65P query terms for Jul/Aug 2017
+
+        catch.source = args.source
+
+        dates: list[Time] | None = args.dates
+        if dates is None:
+            stats: SurveyStats = (
+                catch.db.session.query(SurveyStats)
+                .filter(SurveyStats.source == args.source)
+                .one()
+            )
+            dates = [Time(stats.start_date), Time(stats.stop_date)]
+
+        # get target query terms for survey and dates
         comet = catch.get_designation(args.target)
-        eph = comet.ephemeris(
-            model.CatalinaBigelow, start=args.dates[0], stop=args.dates[1]
-        )
+
+        eph = comet.ephemeris(catch.source, start=dates[0], stop=dates[1])
+
         timestamps.append(["Got ephemeris", Time.now().iso])
 
         ra = np.array([e.ra for e in eph])
@@ -58,7 +63,6 @@ def catch_target():
         timestamps.append(["Got query terms", Time.now().iso])
 
         # get matching observations from database
-        catch.source = "catalina_bigelow"
         all_obs = catch.find_observations_by_ephemeris(eph, approximate=True)
         obs_by_ephemeris = catch.find_observations_by_ephemeris(eph)
         obs_terms = list(set(sum([obs.spatial_terms for obs in obs_by_ephemeris], [])))
@@ -71,6 +75,7 @@ def catch_target():
 
         return (
             timestamps,
+            dates,
             ra,
             dec,
             mjd,
@@ -81,8 +86,23 @@ def catch_target():
         )
 
 
-timestamps, ra, dec, mjd, query_terms, all_obs, obs_by_ephemeris, obs_terms = (
-    catch_target()
+(
+    timestamps,
+    dates,
+    ra,
+    dec,
+    mjd,
+    query_terms,
+    all_obs,
+    obs_by_ephemeris,
+    obs_terms,
+) = catch_target()
+
+file_suffix = (
+    f'{args.target.replace(" ", "").replace("/", "")}'
+    f"-{args.source}"
+    f'-{dates[0].iso[:10].replace("-", "")}'
+    f'-{dates[1].iso[:10].replace("-", "")}'
 )
 
 
@@ -224,10 +244,10 @@ adjust_limits(ax, x, y)
 ax.minorticks_on()
 ax.grid(ls=":")
 plt.legend(handler_map={PatchCollection: PatchCollectionHandler()})
-plt.tight_layout(pad=0.2)
+plt.tight_layout(pad=1)
 
-annotate(ax, args.dates[0].iso[:10], ra[0], dec[0], wcs)
-annotate(ax, args.dates[1].iso[:10], ra[-1], dec[-1], wcs)
+annotate(ax, dates[0].iso[:10], ra[0], dec[0], wcs)
+annotate(ax, dates[1].iso[:10], ra[-1], dec[-1], wcs)
 
 plt.savefig(f"query-cells-ra-dec-{file_suffix}.png", dpi=300)
 
@@ -258,8 +278,8 @@ plt.legend(loc="upper right")
 plt.tight_layout(pad=0.2)
 
 ra_lim = ax.get_xlim()
-annotate(ax, args.dates[0].iso[:10], ra[0], mjd[0])
-annotate(ax, args.dates[1].iso[:10], ra[-1], mjd[-1])
+annotate(ax, dates[0].iso[:10], ra[0], mjd[0])
+annotate(ax, dates[1].iso[:10], ra[-1], mjd[-1])
 
 plt.savefig(f"query-cells-ra-time-{file_suffix}.png", dpi=300)
 
@@ -290,8 +310,8 @@ plt.legend(loc="upper right")
 plt.tight_layout(pad=0.2)
 
 dec_lim = ax.get_ylim()
-annotate(ax, args.dates[0].iso[:10], mjd[0], dec[0])
-annotate(ax, args.dates[1].iso[:10], mjd[-1], dec[-1])
+annotate(ax, dates[0].iso[:10], mjd[0], dec[0])
+annotate(ax, dates[1].iso[:10], mjd[-1], dec[-1])
 
 plt.savefig(f"query-cells-dec-time-{file_suffix}.png", dpi=300)
 
@@ -384,11 +404,11 @@ adjust_limits(ax, x, y)
 ax.minorticks_on()
 ax.grid(ls=":")
 ax.legend(handler_map={PatchCollection: PatchCollectionHandler()})
-plt.tight_layout(pad=0.2)
 
-annotate(ax, args.dates[0].iso[:10], ra[0], dec[0], wcs)
-annotate(ax, args.dates[1].iso[:10], ra[-1], dec[-1], wcs)
+annotate(ax, dates[0].iso[:10], ra[0], dec[0], wcs)
+annotate(ax, dates[1].iso[:10], ra[-1], dec[-1], wcs)
 
+plt.tight_layout(pad=1)
 plt.savefig(f"query-cells-{file_suffix}.png", dpi=300)
 
 timestamps.append(("Plots generated", Time.now()))
