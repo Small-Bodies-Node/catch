@@ -60,7 +60,9 @@ def fields_of_view(fn, source=None):
 
             logger.debug(line[:-1])
 
-            ra, dec = polygon_string_to_arrays(line[line.index(",") + 2 : -2])
+            ra, dec = polygon_string_to_arrays(
+                line[line.index(",") + 2 : -2]  # noqa: E203
+            )
             ra = Angle(ra, "rad").wrap_at(180 * u.deg).rad
             vertices = []
             for i in range(4):
