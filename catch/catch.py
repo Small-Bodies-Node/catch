@@ -289,10 +289,10 @@ class Catch(SBSearch):
                 n = self._copy_cached_results(q, cached_query)
                 count += n
                 task_messenger.send(
-                    "Added %d cached result%s from %s.",
+                    "%s: Added %d cached result%s.",
+                    source_name,
                     n,
                     "" if n == 1 else "s",
-                    source_name,
                 )
                 q.status = "finished"
                 self.db.session.commit()
@@ -675,7 +675,7 @@ class Catch(SBSearch):
 
         # notify the user of survey and date range being searched
         task_messenger.send(
-            "Query %s from %s to %s.",
+            "%s: Query from %s to %s.",
             self.source.__data_source_name__,
             Time(mjd_start, format="mjd").iso[:10],
             Time(mjd_stop, format="mjd").iso[:10],

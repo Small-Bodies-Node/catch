@@ -314,6 +314,8 @@ def _serialize_object(data_object):
         "metadata",
         "cutout_url",
         "preview_url",
+        "diff_cutout_url",
+        "diff_preview_url",
         "set_fov",
         "registry",
         "test_edges",
