@@ -1,5 +1,6 @@
 # Licensed with the 3-clause BSD license.  See LICENSE for details.
 
+import re
 import uuid
 import logging
 
@@ -24,6 +25,10 @@ class TaskMessenger:
         """Send a informational message to CATCH-APIs."""
         self.logger.info(message, *args)
 
+    def info(self, message: str, *args):
+        """Alias for send()."""
+        self.send(message, *args)
+
     def error(self, message: str, *args):
         """Send an error message to CATCH-APIs."""
         self.logger.error(message, *args)
@@ -31,3 +36,19 @@ class TaskMessenger:
     def debug(self, message: str, *args):
         """Send a debugging message to CATCH-APIs."""
         self.logger.debug(message, *args)
+
+
+class SearchMessenger(TaskMessenger):
+    """Translates sbsearch search_logger messages for CATCH_APIs."""
+
+    def __init__(self, *args, **kwargs):
+        self.prefix: str = ""
+        super().__init__(*args, **kwargs)
+
+    def send(self, message: str, *args):
+        msg: str = f"{self.prefix}Caught {message[:-6]}"
+
+        if re.match(r"\d+ observations? found"):
+            msg = msg[:-6]
+
+        self.logger.info(msg)

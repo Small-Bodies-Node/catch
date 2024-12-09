@@ -30,7 +30,7 @@ from .exceptions import (
     FindObjectError,
     EphemerisError,
 )
-from .logging import TaskMessenger
+from .logging import TaskMessenger, SearchMessenger
 
 
 class Catch(SBSearch):
@@ -215,7 +215,8 @@ class Catch(SBSearch):
         job_id = uuid.UUID(str(job_id), version=4)
 
         task_messenger: TaskMessenger = TaskMessenger(job_id, debug=self.debug)
-        self.search_logger = task_messenger.logger
+        self.search_logger = SearchMessenger(job_id)
+
         task_messenger.debug(
             "Searching for %s in %d survey%s.",
             target,
@@ -261,6 +262,8 @@ class Catch(SBSearch):
         for source in sources:
             # track query execution time
             execution_time: float = time.monotonic()
+
+            self.search_logger.prefix = self.source.__data_source_name__ + ": "
 
             self.source = source
             source_name = self.source.__data_source_name__
@@ -314,9 +317,6 @@ class Catch(SBSearch):
                     self.logger.error(e, exc_info=self.debug)
                 else:
                     count += n
-                    task_messenger.send(
-                        "Caught %d observation%s.", n, "" if n == 1 else "s"
-                    )
                     q.status = "finished"
                 finally:
                     q.execution_time = time.monotonic() - execution_time
