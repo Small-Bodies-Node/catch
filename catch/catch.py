@@ -215,6 +215,7 @@ class Catch(SBSearch):
         job_id = uuid.UUID(str(job_id), version=4)
 
         task_messenger: TaskMessenger = TaskMessenger(job_id, debug=self.debug)
+        self.search_logger = task_messenger.logger
         task_messenger.debug(
             "Searching for %s in %d survey%s.",
             target,
@@ -682,6 +683,9 @@ class Catch(SBSearch):
         )
 
         # get target ephemeris
+        task_messenger.send(
+            f"{self.source.__data_source_name__}: Getting ephemeris from JPL Horizons."
+        )
         _target: MovingTarget = MovingTarget(str(target), db=self.db)
         try:
             eph: List[Ephemeris] = _target.ephemeris(
@@ -691,8 +695,7 @@ class Catch(SBSearch):
             )
         except Exception as e:
             raise EphemerisError("Could not get an ephemeris.") from e
-        self.logger.info("Obtained ephemeris from JPL Horizons.")
-        task_messenger.send("Obtained ephemeris from JPL Horizons.")
+        self.logger.info(f"Obtained ephemeris for {_target} from JPL Horizons.")
 
         # ephemeris was successful, add target to database, if needed
         _target = self.get_designation(str(_target), add=True)
