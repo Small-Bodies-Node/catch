@@ -263,11 +263,10 @@ class Catch(SBSearch):
             # track query execution time
             execution_time: float = time.monotonic()
 
-            self.search_logger.prefix = self.source.__data_source_name__ + ": "
-
             self.source = source
             source_name = self.source.__data_source_name__
             self.logger.debug("Query {}".format(source_name))
+            self.search_logger.prefix = source_name + ": "
 
             cached_query = self._find_catch_query(target)
 
