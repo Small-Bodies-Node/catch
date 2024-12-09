@@ -48,7 +48,7 @@ class SearchMessenger(TaskMessenger):
     def send(self, message: str, *args):
         msg: str = f"{self.prefix}Caught {message[:-6]}"
 
-        if re.match(r"\d+ observations? found"):
+        if re.match("%d observation%s found", message):
             msg = msg[:-6]
 
-        self.logger.info(msg)
+        self.logger.info(msg, *args)

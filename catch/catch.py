@@ -682,9 +682,6 @@ class Catch(SBSearch):
         )
 
         # get target ephemeris
-        task_messenger.send(
-            f"{self.source.__data_source_name__}: Getting ephemeris from JPL Horizons."
-        )
         _target: MovingTarget = MovingTarget(str(target), db=self.db)
         try:
             eph: List[Ephemeris] = _target.ephemeris(
