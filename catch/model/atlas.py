@@ -22,7 +22,7 @@ from sqlalchemy import BigInteger, Column, String, Boolean, ForeignKey
 from sbsearch.model.core import Observation
 
 
-_ARCHIVE_URL_PREFIX: str = "https://sbnsurveys.astro.umd.edu/images/"
+_ARCHIVE_URL_PREFIX: str = "https://sbnsurveys.astro.umd.edu/api/images"
 
 
 class ATLAS:
