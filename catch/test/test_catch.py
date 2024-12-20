@@ -362,7 +362,7 @@ def test_query_moving_target_date_range(catch, caplog):
     assert (
         f"CATCH-APIs {job_id.hex}",
         20,
-        "Added 1 cached result from NEAT Palomar Tricam.",
+        "NEAT Palomar Tricam: Added 1 cached result.",
     ) in caplog.record_tuples
 
     caught = catch.caught(job_id)
