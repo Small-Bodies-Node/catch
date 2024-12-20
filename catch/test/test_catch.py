@@ -38,6 +38,7 @@ def dummy_surveys(postgresql):
     fov = np.array(((-0.5, 0.5, 0.5, -0.5), (-0.5, -0.5, 0.5, 0.5))) * 5
     observations = []
     product_id = 0
+    now = Time.now().mjd
     for dec in np.linspace(-30, 90, 36):
         for ra in np.linspace(0, 360, int(36 * np.cos(np.radians(dec)))):
             product_id += 1
@@ -46,6 +47,7 @@ def dummy_surveys(postgresql):
                 mjd_start=mjd_start,
                 mjd_stop=mjd_start + EXPTIME,
                 product_id=product_id,
+                mjd_added=now + 0.1 - product_id,
             )
             obs.set_fov(*_fov)
             observations.append(obs)
@@ -54,6 +56,7 @@ def dummy_surveys(postgresql):
                 mjd_start=mjd_start + TRICAM_OFFSET,
                 mjd_stop=mjd_start + EXPTIME + TRICAM_OFFSET,
                 product_id=product_id,
+                mjd_added=now + 0.1 - product_id,
             )
             obs.set_fov(*_fov)
             observations.append(obs)
@@ -516,6 +519,52 @@ def test_update_statistics(catch):
     )
     assert all_stats.stop_date == stop.iso
     assert all_stats.updated == stats.updated
+
+
+def test_status_updates(catch: Catch):
+    updates = catch.status_updates()
+
+    assert len(updates) == 6
+
+    test = {
+        "source": "neat_palomar_tricam",
+        "source_name": "NEAT Palomar Tricam",
+        "days": 1,
+        "count": 1,
+        "start_date": "2002-01-01 00:00:00.000",
+        "stop_date": "2002-01-01 00:00:30.000",
+    }
+    assert test in updates
+
+    test["days"] = 7
+    test["count"] = 7
+    test["stop_date"] = "2002-01-01 00:04:12.000"
+    assert test in updates
+
+    test["days"] = 30
+    test["count"] = 30
+    test["stop_date"] = "2002-01-01 00:18:23.000"
+    assert test in updates
+
+    test = {
+        "source": "neat_maui_geodss",
+        "source_name": "NEAT Maui GEODSS",
+        "days": 1,
+        "count": 1,
+        "start_date": "1998-01-01 00:00:00.000",
+        "stop_date": "1998-01-01 00:00:30.000",
+    }
+    assert test in updates
+
+    test["days"] = 7
+    test["count"] = 7
+    test["stop_date"] = "1998-01-01 00:04:12.000"
+    assert test in updates
+
+    test["days"] = 30
+    test["count"] = 30
+    test["stop_date"] = "1998-01-01 00:18:23.000"
+    assert test in updates
 
 
 def test_fixed_target_point_search(catch: Catch):
