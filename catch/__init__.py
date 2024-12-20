@@ -44,6 +44,11 @@ def catch_cli(*args):
     )
     status_sources.set_defaults(command="status/sources")
 
+    status_updates = subparsers.add_parser(
+        "status/updates", help="show recent updates to the database"
+    )
+    status_updates.set_defaults(command="status/updates")
+
     list_sources = subparsers.add_parser("sources", help="show available data sources")
     list_sources.set_defaults(command="sources")
 
@@ -141,6 +146,12 @@ def catch_cli(*args):
                 catch.update_statistics()
             tab = Table(catch.source_statistics())
             tab.pprint_all()
+        elif args.command == "status/updates":
+            tab = Table(catch.status_updates())
+            if len(tab) == 0:
+                print("# No data")
+            else:
+                tab.pprint_all()
         elif args.command == "moving":
             catch.start_date = args.start_date
             catch.stop_date = args.stop_date

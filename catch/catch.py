@@ -474,6 +474,40 @@ class Catch(SBSearch):
 
         self.db.session.commit()
 
+    def status_updates(self) -> list[dict[str, str | int | None]]:
+        """Summarize recent additions to the CATCH database."""
+
+        data: list[dict[str, str | int | None]] = []
+        t0: float = Time.now().mjd
+        for n in [1, 7, 30]:
+            rows: list[Observation] = (
+                self.db.session.query(
+                    Observation.source,
+                    func.count(Observation.mjd_start).label("c"),
+                    func.min(Observation.mjd_start).label("t0"),
+                    func.max(Observation.mjd_stop).label("t1"),
+                )
+                .where(Observation.mjd_added > (t0 - n))
+                .group_by(Observation.source)
+                .all()
+            )
+            for row in rows:
+                # only summarize sources known to us
+                if row.source in self.sources.keys():
+                    data.append(
+                        {
+                            "source": row.source,
+                            "source_name": self.sources[
+                                row.source
+                            ].__data_source_name__,
+                            "days": n,
+                            "count": row.c,
+                            "start_date": Time(row.t0, format="mjd").iso,
+                            "stop_date": Time(row.t1, format="mjd").iso,
+                        }
+                    )
+        return data
+
     def _update_statistics_for_source(self, source):
         count: int = self.db.session.query(func.count(source.observation_id)).scalar()
 
