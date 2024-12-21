@@ -5,6 +5,7 @@ except ImportError:
 
 from sbsearch.target import FixedTarget
 from .catch import Catch, IntersectionType  # noqa: F401
+from . import stats
 from .config import Config  # noqa: F401
 
 
@@ -45,9 +46,14 @@ def catch_cli(*args):
     status_sources.set_defaults(command="status/sources")
 
     status_updates = subparsers.add_parser(
-        "status/updates", help="show recent updates to the database"
+        "status/updates", help="summarize recent updates to the database"
     )
     status_updates.set_defaults(command="status/updates")
+
+    status_queries = subparsers.add_parser(
+        "status/queries", help="summarize recent queries"
+    )
+    status_queries.set_defaults(command="status/queries")
 
     list_sources = subparsers.add_parser("sources", help="show available data sources")
     list_sources.set_defaults(command="sources")
@@ -143,11 +149,17 @@ def catch_cli(*args):
         elif args.command == "status/sources":
             if args.update:
                 print("Updating survey statistics.")
-                catch.update_statistics()
-            tab = Table(catch.source_statistics())
+                stats.update_statistics(catch)
+            tab = Table(stats.source_statistics(catch))
             tab.pprint_all()
         elif args.command == "status/updates":
-            tab = Table(catch.status_updates())
+            tab = Table(stats.recently_added_observations(catch))
+            if len(tab) == 0:
+                print("# No data")
+            else:
+                tab.pprint_all()
+        elif args.command == "status/queries":
+            tab = Table(stats.recent_queries(catch))
             if len(tab) == 0:
                 print("# No data")
             else:

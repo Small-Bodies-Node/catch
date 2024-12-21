@@ -1,21 +1,23 @@
 [build-system]
-requires = [
-    "setuptools",
-    "setuptools_scm",
-    "wheel",
-]
+requires = ["setuptools", "setuptools_scm", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "catch"
 description = "Planetary Data System Small-Bodies Node astronomical survey search tool."
-keywords = ["astronomy", "astrophysics", "planetary", "asteroid", "comet", "space", "science"]
-readme = "README.md"
-authors = [
-    { name = "Michael S. P. Kelley", email = "msk@astro.umd.edu" }
+keywords = [
+    "astronomy",
+    "astrophysics",
+    "planetary",
+    "asteroid",
+    "comet",
+    "space",
+    "science",
 ]
+readme = "README.md"
+authors = [{ name = "Michael S. P. Kelley", email = "msk@astro.umd.edu" }]
 license = { text = "BSD 3-Clause License" }
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 dependencies = [
     "numpy>=1.17.0,<2",
     "astropy>=5.1",
@@ -24,24 +26,15 @@ dependencies = [
     "sbpy>0.3.0",
     "sbsearch>=2.1.0",
 ]
-dynamic = [ "version" ]
+dynamic = ["version"]
 
 [project.urls]
 Homepage = "https://catch.astro.umd.edu"
 Repository = "https://github.com/Small-Bodies-Node/catch"
 
 [project.optional-dependencies]
-test = [
-    "pytest>=4.6",
-    "pytest-astropy",
-    "coverage",
-    "testing.postgresql",
-]
-figures = [
-    "spherical_geometry",
-    "healpy",
-    "matplotlib",
-]
+test = ["pytest>=4.6", "pytest-astropy", "coverage", "testing.postgresql"]
+figures = ["spherical_geometry", "healpy", "matplotlib"]
 
 [project.scripts]
 catch = "catch:catch_cli"
@@ -59,14 +52,10 @@ minversion = 4.6
 addopts = "--doctest-rst --cov=catch --cov-report=html"
 doctest_plus = "enabled"
 remote_data_strict = true
-doctest_norecursedirs = [ "*/setup_package.py" ]
+doctest_norecursedirs = ["*/setup_package.py"]
 
 [tool.coverage.run]
-omit = [
-    "catch/test/*",
-    "catch/version*",
-    "catch/setup_package.py",
-]
+omit = ["catch/test/*", "catch/version*", "catch/setup_package.py"]
 
 [tool.coverage.report]
 exclude_lines = [

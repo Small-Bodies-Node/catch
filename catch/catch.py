@@ -5,10 +5,8 @@ __all__ = ["Catch", "IntersectionType"]
 import time
 import uuid
 import logging
-from typing import Any, Dict, List, Optional, Tuple, Union
 
 from sqlalchemy.orm import Session, Query
-from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy import func
 from astropy.time import Time
 from sbsearch import SBSearch, IntersectionType
@@ -16,11 +14,11 @@ from sbsearch.target import MovingTarget, FixedTarget
 
 from .model import (
     CatchQuery,
+    CatchQueryStatus,
     Observation,
     Found,
     Ephemeris,
     ExampleSurvey,
-    SurveyStats,
 )
 from .exceptions import (
     CatchException,
@@ -68,7 +66,7 @@ class Catch(SBSearch):
 
     def __init__(
         self,
-        database: Union[str, Session],
+        database: str | Session,
         *args,
         **kwargs,
     ) -> None:
@@ -92,7 +90,7 @@ class Catch(SBSearch):
         ]
 
     @property
-    def sources(self) -> Dict[str, Observation]:
+    def sources(self) -> dict[str, Observation]:
         """Dictionary of observation data sources in the information model.
 
         The dictionary is keyed by database table name.
@@ -106,7 +104,7 @@ class Catch(SBSearch):
             if source not in [ExampleSurvey]
         }
 
-    def caught(self, job_id: Union[uuid.UUID, str]) -> List[Tuple[Found, Observation]]:
+    def caught(self, job_id: uuid.UUID | str) -> list[tuple[Found, Observation]]:
         """Return all results from catch query.
 
 
@@ -124,10 +122,10 @@ class Catch(SBSearch):
         """
 
         # get query identifiers for this job_id
-        query_ids: List[int] = [q.query_id for q in self.queries_from_job_id(job_id)]
+        query_ids: list[int] = [q.query_id for q in self.queries_from_job_id(job_id)]
 
         # get results from Found
-        rows: List[Tuple[Found, Observation]] = (
+        rows: list[tuple[Found, Observation]] = (
             self.db.session.query(Found, Observation)
             .join(Observation, Found.observation_id == Observation.observation_id)
             .filter(Found.query_id.in_(query_ids))
@@ -136,7 +134,7 @@ class Catch(SBSearch):
 
         return rows
 
-    def queries_from_job_id(self, job_id: Union[uuid.UUID, str]) -> List[CatchQuery]:
+    def queries_from_job_id(self, job_id: uuid.UUID | str) -> list[CatchQuery]:
         """Return list of `CatchQuery`s for the given `job_id`.
 
 
@@ -155,7 +153,7 @@ class Catch(SBSearch):
         job_id: uuid.UUID = uuid.UUID(str(job_id), version=4)
 
         # find job_id in CatchQuery table
-        queries: List[CatchQuery] = (
+        queries: list[CatchQuery] = (
             self.db.session.query(CatchQuery)
             .filter(CatchQuery.job_id == job_id.hex)
             .all()
@@ -165,9 +163,9 @@ class Catch(SBSearch):
 
     def query(
         self,
-        target: Union[str, MovingTarget, FixedTarget],
-        job_id: Union[uuid.UUID, str],
-        sources: Optional[str] = None,
+        target: str | MovingTarget | FixedTarget,
+        job_id: uuid.UUID | str,
+        sources: str | None = None,
         cached: bool = True,
     ) -> int:
         """Search for moving or fixed targets in survey data.
@@ -224,7 +222,7 @@ class Catch(SBSearch):
             "" if len(sources) == 1 else "s",
         )
 
-        observations: Union[int, List[Observation]]
+        observations: int | list[Observation]
         if isinstance(target, FixedTarget):
             observations = self._query_fixed_target(
                 target, job_id, sources, task_messenger
@@ -238,9 +236,9 @@ class Catch(SBSearch):
 
     def _query_moving_target(
         self,
-        target: Union[str, MovingTarget],
-        job_id: Union[uuid.UUID, str],
-        sources: List[str],
+        target: str | MovingTarget,
+        job_id: uuid.UUID | str,
+        sources: list[str],
         cached: bool,
         task_messenger: TaskMessenger,
     ) -> int:
@@ -275,7 +273,7 @@ class Catch(SBSearch):
                 job_id=job_id.hex,
                 source=self.source.__tablename__,
                 date=Time.now().iso,
-                status="in progress",
+                status=CatchQueryStatus.IN_PROGRESS,
                 uncertainty_ellipse=self.uncertainty_ellipse,
                 padding=self.padding,
                 start_date=None if self.start_date is None else self.start_date.iso,
@@ -294,7 +292,7 @@ class Catch(SBSearch):
                     n,
                     "" if n == 1 else "s",
                 )
-                q.status = "finished"
+                q.status = CatchQueryStatus.FINISHED
                 self.db.session.commit()
             else:
                 try:
@@ -302,21 +300,21 @@ class Catch(SBSearch):
                         q, target, task_messenger
                     )
                 except DataSourceWarning as e:
+                    q.status = CatchQueryStatus.FINISHED
                     task_messenger.send(str(e))
-                    q.status = "finished"
                 except CatchException as e:
-                    q.status = "errored"
+                    q.status = CatchQueryStatus.ERRORED
                     task_messenger.error(str(e))
                     self.logger.error(e, exc_info=self.debug)
                 except Exception as e:
-                    q.status = "errored"
+                    q.status = CatchQueryStatus.ERRORED
                     task_messenger.error(
                         "Unexpected error.  Contact us with this issue and your job ID."
                     )
                     self.logger.error(e, exc_info=self.debug)
                 else:
+                    q.status = CatchQueryStatus.FINISHED
                     count += n
-                    q.status = "finished"
                 finally:
                     q.execution_time = time.monotonic() - execution_time
                     self.db.session.commit()
@@ -326,10 +324,10 @@ class Catch(SBSearch):
     def _query_fixed_target(
         self,
         target: FixedTarget,
-        job_id: Union[uuid.UUID, str],
-        sources: List[str],
+        job_id: uuid.UUID | str,
+        sources: list[str],
         task_messenger: TaskMessenger,
-    ) -> List[Observation]:
+    ) -> list[Observation]:
         """Search for fixed targets.
 
 
@@ -346,7 +344,7 @@ class Catch(SBSearch):
         self.source = Observation
         self.logger.debug("Query {}".format(", ".join(sources)))
 
-        intersection_type: Union[str, None] = (
+        intersection_type: str | None = (
             None if self.padding == 0 else self.intersection_type.name
         )
 
@@ -355,7 +353,7 @@ class Catch(SBSearch):
             job_id=job_id.hex,
             source=",".join(sources),
             date=Time.now().iso,
-            status="in progress",
+            status=CatchQueryStatus.IN_PROGRESS,
             uncertainty_ellipse=0,
             padding=self.padding,
             start_date=None if self.start_date is None else self.start_date.iso,
@@ -365,29 +363,29 @@ class Catch(SBSearch):
         self.db.session.add(q)
         self.db.session.commit()
 
-        observations: List[Observation] = []
+        observations: list[Observation] = []
         try:
             observations = self._get_fixed_target_observations(
                 target, task_messenger, sources
             )
         except DataSourceWarning as e:
             task_messenger.send(str(e))
-            q.status = "finished"
+            q.status = CatchQueryStatus.FINISHED
         except CatchException as e:
-            q.status = "errored"
+            q.status = CatchQueryStatus.ERRORED
             task_messenger.error(str(e))
             self.logger.error(e, exc_info=self.debug)
         else:
             n = len(observations)
             task_messenger.send("Caught %d observation%s.", n, "" if n == 1 else "s")
-            q.status = "finished"
+            q.status = CatchQueryStatus.FINISHED
         finally:
             q.execution_time = time.monotonic() - execution_time
             self.db.session.commit()
 
         return observations
 
-    def is_query_cached(self, target: str, sources: Optional[str] = None) -> str:
+    def is_query_cached(self, target: str, sources: str | None = None) -> str:
         """Determine if this query has already been cached.
 
 
@@ -430,148 +428,7 @@ class Catch(SBSearch):
 
         return cached
 
-    def source_statistics(self) -> List[Dict[str, str | int | None]]:
-        """Get source statistics from survey statistics table."""
-
-        rows = []
-        stat: SurveyStats
-        for stat in self.db.session.query(SurveyStats).order_by(SurveyStats.name).all():
-            rows.append(
-                {
-                    "source": stat.source,
-                    "name": stat.name,
-                    "start-date": stat.start_date,
-                    "stop-date": stat.stop_date,
-                    "count": stat.count,
-                }
-            )
-
-        return rows
-
-    def update_statistics(self, source=None):
-        """Update source survey statistics table.
-
-
-        Parameters
-        ----------
-        source : string or Observation object
-            Limit update to this survey source name.
-
-        """
-
-        sources: List[Observation]
-        if source is None:
-            # update everything
-            sources = list(self.sources.values())
-        else:
-            # just the requested table
-            sources = [self.sources.get(source, source)]
-
-        for _source in sources:
-            self._update_statistics_for_source(_source)
-
-        self._update_statistics_for_all()
-
-        self.db.session.commit()
-
-    def status_updates(self) -> list[dict[str, str | int | None]]:
-        """Summarize recent additions to the CATCH database."""
-
-        data: list[dict[str, str | int | None]] = []
-        t0: float = Time.now().mjd
-        for n in [1, 7, 30]:
-            rows: list[Observation] = (
-                self.db.session.query(
-                    Observation.source,
-                    func.count(Observation.mjd_start).label("c"),
-                    func.min(Observation.mjd_start).label("t0"),
-                    func.max(Observation.mjd_stop).label("t1"),
-                )
-                .where(Observation.mjd_added > (t0 - n))
-                .group_by(Observation.source)
-                .all()
-            )
-            for row in rows:
-                # only summarize sources known to us
-                if row.source in self.sources.keys():
-                    data.append(
-                        {
-                            "source": row.source,
-                            "source_name": self.sources[
-                                row.source
-                            ].__data_source_name__,
-                            "days": n,
-                            "count": row.c,
-                            "start_date": Time(row.t0, format="mjd").iso,
-                            "stop_date": Time(row.t1, format="mjd").iso,
-                        }
-                    )
-        return data
-
-    def _update_statistics_for_source(self, source):
-        count: int = self.db.session.query(func.count(source.observation_id)).scalar()
-
-        q: Query = self.db.session.query(
-            func.min(Observation.mjd_start), func.max(Observation.mjd_stop)
-        ).filter(Observation.source == source.__tablename__)
-        dates: Any = q.one()
-
-        table_name = source.__tablename__
-        source_name = source.__data_source_name__
-
-        stats: SurveyStats
-        try:
-            stats = (
-                self.db.session.query(SurveyStats)
-                .filter(SurveyStats.source == table_name)
-                .one()
-            )
-        except NoResultFound:
-            stats = SurveyStats(
-                source=table_name,
-                name=source_name,
-            )
-
-        stats.count = count
-        if count > 0:
-            stats.start_date = Time(dates[0], format="mjd").iso
-            stats.stop_date = Time(dates[1], format="mjd").iso
-        stats.updated = Time.now().iso
-
-        self.db.session.merge(stats)
-
-    def _update_statistics_for_all(self):
-        # update the 'All' entry in survey_statistics
-        q: Query = self.db.session.query(
-            func.sum(SurveyStats.count),
-            func.min(SurveyStats.start_date),
-            func.max(SurveyStats.stop_date),
-            func.max(SurveyStats.updated),
-        ).filter(SurveyStats.name != "All")
-        updated_stats: Any = q.one()
-
-        stats: SurveyStats
-        try:
-            stats = (
-                self.db.session.query(SurveyStats)
-                .filter(SurveyStats.name == "All")
-                .one()
-            )
-        except NoResultFound:
-            stats = SurveyStats(
-                source="",
-                name="All",
-            )
-
-        stats.count = updated_stats[0]
-        stats.start_date = updated_stats[1]
-        stats.stop_date = updated_stats[2]
-        stats.updated = updated_stats[3]
-        self.db.session.merge(stats)
-
-    def _find_catch_query(
-        self, target: Union[str, MovingTarget]
-    ) -> Union[CatchQuery, None]:
+    def _find_catch_query(self, target: str | MovingTarget) -> CatchQuery | None:
         """Find query ID for this moving target and source.
 
         ``uncertainty_ellipse``, ``padding``, ``start_date``, and ``stop_date``
@@ -591,13 +448,13 @@ class Catch(SBSearch):
         )
         q = self._filter_by_source(q)
 
-        mjd_survey_start: Union[float, None]
-        mjd_survey_stop: Union[float, None]
+        mjd_survey_start: float | None
+        mjd_survey_stop: float | None
         mjd_survey_start, mjd_survey_stop = q.one()
 
         # by default, use the survey date range
-        start_date: Union[str, None] = None
-        stop_date: Union[str, None] = None
+        start_date: str | None = None
+        stop_date: str | None = None
 
         # ensure the survey actually has data in the archive
         if None not in [mjd_survey_start, mjd_survey_stop]:
@@ -613,7 +470,7 @@ class Catch(SBSearch):
             self.db.session.query(CatchQuery)
             .filter(CatchQuery.query == str(target))
             .filter(CatchQuery.source == self.source.__tablename__)
-            .filter(CatchQuery.status == "finished")
+            .filter(CatchQuery.status == CatchQueryStatus.FINISHED)
             .filter(CatchQuery.uncertainty_ellipse == self.uncertainty_ellipse)
             .filter(
                 CatchQuery.padding.between(self.padding * 0.99, self.padding * 1.01)
@@ -636,7 +493,7 @@ class Catch(SBSearch):
 
         """
 
-        founds: List[Found] = (
+        founds: list[Found] = (
             self.db.session.query(Found)
             .filter(Found.query_id == cached_query.query_id)
             .all()
@@ -654,7 +511,7 @@ class Catch(SBSearch):
     def _find_and_cache_moving_target_observations(
         self,
         query: CatchQuery,
-        target: Union[str, MovingTarget],
+        target: str | MovingTarget,
         task_messenger: TaskMessenger,
     ):
         """Run the actual query.
@@ -681,8 +538,8 @@ class Catch(SBSearch):
         )
         q = self._filter_by_source(q)
 
-        mjd_survey_start: Union[float, None]
-        mjd_survey_stop: Union[float, None]
+        mjd_survey_start: float | None
+        mjd_survey_stop: float | None
         mjd_survey_start, mjd_survey_stop = q.one()
 
         if None in [mjd_survey_start, mjd_survey_stop]:
@@ -718,7 +575,7 @@ class Catch(SBSearch):
         # get target ephemeris
         _target: MovingTarget = MovingTarget(str(target), db=self.db)
         try:
-            eph: List[Ephemeris] = _target.ephemeris(
+            eph: list[Ephemeris] = _target.ephemeris(
                 self.source.__obscode__,
                 start=Time(mjd_start - 1, format="mjd"),
                 stop=Time(mjd_stop + 1, format="mjd"),
@@ -732,7 +589,7 @@ class Catch(SBSearch):
 
         # Query the database for observations of the target ephemeris
         try:
-            observations: List[self.source] = self.find_observations_by_ephemeris(eph)
+            observations: list[Observation] = self.find_observations_by_ephemeris(eph)
         except Exception as e:
             raise FindObjectError(
                 "Critical error: could not search database for this target."
@@ -741,7 +598,7 @@ class Catch(SBSearch):
         if len(observations) > 0:
             # Observations found?  Then add them to the found table.
             try:
-                founds: List[Found] = self.add_found(_target, observations)
+                founds: list[Found] = self.add_found(_target, observations)
             except Exception as e:
                 raise AddFoundObservationsError(
                     "Critical error: could not save results to the found object database."
@@ -762,8 +619,8 @@ class Catch(SBSearch):
         self,
         target: FixedTarget,
         task_messenger: TaskMessenger,
-        sources: List[str],
-    ) -> List[Observation]:
+        sources: list[str],
+    ) -> list[Observation]:
         """Run the actual query.
 
         1. Notify the user of the survey and date range being searched.
@@ -776,7 +633,7 @@ class Catch(SBSearch):
         task_messenger.send("Query %s.", ", ".join(sources))
 
         # Query the database for observations of the target ephemeris
-        observations: List[Observation]
+        observations: list[Observation]
         try:
             if self.padding > 0:
                 observations = self.find_observations_intersecting_cap(target)

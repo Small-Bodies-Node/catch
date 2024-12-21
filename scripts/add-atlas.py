@@ -449,7 +449,7 @@ else:
                     obs = process(label)
 
                     # was this already in the database?
-                    if catch.session.query(
+                    if catch.db.session.query(
                         type(obs).product_id == obs.product_id
                     ).exists():
                         duplicates += 1
