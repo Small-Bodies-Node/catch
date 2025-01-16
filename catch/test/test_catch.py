@@ -24,6 +24,7 @@ from ..model import (
     PS1DR2,
     LONEOS,
 )
+from .. import stats
 
 
 # dummy_surveys survey parameters
@@ -66,7 +67,7 @@ def dummy_surveys(postgresql):
     config = Config(database=postgresql.url(), log="/dev/null", debug=True)
     with Catch.with_config(config) as catch:
         catch.add_observations(observations)
-        catch.update_statistics()
+        stats.update_statistics(catch)
 
 
 Postgresql = testing.postgresql.PostgresqlFactory(
@@ -453,7 +454,7 @@ def test_cache(catch):
 
 
 def test_update_statistics(catch):
-    catch.update_statistics()
+    stats.update_statistics(catch)
     stats = (
         catch.db.session.query(SurveyStats)
         .filter(SurveyStats.source == "neat_maui_geodss")
@@ -482,7 +483,7 @@ def test_update_statistics(catch):
     # add the new observation, update the other survey, and verify that the
     # GEODSS stats have not changed
     catch.add_observations([obs])
-    catch.update_statistics(source="neat_palomar_tricam")
+    stats.update_statistics(catch, source="neat_palomar_tricam")
     stats = (
         catch.db.session.query(SurveyStats)
         .filter(SurveyStats.source == "neat_maui_geodss")
@@ -496,7 +497,7 @@ def test_update_statistics(catch):
     assert all_stats.count == 1800
 
     # now update GEODSS and check stats
-    catch.update_statistics(source="neat_maui_geodss")
+    stats.update_statistics(catch, source="neat_maui_geodss")
     stats = (
         catch.db.session.query(SurveyStats)
         .filter(SurveyStats.source == "neat_maui_geodss")
