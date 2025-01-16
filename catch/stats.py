@@ -24,6 +24,7 @@ def source_statistics(catch: Catch) -> list[dict[str, str | int | None]]:
                 "name": stat.name,
                 "start-date": stat.start_date,
                 "stop-date": stat.stop_date,
+                "nights": stat.nights,
                 "count": stat.count,
             }
         )
