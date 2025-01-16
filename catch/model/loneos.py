@@ -30,10 +30,17 @@ _CUTOUT_URL_PREFIX: str = (
 
 
 class LONEOS(Observation):
+    """Lowell Observatory Near-Earth-Object Search (LONEOS)
+
+    699 248.463310.819380+0.571930Lowell Observatory-LONEOS
+
+    """
+
     __tablename__: str = "loneos"
     __data_source_name__: str = "LONEOS"
     __obscode__: str = "699"  # MPC observatory code
     __field_prefix__: str = "loneos"
+    __night_offset__ = -0.31
 
     source_id = Column(BigInteger, primary_key=True)
     observation_id = Column(

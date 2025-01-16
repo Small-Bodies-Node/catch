@@ -175,14 +175,27 @@ def update_statistics(catch: Catch, source: str | None = None) -> None:
     catch.db.session.commit()
 
 
-def update_statistics_for_source(catch: Catch, source: str) -> None:
+def update_statistics_for_source(catch: Catch, source: Observation) -> None:
     """Update statistics for a single source."""
-    count: int = catch.db.session.query(func.count(source.observation_id)).scalar()
+
+    # offset to MJD for calculating local night
+    night_offset: float = (
+        source.__night_offset__ if hasattr(source, "__night_offset__") else 0
+    ) - 0.5
+
+    count: int = catch.db.session.query(source.observation_id).count()
 
     q: Query = catch.db.session.query(
         func.min(Observation.mjd_start), func.max(Observation.mjd_stop)
     ).filter(Observation.source == source.__tablename__)
     dates: Row = q.one()
+
+    nights: int = (
+        catch.db.session.query(func.floor(Observation.mjd_start + night_offset))
+        .filter(Observation.source == source.__tablename__)
+        .distinct()
+        .count()
+    )
 
     table_name = source.__tablename__
     source_name = source.__data_source_name__
@@ -201,6 +214,7 @@ def update_statistics_for_source(catch: Catch, source: str) -> None:
         )
 
     stats.count = count
+    stats.nights = nights
     if count > 0:
         stats.start_date = Time(dates[0], format="mjd").iso
         stats.stop_date = Time(dates[1], format="mjd").iso
@@ -220,6 +234,12 @@ def update_statistics_for_all(catch: Catch) -> None:
     ).filter(SurveyStats.name != "All")
     updated_stats: Row = q.one()
 
+    nights: int = (
+        catch.db.session.query(func.floor(Observation.mjd_start - 0.5))
+        .distinct()
+        .count()
+    )
+
     stats: SurveyStats
     try:
         stats = (
@@ -232,6 +252,7 @@ def update_statistics_for_all(catch: Catch) -> None:
         )
 
     stats.count = updated_stats[0]
+    stats.nights = nights
     stats.start_date = updated_stats[1]
     stats.stop_date = updated_stats[2]
     stats.updated = updated_stats[3]

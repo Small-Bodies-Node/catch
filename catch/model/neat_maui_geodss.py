@@ -15,10 +15,17 @@ _CUTOUT_URL_PREFIX: str = "https://sbnsurveys.astro.umd.edu/api/images"
 
 
 class NEATMauiGEODSS(Observation):
-    __tablename__ = "neat_maui_geodss"
-    __data_source_name__ = "NEAT Maui GEODSS"
-    __obscode__ = "566"
-    __field_prefix__ = "neat"
+    """Near-Earth Asteroid Tracking (NEAT) survey, Haleakala, Hawaii.
+
+    566 203.7424 0.93623 +0.35156 Haleakala-NEAT/GEODSS
+
+    """
+
+    __tablename__: str = "neat_maui_geodss"
+    __data_source_name__: str = "NEAT Maui GEODSS"
+    __obscode__: str = "566"
+    __field_prefix__: str = "neat"
+    __night_offset__: float = -0.43
 
     source_id = Column(BigInteger, primary_key=True)
     observation_id = Column(

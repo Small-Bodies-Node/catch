@@ -110,10 +110,18 @@ class CatalinaSkySurvey:
 
 
 class CatalinaBigelow(Observation, CatalinaSkySurvey):
+    """Catalina Sky Survey, Mt. Bigelow
+
+    703 249.267360.845311+0.533211Catalina Sky Survey
+    V06 249.267450.845313+0.533209Catalina Sky Survey-Kuiper
+
+    """
+
     __tablename__ = "catalina_bigelow"
     __data_source_name__ = "Catalina Sky Survey, Mt. Bigelow"
     __obscode__ = "703"  # MPC observatory code
     __mapper_args__ = {"polymorphic_identity": "catalina_bigelow"}
+    __night_offset__ = -0.31
 
     # telescopes included at this site
     # MPC code : name
@@ -137,10 +145,18 @@ class CatalinaBigelow(Observation, CatalinaSkySurvey):
 
 
 class CatalinaLemmon(Observation, CatalinaSkySurvey):
+    """Catalina Sky Survey, Mt. Lemmon
+
+    G96 249.211280.845107+0.533611Mt. Lemmon Survey
+    I52 249.211080.845109+0.533609Steward Observatory, Mt. Lemmon Station
+
+    """
+
     __tablename__ = "catalina_lemmon"
     __data_source_name__ = "Catalina Sky Survey, Mt. Lemmon"
     __obscode__ = "G96"  # MPC observatory code
     __mapper_args__ = {"polymorphic_identity": "catalina_lemmon"}
+    __night_offset__ = -0.31
 
     # telescopes included at this site
     # MPC code : name
@@ -164,10 +180,17 @@ class CatalinaLemmon(Observation, CatalinaSkySurvey):
 
 
 class CatalinaBokNEOSurvey(Observation, CatalinaSkySurvey):
+    """Steward Observatory Bok NEO Survey from the CSS archive.
+
+    V00 248.399810.849456+0.526492Kitt Peak-Bok
+
+    """
+
     __tablename__ = "catalina_bokneosurvey"
     __data_source_name__ = "Catalina Sky Survey Archive, Bok NEO Survey"
     __obscode__ = "V00"  # MPC observatory code
     __mapper_args__ = {"polymorphic_identity": "catalina_bokneosurvey"}
+    __night_offset__ = -0.31
 
     # telescopes included at this site
     # MPC code : name

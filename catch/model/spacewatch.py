@@ -32,10 +32,17 @@ _CUTOUT_URL_PREFIX: str = (
 
 
 class Spacewatch(Observation):
+    """Spacewatch
+
+    691 248.399660.849466+0.526479Steward Observatory, Kitt Peak-Spacewatch
+
+    """
+
     __tablename__: str = "spacewatch"
     __data_source_name__: str = "Spacewatch"
     __obscode__: str = "691"  # MPC observatory code
     __field_prefix__: str = "spacewatch"
+    __night_offset__: float = -0.31
 
     source_id = Column(BigInteger, primary_key=True)
     observation_id = Column(

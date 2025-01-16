@@ -133,6 +133,7 @@ class SurveyStats(Base):
     count = Column(Integer, doc="Number of data products")
     start_date = Column(Text, doc="First data product start date, UTC")
     stop_date = Column(Text, doc="Last data prodcut stop date, UTC")
+    nights = Column(Integer, doc="Number of nights with data")
     updated = Column(Text, doc="Date these statistics were updated")
 
 

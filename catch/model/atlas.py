@@ -106,6 +106,7 @@ class ATLASMaunaLoa(Observation, ATLAS):
     __data_source_name__ = "ATLAS Hawaii, Mauna Loa"
     __obscode__ = "T08"  # MPC observatory code
     __mapper_args__ = {"polymorphic_identity": "atlas_mauna_loa"}
+    __night_offset__ = -0.43
 
     source_id = Column(BigInteger, primary_key=True)
     observation_id = Column(
@@ -124,12 +125,17 @@ class ATLASMaunaLoa(Observation, ATLAS):
 
 
 class ATLASHaleakela(Observation, ATLAS):
-    """ATLAS Haleakela"""
+    """ATLAS Haleakela
+
+    T05 203.742990.936236+0.351547ATLAS-HKO, Haleakala
+
+    """
 
     __tablename__ = "atlas_haleakela"
     __data_source_name__ = "ATLAS Hawaii, Haleakela"
     __obscode__ = "T05"  # MPC observatory code
     __mapper_args__ = {"polymorphic_identity": "atlas_haleakela"}
+    __night_offset__ = -0.43
 
     source_id = Column(BigInteger, primary_key=True)
     observation_id = Column(
@@ -148,12 +154,17 @@ class ATLASHaleakela(Observation, ATLAS):
 
 
 class ATLASRioHurtado(Observation, ATLAS):
-    """ATLAS Chile, Rio Hurtado"""
+    """ATLAS Chile, Rio Hurtado
+
+    W68 289.235020.862845-0.504269ATLAS Chile, Rio Hurtado
+
+    """
 
     __tablename__ = "atlas_rio_hurtado"
     __data_source_name__ = "ATLAS Chile, Rio Hurtado"
     __obscode__ = "W68"  # MPC observatory code
     __mapper_args__ = {"polymorphic_identity": "atlas_rio_hurtado"}
+    __night_offset__ = -0.20
 
     source_id = Column(BigInteger, primary_key=True)
     observation_id = Column(
@@ -172,12 +183,17 @@ class ATLASRioHurtado(Observation, ATLAS):
 
 
 class ATLASSutherland(Observation, ATLAS):
-    """ATLAS South Africa, Sutherland"""
+    """ATLAS South Africa, Sutherland
+
+    M22  20.810590.845564-0.532612ATLAS South Africa, Sutherland
+
+    """
 
     __tablename__ = "atlas_sutherland"
     __data_source_name__ = "ATLAS South Africa, Sutherland"
     __obscode__ = "M22"  # MPC observatory code
     __mapper_args__ = {"polymorphic_identity": "atlas_sutherland"}
+    __night_offset__ = 0.06
 
     source_id = Column(BigInteger, primary_key=True)
     observation_id = Column(

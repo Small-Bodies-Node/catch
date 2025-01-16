@@ -8,10 +8,17 @@ __all__: List[str] = ["SkyMapperDR4"]
 
 
 class SkyMapperDR4(Observation):
+    """SkyMapper Souther Sky Survey, data release 4.
+
+    Q55 149.061420.855643-0.516191SkyMapper, Siding Spring
+
+    """
+
     __tablename__ = "skymapper_dr4"
     __data_source_name__ = "SkyMapperDR4"
     __obscode__ = "413"
     __field_prefix__ = "skymapper"
+    __night_offset__ = 0.41
 
     source_id = Column(BigInteger, primary_key=True)
     observation_id = Column(

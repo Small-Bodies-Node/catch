@@ -461,11 +461,13 @@ def test_update_statistics(catch):
         .one()
     )
     assert stats.count == 900
+    assert stats.nights == 1
 
     all_stats: SurveyStats = (
         catch.db.session.query(SurveyStats).filter(SurveyStats.name == "All").one()
     )
     assert all_stats.count == 1800
+    assert all_stats.nights == 2
 
     start = Time(GEODSS_START, format="mjd")
     stop = Time(GEODSS_START + EXPTIME * 900 + SLEWTIME * 899, format="mjd")
@@ -490,11 +492,13 @@ def test_update_statistics(catch):
         .one()
     )
     assert stats.count == 900
+    assert stats.nights == 1
 
     all_stats: SurveyStats = (
         catch.db.session.query(SurveyStats).filter(SurveyStats.name == "All").one()
     )
     assert all_stats.count == 1800
+    assert all_stats.nights == 2
 
     # now update GEODSS and check stats
     update_statistics(catch, source="neat_maui_geodss")
@@ -504,6 +508,7 @@ def test_update_statistics(catch):
         .one()
     )
     assert stats.count == 901
+    assert stats.nights == 1
     start = Time(GEODSS_START, format="mjd")
     stop = Time(GEODSS_START + EXPTIME * 901 + SLEWTIME * 900, format="mjd")
     assert stats.start_date == start.iso
@@ -513,6 +518,7 @@ def test_update_statistics(catch):
         catch.db.session.query(SurveyStats).filter(SurveyStats.name == "All").one()
     )
     assert all_stats.count == 1801
+    assert all_stats.nights == 2
     assert all_stats.start_date == start.iso
     stop = Time(
         GEODSS_START + TRICAM_OFFSET + EXPTIME * 900 + SLEWTIME * 899,
