@@ -24,7 +24,7 @@ from ..model import (
     PS1DR2,
     LONEOS,
 )
-from ..stats import update_statistics
+from ..stats import update_statistics, recently_added_observations
 
 
 # dummy_surveys survey parameters
@@ -523,7 +523,7 @@ def test_update_statistics(catch):
 
 
 def test_status_updates(catch: Catch):
-    updates = catch.status_updates()
+    updates = recently_added_observations(catch)
 
     assert len(updates) == 6
 
