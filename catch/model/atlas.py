@@ -119,7 +119,7 @@ class ATLASMaunaLoa(Observation, ATLAS):
     product_id = Column(
         String(128), doc="Archive product id", unique=True, index=True, nullable=False
     )
-    field_id = Column(String(16), doc="Survey field ID", index=True, nullable=False)
+    field_id = Column(String(32), doc="Survey field ID", index=True, nullable=False)
     diff = Column(Boolean, doc="True if a difference image exists", nullable=False)
 
 
@@ -143,7 +143,7 @@ class ATLASHaleakela(Observation, ATLAS):
     product_id = Column(
         String(128), doc="Archive product id", unique=True, index=True, nullable=False
     )
-    field_id = Column(String(16), doc="Survey field ID", index=True, nullable=False)
+    field_id = Column(String(32), doc="Survey field ID", index=True, nullable=False)
     diff = Column(Boolean, doc="True if a difference image exists", nullable=False)
 
 
@@ -167,7 +167,7 @@ class ATLASRioHurtado(Observation, ATLAS):
     product_id = Column(
         String(128), doc="Archive product id", unique=True, index=True, nullable=False
     )
-    field_id = Column(String(16), doc="Survey field ID", index=True, nullable=False)
+    field_id = Column(String(32), doc="Survey field ID", index=True, nullable=False)
     diff = Column(Boolean, doc="True if a difference image exists", nullable=False)
 
 
@@ -191,5 +191,5 @@ class ATLASSutherland(Observation, ATLAS):
     product_id = Column(
         String(128), doc="Archive product id", unique=True, index=True, nullable=False
     )
-    field_id = Column(String(16), doc="Survey field ID", index=True, nullable=False)
+    field_id = Column(String(32), doc="Survey field ID", index=True, nullable=False)
     diff = Column(Boolean, doc="True if a difference image exists", nullable=False)
