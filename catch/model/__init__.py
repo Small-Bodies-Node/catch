@@ -29,6 +29,7 @@ __all__ = [
     "ATLASSutherland",
 ]
 
+import enum
 from sqlalchemy import Column, Integer, Float, String, ForeignKey, Text
 from sbsearch.model.core import Base, Observation, Found, Ephemeris, Obj
 from sbsearch.model.example_survey import ExampleSurvey
@@ -41,6 +42,14 @@ from .catalina import CatalinaBigelow, CatalinaLemmon, CatalinaBokNEOSurvey
 from .spacewatch import Spacewatch
 from .loneos import LONEOS
 from .atlas import ATLASMaunaLoa, ATLASHaleakela, ATLASRioHurtado, ATLASSutherland
+
+
+class CatchQueryStatus(enum.StrEnum):
+    """CATCH query status codes."""
+
+    IN_PROGRESS: str = "in progress"
+    ERRORED: str = "errored"
+    FINISHED: str = "finished"
 
 
 class CatchQuery(Base):
@@ -88,6 +97,7 @@ class CatchQuery(Base):
     )
     date = Column(
         String(64),
+        index=True,
         doc="Date query was executed",
     )
     execution_time = Column(
@@ -95,7 +105,7 @@ class CatchQuery(Base):
         nullable=True,
         doc="Query execution time (wall clock, seconds), or null for cached results",
     )
-    status = Column(String(64), doc="Query status")
+    status: CatchQueryStatus = Column(String(64), doc="Query status")
 
     def __repr__(self) -> str:
         return (

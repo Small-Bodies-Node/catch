@@ -24,6 +24,7 @@ from ..model import (
     PS1DR2,
     LONEOS,
 )
+from ..stats import update_statistics, recently_added_observations
 
 
 # dummy_surveys survey parameters
@@ -38,6 +39,7 @@ def dummy_surveys(postgresql):
     fov = np.array(((-0.5, 0.5, 0.5, -0.5), (-0.5, -0.5, 0.5, 0.5))) * 5
     observations = []
     product_id = 0
+    now = Time.now().mjd
     for dec in np.linspace(-30, 90, 36):
         for ra in np.linspace(0, 360, int(36 * np.cos(np.radians(dec)))):
             product_id += 1
@@ -46,6 +48,7 @@ def dummy_surveys(postgresql):
                 mjd_start=mjd_start,
                 mjd_stop=mjd_start + EXPTIME,
                 product_id=product_id,
+                mjd_added=now + 0.1 - product_id,
             )
             obs.set_fov(*_fov)
             observations.append(obs)
@@ -54,6 +57,7 @@ def dummy_surveys(postgresql):
                 mjd_start=mjd_start + TRICAM_OFFSET,
                 mjd_stop=mjd_start + EXPTIME + TRICAM_OFFSET,
                 product_id=product_id,
+                mjd_added=now + 0.1 - product_id,
             )
             obs.set_fov(*_fov)
             observations.append(obs)
@@ -63,7 +67,7 @@ def dummy_surveys(postgresql):
     config = Config(database=postgresql.url(), log="/dev/null", debug=True)
     with Catch.with_config(config) as catch:
         catch.add_observations(observations)
-        catch.update_statistics()
+        update_statistics(catch)
 
 
 Postgresql = testing.postgresql.PostgresqlFactory(
@@ -362,7 +366,7 @@ def test_query_moving_target_date_range(catch, caplog):
     assert (
         f"CATCH-APIs {job_id.hex}",
         20,
-        "Added 1 cached result from NEAT Palomar Tricam.",
+        "NEAT Palomar Tricam: Added 1 cached result.",
     ) in caplog.record_tuples
 
     caught = catch.caught(job_id)
@@ -450,7 +454,7 @@ def test_cache(catch):
 
 
 def test_update_statistics(catch):
-    catch.update_statistics()
+    update_statistics(catch)
     stats = (
         catch.db.session.query(SurveyStats)
         .filter(SurveyStats.source == "neat_maui_geodss")
@@ -479,7 +483,7 @@ def test_update_statistics(catch):
     # add the new observation, update the other survey, and verify that the
     # GEODSS stats have not changed
     catch.add_observations([obs])
-    catch.update_statistics(source="neat_palomar_tricam")
+    update_statistics(catch, source="neat_palomar_tricam")
     stats = (
         catch.db.session.query(SurveyStats)
         .filter(SurveyStats.source == "neat_maui_geodss")
@@ -493,7 +497,7 @@ def test_update_statistics(catch):
     assert all_stats.count == 1800
 
     # now update GEODSS and check stats
-    catch.update_statistics(source="neat_maui_geodss")
+    update_statistics(catch, source="neat_maui_geodss")
     stats = (
         catch.db.session.query(SurveyStats)
         .filter(SurveyStats.source == "neat_maui_geodss")
@@ -516,6 +520,52 @@ def test_update_statistics(catch):
     )
     assert all_stats.stop_date == stop.iso
     assert all_stats.updated == stats.updated
+
+
+def test_status_updates(catch: Catch):
+    updates = recently_added_observations(catch)
+
+    assert len(updates) == 6
+
+    test = {
+        "source": "neat_palomar_tricam",
+        "source_name": "NEAT Palomar Tricam",
+        "days": 1,
+        "count": 1,
+        "start_date": "2002-01-01 00:00:00.000",
+        "stop_date": "2002-01-01 00:00:30.000",
+    }
+    assert test in updates
+
+    test["days"] = 7
+    test["count"] = 7
+    test["stop_date"] = "2002-01-01 00:04:12.000"
+    assert test in updates
+
+    test["days"] = 30
+    test["count"] = 30
+    test["stop_date"] = "2002-01-01 00:18:23.000"
+    assert test in updates
+
+    test = {
+        "source": "neat_maui_geodss",
+        "source_name": "NEAT Maui GEODSS",
+        "days": 1,
+        "count": 1,
+        "start_date": "1998-01-01 00:00:00.000",
+        "stop_date": "1998-01-01 00:00:30.000",
+    }
+    assert test in updates
+
+    test["days"] = 7
+    test["count"] = 7
+    test["stop_date"] = "1998-01-01 00:04:12.000"
+    assert test in updates
+
+    test["days"] = 30
+    test["count"] = 30
+    test["stop_date"] = "1998-01-01 00:18:23.000"
+    assert test in updates
 
 
 def test_fixed_target_point_search(catch: Catch):

@@ -22,7 +22,7 @@ from sqlalchemy import BigInteger, Column, String, Boolean, ForeignKey
 from sbsearch.model.core import Observation
 
 
-_ARCHIVE_URL_PREFIX: str = "https://sbnsurveys.astro.umd.edu/images/"
+_ARCHIVE_URL_PREFIX: str = "https://sbnsurveys.astro.umd.edu/api/images"
 
 
 class ATLAS:
@@ -73,7 +73,7 @@ class ATLAS:
             return None
 
         base_url: str = self.diff_url if diff else self.archive_url
-        return f"{base_url}/ra={float(ra)}&dec={float(dec)}&size={float(size)}deg&format={format}"
+        return f"{base_url}?ra={float(ra)}&dec={float(dec)}&size={float(size)}deg&format={format}"
 
     def diff_cutout_url(self, *args, **kwargs):
         """URL to cutout for difference image."""

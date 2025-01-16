@@ -80,6 +80,7 @@ class LONEOS(Observation):
 
         return f"{_ARCHIVE_URL_PREFIX}/gbo.ast.loneos.survey/data_augmented/{lois}/{date}/{fn}"
 
+    @property
     def label_url(self) -> str:
         """URL to PDS4 label."""
         return self.archive_url[:-4] + "xml"
