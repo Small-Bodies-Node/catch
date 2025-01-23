@@ -37,7 +37,7 @@ test = ["pytest>=4.6", "pytest-astropy", "coverage", "testing.postgresql"]
 figures = ["spherical_geometry", "healpy", "matplotlib"]
 
 [project.scripts]
-catch = "catch:catch_cli"
+catch = "catch.cli:catch_cli"
 
 [tool.setuptools]
 zip-safe = false
