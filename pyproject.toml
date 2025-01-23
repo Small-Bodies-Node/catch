@@ -24,7 +24,7 @@ dependencies = [
     "astroquery>=0.4.5",
     "pds4_tools>=1.3",
     "sbpy>0.3.0",
-    "sbsearch>=2.1.0",
+    "sbsearch~=3.0rc0",
 ]
 dynamic = ["version"]
 
