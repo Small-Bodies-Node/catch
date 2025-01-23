@@ -341,7 +341,11 @@ class Catch(SBSearch):
         # track query execution time
         execution_time: float = time.monotonic()
 
-        self.source = Observation
+        if len(sources) == 1:
+            self.source = sources[0]
+        else:
+            self.source = Observation
+
         self.logger.debug("Query {}".format(", ".join(sources)))
 
         intersection_type: str | None = (
