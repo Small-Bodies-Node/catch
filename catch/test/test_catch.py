@@ -429,6 +429,7 @@ def test_query_moving_target_search_failure(catch, caplog, monkeypatch):
 
 @pytest.mark.remote_data
 def test_cache(catch):
+    catch.padding = 0
     cached = catch.is_query_cached("2P")
     assert not cached
 
@@ -439,12 +440,26 @@ def test_cache(catch):
     cached = catch.is_query_cached("2P")
     assert cached
 
-    # add padding, verify that the query has not been cached
-    catch.padding = 0.001
+    # test cached queries with padding
+    catch.padding = 0.0
+    cached = catch.is_query_cached("2P")
+    assert cached
+
+    catch.padding = 1
+    cached = catch.is_query_cached("2P")
+    assert not cached
+
+    # tolerance is 0.01 arcmin
+    catch.padding = 0.009
+    cached = catch.is_query_cached("2P")
+    assert cached
+
+    catch.padding = 0.011
     cached = catch.is_query_cached("2P")
     assert not cached
 
     # run the query with padding
+    catch.padding = 1
     n = catch.query("2P", job_id)
     assert n == 2
 
