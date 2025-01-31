@@ -6,6 +6,7 @@ import time
 import uuid
 import logging
 
+import numpy as np
 from sqlalchemy.orm import Session, Query
 from sqlalchemy import func
 from astropy.time import Time
@@ -349,7 +350,7 @@ class Catch(SBSearch):
         self.logger.debug("Query {}".format(", ".join(sources)))
 
         intersection_type: str | None = (
-            None if self.padding == 0 else self.intersection_type.name
+            None if np.isclose(self.padding, 0) else self.intersection_type.name
         )
 
         q = CatchQuery(
@@ -358,7 +359,7 @@ class Catch(SBSearch):
             source=",".join(sources),
             date=Time.now().iso,
             status=CatchQueryStatus.IN_PROGRESS,
-            uncertainty_ellipse=0,
+            uncertainty_ellipse=False,
             padding=self.padding,
             start_date=None if self.start_date is None else self.start_date.iso,
             stop_date=None if self.stop_date is None else self.stop_date.iso,
@@ -477,7 +478,7 @@ class Catch(SBSearch):
             .filter(CatchQuery.status == CatchQueryStatus.FINISHED)
             .filter(CatchQuery.uncertainty_ellipse == self.uncertainty_ellipse)
             .filter(
-                CatchQuery.padding.between(self.padding * 0.99, self.padding * 1.01)
+                CatchQuery.padding.between(self.padding - 0.01, self.padding + 0.01)
             )
             .filter(CatchQuery.start_date == start_date)
             .filter(CatchQuery.stop_date == stop_date)
