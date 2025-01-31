@@ -24,7 +24,7 @@ dependencies = [
     "astroquery>=0.4.5",
     "pds4_tools>=1.3",
     "sbpy>0.3.0",
-    "sbsearch>=2.1.0",
+    "sbsearch~=3.0rc0",
 ]
 dynamic = ["version"]
 
@@ -37,7 +37,7 @@ test = ["pytest>=4.6", "pytest-astropy", "coverage", "testing.postgresql"]
 figures = ["spherical_geometry", "healpy", "matplotlib"]
 
 [project.scripts]
-catch = "catch:catch_cli"
+catch = "catch.cli:catch_cli"
 
 [tool.setuptools]
 zip-safe = false

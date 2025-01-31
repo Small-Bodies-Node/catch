@@ -13,10 +13,17 @@ from sbsearch.model.core import Base, Observation
 
 
 class PS1DR2(Observation):
+    """Pan-STARRS 1, Haleakala Observatory, data release 2.
+
+    F51 203.744090.936241+0.351543Pan-STARRS 1, Haleakala
+
+    """
+
     __tablename__ = "ps1dr2"
     __data_source_name__ = "PanSTARRS 1 DR2"
     __obscode__ = "F51"  # MPC observatory code
     __field_prefix__ = "ps1"
+    __night_offset__ = -0.43
 
     source_id = Column(BigInteger, primary_key=True)
     observation_id = Column(

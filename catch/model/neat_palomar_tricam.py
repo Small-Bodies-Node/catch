@@ -12,6 +12,10 @@ The catch survey data model additionally requires:
   aggregated (i.e., multi-survey) output.  Verify that the string length can be
   stored by this column data type.
 
+* __night_offset__ - fractional days to add to MJD for calculating the local
+  night in the survey summary statistics.  Formula: offset = (longitude - 360 *
+  floor((longitude + 180) / 360)) / 360, where longitude is degrees east.
+
 * product_id - a unique ID for this survey, typically one used at the data
   archive, e.g., a PDS4 logical identifier.
 
@@ -41,10 +45,17 @@ _CUTOUT_URL_PREFIX: str = "https://sbnsurveys.astro.umd.edu/api/images"
 
 
 class NEATPalomarTricam(Observation):
+    """Near-Earth Asteroid Tracking (NEAT) survey, Palomar Observatory.
+
+    644 243.140220.836325+0.546877Palomar Mountain/NEAT
+
+    """
+
     __tablename__: str = "neat_palomar_tricam"
     __data_source_name__: str = "NEAT Palomar Tricam"
     __obscode__: str = "644"  # MPC observatory code
     __field_prefix__: str = "neat"
+    __night_offset__: float = -0.33
 
     source_id = Column(BigInteger, primary_key=True)
     observation_id = Column(

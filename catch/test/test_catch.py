@@ -429,6 +429,7 @@ def test_query_moving_target_search_failure(catch, caplog, monkeypatch):
 
 @pytest.mark.remote_data
 def test_cache(catch):
+    catch.padding = 0
     cached = catch.is_query_cached("2P")
     assert not cached
 
@@ -439,12 +440,26 @@ def test_cache(catch):
     cached = catch.is_query_cached("2P")
     assert cached
 
-    # add padding, verify that the query has not been cached
-    catch.padding = 0.001
+    # test cached queries with padding
+    catch.padding = 0.0
+    cached = catch.is_query_cached("2P")
+    assert cached
+
+    catch.padding = 1
+    cached = catch.is_query_cached("2P")
+    assert not cached
+
+    # tolerance is 0.01 arcmin
+    catch.padding = 0.009
+    cached = catch.is_query_cached("2P")
+    assert cached
+
+    catch.padding = 0.011
     cached = catch.is_query_cached("2P")
     assert not cached
 
     # run the query with padding
+    catch.padding = 1
     n = catch.query("2P", job_id)
     assert n == 2
 
@@ -461,11 +476,13 @@ def test_update_statistics(catch):
         .one()
     )
     assert stats.count == 900
+    assert stats.nights == 1
 
     all_stats: SurveyStats = (
         catch.db.session.query(SurveyStats).filter(SurveyStats.name == "All").one()
     )
     assert all_stats.count == 1800
+    assert all_stats.nights == 2
 
     start = Time(GEODSS_START, format="mjd")
     stop = Time(GEODSS_START + EXPTIME * 900 + SLEWTIME * 899, format="mjd")
@@ -490,11 +507,13 @@ def test_update_statistics(catch):
         .one()
     )
     assert stats.count == 900
+    assert stats.nights == 1
 
     all_stats: SurveyStats = (
         catch.db.session.query(SurveyStats).filter(SurveyStats.name == "All").one()
     )
     assert all_stats.count == 1800
+    assert all_stats.nights == 2
 
     # now update GEODSS and check stats
     update_statistics(catch, source="neat_maui_geodss")
@@ -504,6 +523,7 @@ def test_update_statistics(catch):
         .one()
     )
     assert stats.count == 901
+    assert stats.nights == 1
     start = Time(GEODSS_START, format="mjd")
     stop = Time(GEODSS_START + EXPTIME * 901 + SLEWTIME * 900, format="mjd")
     assert stats.start_date == start.iso
@@ -513,6 +533,7 @@ def test_update_statistics(catch):
         catch.db.session.query(SurveyStats).filter(SurveyStats.name == "All").one()
     )
     assert all_stats.count == 1801
+    assert all_stats.nights == 2
     assert all_stats.start_date == start.iso
     stop = Time(
         GEODSS_START + TRICAM_OFFSET + EXPTIME * 900 + SLEWTIME * 899,
