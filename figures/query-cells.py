@@ -250,6 +250,7 @@ annotate(ax, dates[0].iso[:10], ra[0], dec[0], wcs)
 annotate(ax, dates[1].iso[:10], ra[-1], dec[-1], wcs)
 
 plt.savefig(f"query-cells-ra-dec-{file_suffix}.png", dpi=300)
+plt.savefig(f"query-cells-ra-dec-{file_suffix}.pdf", dpi=300)
 
 # ################################################################################
 
@@ -282,6 +283,7 @@ annotate(ax, dates[0].iso[:10], ra[0], mjd[0])
 annotate(ax, dates[1].iso[:10], ra[-1], mjd[-1])
 
 plt.savefig(f"query-cells-ra-time-{file_suffix}.png", dpi=300)
+plt.savefig(f"query-cells-ra-time-{file_suffix}.pdf", dpi=300)
 
 # ################################################################################
 
@@ -410,6 +412,7 @@ annotate(ax, dates[1].iso[:10], ra[-1], dec[-1], wcs)
 
 plt.tight_layout(pad=1)
 plt.savefig(f"query-cells-{file_suffix}.png", dpi=300)
+plt.savefig(f"query-cells-{file_suffix}.pdf")
 
 timestamps.append(("Plots generated", Time.now()))
 

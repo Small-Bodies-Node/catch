@@ -1,9 +1,9 @@
-"""
+r"""
 Every observation must be checked against S2 cells distributed across the entire
 sky.  Because of this, the benefits of working with the database are lost.
 Instead, download a copy of the observation database (or subsets):
 
-    \\copy observation (source,fov) to observations.csv with (FORMAT CSV, HEADER);
+    \copy observation (source,mjd_start,fov) to observations.csv with (FORMAT CSV, HEADER);
 
 Examples:
 
@@ -54,14 +54,13 @@ def radec_to_fov(ra, dec):
 def fields_of_view(fn, source=None):
     with open(fn, "r") as inf:
         inf.readline()  # skip the required header
+        count = 0
         for line in inf:
             if (source is not None) and not line.startswith(source):
                 continue
 
-            logger.debug(line[:-1])
-
             ra, dec = polygon_string_to_arrays(
-                line[line.index(",") + 2 : -2]  # noqa: E203
+                line[line.index(",") + 3 : -2]  # noqa: E203
             )
             ra = Angle(ra, "rad").wrap_at(180 * u.deg).rad
             vertices = []
@@ -72,6 +71,21 @@ def fields_of_view(fn, source=None):
             loop.Normalize()
             poly = s2.S2Polygon(loop)
             yield poly
+
+            count += 1
+            if count > 100:
+                return
+
+
+def nights(fn, source=None):
+    with open(fn, "r") as inf:
+        inf.readline()  # skip the required header
+        mjd = []
+        for line in inf:
+            start = line.index(",") + 1
+            mjd.append(int(line[start : line.index(".", start)]))
+    count = Counter(mjd)
+    return count
 
 
 def cell_sky_coverage(fovs, level):
@@ -111,18 +125,19 @@ def get_polygons(fov):
         yield np.array((ra, dec)).transpose()
 
 
-def plot(count, fov, source_name, date):
+def plot(fov_count, fov, mjd_count, mjd, source_name, date):
     plt.style.use("dark_background")
 
-    fig = plt.figure(clear=True)
-    ax = plt.subplot(projection="mollweide")
+    fig = plt.figure(clear=True, figsize=(5 * 16 / 9, 5))
+    # ax = plt.subplot(projection="mollweide")
+    ax = fig.add_axes((0, 0.3, 0.95, 0.65), projection="mollweide")
     plt.title(source_name)
     plt.grid(True, linewidth=0.5)
 
-    count = np.ma.MaskedArray(count, mask=count == 0)
-    norm = mpl.colors.LogNorm(vmin=1, vmax=count.max())
+    fov_count = np.ma.MaskedArray(fov_count, mask=fov_count == 0)
+    norm = mpl.colors.LogNorm(vmin=1, vmax=fov_count.max())
     polygons = []
-    for _fov, scale in zip(fov, norm(count)):
+    for _fov, scale in zip(fov, norm(fov_count)):
         for coords in get_polygons(_fov):
             polygons.append(
                 Polygon(
@@ -137,13 +152,31 @@ def plot(count, fov, source_name, date):
     cb = plt.colorbar(
         plt.cm.ScalarMappable(norm=norm, cmap="magma"),
         ax=ax,
-        orientation="horizontal",
-        aspect=35,
+        location="left",
+        orientation="vertical",
+        aspect=15,
     )
-    cb.set_label("Number of images")
-    cb.ax.set_xscale("log")
+    cb.set_label("Count")
+    cb.ax.set_yscale("log")
 
-    ax.text(0.02, 0.02, date, transform=fig.transFigure, fontsize=7)
+    ax.text(
+        0.98,
+        0.98,
+        date,
+        transform=fig.transFigure,
+        fontsize=7,
+        ha="right",
+        va="top",
+    )
+
+    hax = fig.add_axes((0.1, 0.1, 0.85, 0.1))
+    year0 = int(Time(mjd.min(), format="mjd").iso[:4]) + 1
+    year = (mjd - Time(f"{year0}-01-01").mjd) / 365.25 + year0
+    hax.hist(year, weights=mjd_count, bins=300, color=plt.get_cmap("magma")(0.5))
+    hax.spines[["right", "top"]].set_visible(False)
+    hax.set_yscale("log")
+    hax.set_xlabel("Year")
+    hax.set_ylabel("Count")
 
 
 def get_source_name(source):
@@ -220,15 +253,27 @@ if __name__ == "__main__":
     if os.path.exists(table_fn) and not args.force:
         tab = ascii.read(table_fn)
         cells = tab["cell"].data
-        count = tab["count"].data
+        fov_count = tab["count"].data
         fov = tab["fov"].data
     else:
         fovs = fields_of_view("observations.csv", args.source)
-        cells, count, fov = cell_sky_coverage(fovs, args.level)
+        cells, fov_count, fov = cell_sky_coverage(fovs, args.level)
 
-        tab = Table((cells, count, fov), names=("cell", "count", "fov"))
+        tab = Table((cells, fov_count, fov), names=("cell", "count", "fov"))
         tab.sort("cell")
         tab.write(table_fn, overwrite=True)
 
-    plot(count, fov, source_name, args.date)
+    table_fn = f"{prefix}-nights.csv"
+    if os.path.exists(table_fn) and not args.force:
+        tab = ascii.read(table_fn)
+    else:
+        n = nights("observations.csv", args.source)
+        tab = Table(rows=n.items(), names=("mjd", "count"))
+        tab.sort("mjd")
+        tab.write(table_fn, overwrite=True)
+
+    mjd = tab["mjd"].data
+    mjd_count = tab["count"].data
+
+    plot(fov_count, fov, mjd_count, mjd, source_name, args.date)
     plt.savefig(f"{prefix}-level{args.level}.{args.format}", dpi=args.dpi)
