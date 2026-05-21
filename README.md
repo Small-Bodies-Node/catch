@@ -25,9 +25,9 @@ Figure 1. Ephemeris (dashed line) and S2 query cells (thin solid lines) for come
 1. Copy `catch.example.config` to `catch.config` and edit:
 
    1. Set "database" to, e.g.:
-      1. postgresql:///catch
-      1. postgresql://user:password@/catch?host=/tmp
-      1. postgresql://user:password@host/catch
+      1. postgresql+psycopg:///catch
+      1. postgresql+psycopg://user:password@/catch?host=/tmp
+      1. postgresql+psycopg://user:password@host/catch
    1. Create that database and allow user access, e.g.:
 
       ```bash
@@ -62,7 +62,7 @@ The `catch` script is installed along with the library. `catch --help` displays 
 
 - The CATCH configuration file can be explicitly specified as a parameter: `catch --config=/path/to/catch.config`.
 
-- As an alternative, the database and log path may be directly specified, e.g.: `catch --database=postgresql://@/catch --log=catch.temp.log`
+- As an alternative, the database and log path may be directly specified, e.g.: `catch --database=postgresql+psycopg://@/catch --log=catch.temp.log`
 
 - `catch` has three sub-commands:
   - `verify` to verify the database tables (and create them as needed), e.g., `catch verify`.

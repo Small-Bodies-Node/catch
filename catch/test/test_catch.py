@@ -10,6 +10,7 @@ import sqlalchemy as sa
 import testing.postgresql
 
 from sbsearch.target import MovingTarget, FixedTarget
+from sbsearch.test import get_url
 from ..catch import Catch
 from ..config import Config
 from ..model import (
@@ -25,7 +26,6 @@ from ..model import (
     LONEOS,
 )
 from ..stats import update_statistics, recently_added_observations
-
 
 # dummy_surveys survey parameters
 GEODSS_START = 50814.0
@@ -64,7 +64,7 @@ def dummy_surveys(postgresql):
 
             mjd_start += EXPTIME + SLEWTIME
 
-    config = Config(database=postgresql.url(), log="/dev/null", debug=True)
+    config = Config(database=get_url(postgresql), log="/dev/null", debug=True)
     with Catch.with_config(config) as catch:
         catch.add_observations(observations)
         update_statistics(catch)
@@ -78,7 +78,7 @@ Postgresql = testing.postgresql.PostgresqlFactory(
 @pytest.fixture(name="catch")
 def fixture_catch():
     with Postgresql() as postgresql:
-        config = Config(database=postgresql.url(), log="/dev/null", debug=True)
+        config = Config(database=get_url(postgresql), log="/dev/null", debug=True)
         with Catch.with_config(config) as catch:
             yield catch
 
