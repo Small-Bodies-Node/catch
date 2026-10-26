@@ -48,7 +48,7 @@ zip-safe = false
 write_to = "catch/version.py"
 
 [tool.pytest.ini_options]
-minversion = 8.0
+minversion = "8.0"
 addopts = "--doctest-rst --cov=catch --cov-report=html"
 doctest_plus = "enabled"
 remote_data_strict = true
